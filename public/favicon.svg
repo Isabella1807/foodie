@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="115" fill="#2f7d4f"/>
+  <!-- æble: to overlappende cirkler + stilk + blad -->
+  <circle cx="208" cy="318" r="102" fill="#ffffff"/>
+  <circle cx="304" cy="318" r="102" fill="#ffffff"/>
+  <rect x="247" y="150" width="18" height="80" rx="9" fill="#8a5a3b"/>
+  <path d="M266 196 c-6 -46 16 -82 52 -94 c4 34 -12 74 -52 94 z" fill="#bfe3cd"/>
+</svg>

@@ -1,0 +1,449 @@
+/* foodie — varm, rolig, bygget til én tommelfinger.
+   Signatur: dagens tal, stort og venligt, sat i Fraunces. */
+
+:root {
+  --bg: #f6f3ec;
+  --card: #ffffff;
+  --ink: #26322b;
+  --muted: #7c877c;
+  --green: #2f7d4f;
+  --green-dark: #245f3c;
+  --green-soft: #e4efe7;
+  --line: #e8e4d9;
+  --danger: #b04a36;
+  --radius: 14px;
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.6rem;
+  margin: 0;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 3px solid var(--green);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ---- layout ---- */
+
+.app-main {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 20px 16px calc(84px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.view-header {
+  padding: 6px 2px 2px;
+}
+
+.view-header.center {
+  text-align: center;
+  padding-top: 14px;
+}
+
+.view-header.split {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 0.85rem;
+  text-transform: lowercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.today-number {
+  margin: 2px 0 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(4rem, 22vw, 5.5rem);
+  line-height: 1;
+  color: var(--green-dark);
+}
+
+.today-unit {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+.sync-note {
+  margin: 10px 0 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.sync-note::before {
+  content: '●';
+  color: #d9a441;
+  margin-right: 6px;
+  font-size: 0.6rem;
+  vertical-align: 1px;
+}
+
+/* ---- kort og lister ---- */
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px;
+}
+
+.card.list {
+  padding: 4px 14px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+
+.card.list > .row:last-child,
+.day-details:last-child .row:last-child {
+  border-bottom: none;
+}
+
+.row-name {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.row-kcal {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.row-kcal.strong {
+  color: var(--green-dark);
+  font-weight: 600;
+}
+
+.row-delete {
+  color: var(--muted);
+  font-size: 0.9rem;
+  padding: 8px;
+  margin-right: -8px;
+  border-radius: 8px;
+}
+
+.row-delete:active {
+  color: var(--danger);
+}
+
+.row-action {
+  color: var(--green);
+  font-weight: 500;
+  padding: 8px 6px;
+}
+
+.row-day {
+  cursor: pointer;
+}
+
+.day-details {
+  background: var(--green-soft);
+  border-radius: 10px;
+  padding: 2px 12px;
+  margin: 4px 0 10px;
+}
+
+.row-sub {
+  min-height: 40px;
+  border-bottom-color: rgba(0, 0, 0, 0.05);
+}
+
+.empty {
+  text-align: center;
+  color: var(--muted);
+  padding: 18px 8px;
+  margin: 0;
+}
+
+/* ---- hurtig logning ---- */
+
+.quickadd {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.quickadd-matches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  background: var(--green-soft);
+  color: var(--green-dark);
+  border-radius: 999px;
+  padding: 9px 14px;
+  font-size: 0.95rem;
+  min-height: 40px;
+}
+
+.chip:active {
+  background: var(--green);
+  color: #fff;
+}
+
+.chip-kcal {
+  opacity: 0.65;
+  font-size: 0.85em;
+  margin-left: 2px;
+}
+
+.quickadd-new {
+  border-top: 1px dashed var(--line);
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.quickadd-new-label {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.quickadd-new-row {
+  display: flex;
+  gap: 10px;
+}
+
+.quickadd-new-row input {
+  width: 110px;
+}
+
+/* ---- formularer ---- */
+
+input[type='text'],
+input[type='email'],
+input[type='password'],
+input[type='number'] {
+  font: inherit;
+  font-size: 1rem; /* under 16px zoomer iOS ind på feltet */
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px;
+  width: 100%;
+  min-height: 48px;
+}
+
+input:focus {
+  border-color: var(--green);
+  outline: none;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.check {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.check input {
+  width: 18px;
+  height: 18px;
+  min-height: 0;
+  accent-color: var(--green);
+}
+
+.btn-primary {
+  background: var(--green);
+  color: #fff;
+  font-weight: 600;
+  border-radius: 10px;
+  padding: 12px 18px;
+  min-height: 48px;
+}
+
+.btn-primary:active {
+  background: var(--green-dark);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+}
+
+.btn-ghost {
+  color: var(--muted);
+  padding: 12px 18px;
+  min-height: 48px;
+}
+
+.link {
+  color: var(--green);
+  text-decoration: underline;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.form-error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 0.9rem;
+}
+
+.food-form,
+.starter {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.starter p {
+  margin: 0;
+}
+
+.foods-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 4px;
+  font-size: 0.85rem;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+/* ---- login ---- */
+
+.login {
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 18vh 20px 40px;
+  text-align: center;
+}
+
+.login-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 3rem;
+  margin: 0;
+  color: var(--green-dark);
+}
+
+.login-sub {
+  margin: 4px 0 28px;
+  color: var(--muted);
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: left;
+}
+
+/* ---- bundmenu ---- */
+
+.tabbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-around;
+  background: var(--card);
+  border-top: 1px solid var(--line);
+  padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+}
+
+.tabbar-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: 0.75rem;
+  color: var(--muted);
+  padding: 6px 18px;
+  border-radius: 12px;
+  min-width: 84px;
+}
+
+.tabbar-icon {
+  font-size: 1.3rem;
+}
+
+.tabbar-item.active {
+  color: var(--green-dark);
+  background: var(--green-soft);
+  font-weight: 600;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .chip,
+  .btn-primary,
+  .tabbar-item {
+    transition: background-color 0.15s ease, color 0.15s ease;
+  }
+}
