@@ -13,9 +13,10 @@ const newPerUnit = ref(null)
 // Valgfrit: hvad vejer/fylder ét stk (fx én kiks = 13 g)?
 const newPieceSize = ref('')
 
-// Pr.-100-vare der venter på "hvor meget?"
+// Pr.-100-vare der venter på "hvor meget?" — mængde i g/ml ELLER antal stk
 const pending = ref(null)
 const pendingAmount = ref('')
+const pendingCount = ref('')
 
 const unitChoices = [
   { value: null, label: '1 portion' },
@@ -49,9 +50,13 @@ const pieceKcal = computed(() => {
 })
 
 const pendingKcal = computed(() => {
+  const food = pending.value
+  if (!food) return 0
+  const stk = Math.round(Number(pendingCount.value))
+  if (food.piece_size && stk > 0) return pieceKcalOf(food) * stk
   const qty = Math.round(Number(pendingAmount.value))
-  if (!pending.value || !qty || qty <= 0) return 0
-  return Math.round((pending.value.kcal * qty) / 100) * safeCount()
+  if (qty > 0) return Math.round((food.kcal * qty) / 100)
+  return 0
 })
 
 function reset() {
@@ -63,6 +68,7 @@ function reset() {
   newPieceSize.value = ''
   pending.value = null
   pendingAmount.value = ''
+  pendingCount.value = ''
 }
 
 // Kcal for ét stk af en vare med stk-vægt (fx kiks: 511/100g × 13 g = 66)
@@ -71,24 +77,14 @@ function pieceKcalOf(food) {
 }
 
 function logFood(food) {
-  const n = safeCount()
-  // Vare med stk-vægt: antal-feltet ER mængden — log direkte, appen regner gram
-  if (food.per_unit && food.piece_size) {
-    const grams = Math.round(food.piece_size * n * 10) / 10
-    data.logEntry({
-      name: `${n > 1 ? `${n} × ` : ''}${food.name} (${grams} ${food.per_unit})`,
-      kcal: pieceKcalOf(food) * n,
-      foodId: food.id,
-    })
-    reset()
-    return
-  }
-  // Pr.-100-vare uden stk-vægt: spørg hvor meget der blev spist/drukket
+  // Pr.-100-varer: spørg hvor meget — i stk (hvis stk-vægt kendes) eller g/ml
   if (food.per_unit) {
     pending.value = food
     pendingAmount.value = ''
+    pendingCount.value = ''
     return
   }
+  const n = safeCount()
   data.logEntry({
     name: n > 1 ? `${n} × ${food.name}` : food.name,
     kcal: food.kcal * n,
@@ -99,15 +95,16 @@ function logFood(food) {
 
 function logPending() {
   const food = pending.value
-  const qty = Math.round(Number(pendingAmount.value))
-  if (!food || !qty || qty <= 0) return
-  const n = safeCount()
-  const baseName = `${food.name} (${qty} ${food.per_unit})`
-  data.logEntry({
-    name: n > 1 ? `${n} × ${baseName}` : baseName,
-    kcal: pendingKcal.value,
-    foodId: food.id,
-  })
+  if (!food || !pendingKcal.value) return
+  const stk = Math.round(Number(pendingCount.value))
+  let name
+  if (food.piece_size && stk > 0) {
+    const amount = Math.round(food.piece_size * stk * 10) / 10
+    name = `${stk > 1 ? `${stk} × ` : ''}${food.name} (${amount} ${food.per_unit})`
+  } else {
+    name = `${food.name} (${Math.round(Number(pendingAmount.value))} ${food.per_unit})`
+  }
+  data.logEntry({ name, kcal: pendingKcal.value, foodId: food.id })
   reset()
 }
 
@@ -160,18 +157,32 @@ function logNew() {
     <p v-if="safeCount() > 1" class="count-hint">Der logges {{ safeCount() }} stk ad gangen</p>
 
     <form v-if="pending" class="quickadd-new" @submit.prevent="logPending">
-      <p class="quickadd-new-label">Hvor mange {{ pending.per_unit }} {{ pending.name }}?</p>
+      <p class="quickadd-new-label">
+        Hvor meget {{ pending.name }}?{{ pending.piece_size ? ' Tast stk ELLER ' + pending.per_unit + ':' : '' }}
+      </p>
       <div class="quickadd-new-row">
+        <input
+          v-if="pending.piece_size"
+          v-model="pendingCount"
+          type="number"
+          min="1"
+          inputmode="numeric"
+          placeholder="antal stk"
+          aria-label="Antal stk"
+          @input="pendingAmount = ''"
+        />
         <input
           v-model="pendingAmount"
           type="number"
           min="1"
           inputmode="numeric"
-          :placeholder="pending.per_unit"
+          :placeholder="`antal ${pending.per_unit}`"
           aria-label="Mængde"
-          required
+          @input="pendingCount = ''"
         />
-        <button class="btn-primary">Log{{ pendingKcal ? ` ${pendingKcal} kcal` : '' }}</button>
+        <button class="btn-primary" :disabled="!pendingKcal">
+          Log{{ pendingKcal ? ` ${pendingKcal} kcal` : '' }}
+        </button>
       </div>
       <button type="button" class="btn-ghost" @click="pending = null">Annullér</button>
     </form>
