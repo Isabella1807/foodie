@@ -86,6 +86,19 @@ function logPending() {
   reset()
 }
 
+// Gem varen i madlisten uden at logge et måltid — mængden tastes
+// først den dag, den bliver spist
+function saveOnly() {
+  const name = query.value.trim()
+  const perNumber = Math.round(Number(kcal.value))
+  if (!name || !perNumber || perNumber <= 0) return
+  data.addFood({ name, kcal: perNumber, per_unit: newPerUnit.value })
+  // Behold navnet i søgefeltet — så dukker den nye chip op som kvittering
+  kcal.value = ''
+  newAmount.value = ''
+  newPerUnit.value = null
+}
+
 function logNew() {
   const name = query.value.trim()
   const perNumber = Math.round(Number(kcal.value))
@@ -192,6 +205,9 @@ function logNew() {
           <input v-model="saveToList" type="checkbox" />
           Gem i madlisten
         </label>
+        <button type="button" class="btn-ghost save-only" @click="saveOnly">
+          Gem kun i listen — log ikke noget nu
+        </button>
       </form>
     </template>
   </section>
