@@ -65,14 +65,30 @@ function reset() {
   pendingAmount.value = ''
 }
 
+// Kcal for ét stk af en vare med stk-vægt (fx kiks: 511/100g × 13 g = 66)
+function pieceKcalOf(food) {
+  return Math.round((food.kcal * food.piece_size) / 100)
+}
+
 function logFood(food) {
-  // Pr.-100-varer skal først have at vide hvor meget der blev spist/drukket
+  const n = safeCount()
+  // Vare med stk-vægt: antal-feltet ER mængden — log direkte, appen regner gram
+  if (food.per_unit && food.piece_size) {
+    const grams = Math.round(food.piece_size * n * 10) / 10
+    data.logEntry({
+      name: `${n > 1 ? `${n} × ` : ''}${food.name} (${grams} ${food.per_unit})`,
+      kcal: pieceKcalOf(food) * n,
+      foodId: food.id,
+    })
+    reset()
+    return
+  }
+  // Pr.-100-vare uden stk-vægt: spørg hvor meget der blev spist/drukket
   if (food.per_unit) {
     pending.value = food
     pendingAmount.value = ''
     return
   }
-  const n = safeCount()
   data.logEntry({
     name: n > 1 ? `${n} × ${food.name}` : food.name,
     kcal: food.kcal * n,
@@ -101,13 +117,13 @@ function saveOnly() {
   const name = query.value.trim()
   const perNumber = Math.round(Number(kcal.value))
   if (!name || !perNumber || perNumber <= 0) return
-  if (pieceKcal.value) {
-    // Stk-vægt er udfyldt: gem som stk-vare (fx "Chokoladekiks, 1 stk" = 66
-    // kcal), så antal-feltet klarer resten — "4 kiks" uden gram-regning
-    data.addFood({ name: `${name}, 1 stk`, kcal: pieceKcal.value })
-  } else {
-    data.addFood({ name, kcal: perNumber, per_unit: newPerUnit.value })
-  }
+  const size = Number(newPieceSize.value)
+  data.addFood({
+    name,
+    kcal: perNumber,
+    per_unit: newPerUnit.value,
+    piece_size: newPerUnit.value && size > 0 ? size : null,
+  })
   // Behold navnet i søgefeltet — så dukker den nye chip op som kvittering
   kcal.value = ''
   newPerUnit.value = null
@@ -164,7 +180,13 @@ function logNew() {
       <div v-if="matches.length" class="quickadd-matches">
         <button v-for="food in matches" :key="food.id" class="chip" @click="logFood(food)">
           {{ food.name }}
-          <span class="chip-kcal">{{ food.kcal }} kcal{{ food.per_unit ? `/100 ${food.per_unit}` : '' }}</span>
+          <span class="chip-kcal">
+            {{
+              food.per_unit && food.piece_size
+                ? `${pieceKcalOf(food)} kcal/stk`
+                : `${food.kcal} kcal${food.per_unit ? `/100 ${food.per_unit}` : ''}`
+            }}
+          </span>
         </button>
       </div>
 
@@ -223,7 +245,7 @@ function logNew() {
             />
           </label>
           <p v-if="pieceKcal" class="quickadd-new-label">
-            Ét stk ≈ <strong>{{ pieceKcal }} kcal</strong> — varen gemmes pr. stk, så du fremover kun taster antal.
+            Ét stk ≈ <strong>{{ pieceKcal }} kcal</strong> — fra forsiden taster du bare antal stk, så regner appen selv.
           </p>
           <p v-else class="quickadd-new-label">
             Mængden taster du først, når du logger den — tryk på den nye chip, når du spiser/drikker den.

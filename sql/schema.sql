@@ -7,12 +7,14 @@ create table public.foods (
   name         text not null,
   kcal         integer not null check (kcal >= 0),
   per_unit     text check (per_unit in ('g', 'ml')), -- sat = kcal er pr. 100 g/ml; tom = kcal er pr. portion
+  piece_size   numeric check (piece_size > 0), -- valgfri: hvad ét stk vejer/fylder (fx én kiks = 13 g)
   last_used_at timestamptz,
   created_at   timestamptz not null default now()
 );
 
--- Kørte du en ældre udgave af dette skema, så tilføj kolonnen med:
+-- Kørte du en ældre udgave af dette skema, så tilføj kolonnerne med:
 -- alter table public.foods add column per_unit text check (per_unit in ('g', 'ml'));
+-- alter table public.foods add column piece_size numeric check (piece_size > 0);
 
 create table public.entries (
   id         uuid primary key,
