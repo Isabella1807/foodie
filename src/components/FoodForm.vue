@@ -6,22 +6,38 @@ const emit = defineEmits(['save', 'cancel'])
 
 const name = ref(props.food?.name ?? '')
 const kcal = ref(props.food?.kcal ?? '')
-// null = kcal gælder én portion; 'g'/'ml' = kcal gælder pr. 100 g/ml
+// null = kcal gælder én portion; 'g'/'ml' = kcal gælder pr. 100 g/ml;
+// 'stk' = kcal tastes pr. stk, og appen regner selv 100 g-tallet baglæns
 const perUnit = ref(props.food?.per_unit ?? null)
 // Valgfri: hvad ét stk vejer/fylder (fx én kiks = 13 g)
 const pieceSize = ref(props.food?.piece_size ?? '')
 
 const unitChoices = [
   { value: null, label: '1 portion' },
+  { value: 'stk', label: '1 stk' },
   { value: 'g', label: '100 g' },
   { value: 'ml', label: '100 ml' },
 ]
 
-const pieceKcal = computed(() => {
-  const per100 = Math.round(Number(kcal.value))
+const kcalLabel = computed(() => {
+  if (perUnit.value === 'stk') return 'Kalorier pr. stk'
+  if (perUnit.value) return `Kalorier pr. 100 ${perUnit.value} (står på etiketten)`
+  return 'Kalorier pr. portion'
+})
+
+// Hjælpetekst der viser, hvad appen selv har regnet ud
+const preview = computed(() => {
+  const amount = Math.round(Number(kcal.value))
   const size = Number(pieceSize.value)
-  if (!perUnit.value || !per100 || per100 <= 0 || !size || size <= 0) return 0
-  return Math.round((per100 * size) / 100)
+  if (!amount || amount <= 0) return ''
+  if (perUnit.value === 'stk') {
+    if (size > 0) return `100 g ≈ ${Math.round((amount / size) * 100)} kcal — kan logges i både stk og gram.`
+    return 'Uden vægt kan den kun logges i antal stk (antal-feltet på forsiden).'
+  }
+  if (perUnit.value && size > 0) {
+    return `Ét stk ≈ ${Math.round((amount * size) / 100)} kcal — fra forsiden taster du bare antal stk.`
+  }
+  return ''
 })
 
 function submit() {
@@ -29,6 +45,16 @@ function submit() {
   const amount = Math.round(Number(kcal.value))
   if (!trimmed || !amount || amount <= 0) return
   const size = Number(pieceSize.value)
+  if (perUnit.value === 'stk') {
+    // Tastet pr. stk: med vægt regnes 100 g-tallet baglæns, uden vægt
+    // gemmes den som almindelig portions-vare
+    if (size > 0) {
+      emit('save', { name: trimmed, kcal: Math.round((amount / size) * 100), per_unit: 'g', piece_size: size })
+    } else {
+      emit('save', { name: trimmed, kcal: amount, per_unit: null, piece_size: null })
+    }
+    return
+  }
   emit('save', {
     name: trimmed,
     kcal: amount,
@@ -60,23 +86,21 @@ function submit() {
       </div>
     </div>
     <label>
-      {{ perUnit ? `Kalorier pr. 100 ${perUnit} (står på etiketten)` : 'Kalorier pr. portion' }}
+      {{ kcalLabel }}
       <input v-model="kcal" type="number" min="1" inputmode="numeric" required />
     </label>
     <label v-if="perUnit">
-      Ét stk vejer/fylder (valgfrit)
+      {{ perUnit === 'stk' ? 'Ét stk vejer (valgfrit, i gram)' : 'Ét stk vejer/fylder (valgfrit)' }}
       <input
         v-model="pieceSize"
         type="number"
         min="0.1"
         step="any"
         inputmode="decimal"
-        :placeholder="`${perUnit} pr. stk — fx én kiks = 13 g`"
+        :placeholder="perUnit === 'stk' ? 'fx ét kirsebær = 8 g' : `${perUnit} pr. stk — fx én kiks = 13 g`"
       />
     </label>
-    <p v-if="pieceKcal" class="quickadd-new-label">
-      Ét stk ≈ <strong>{{ pieceKcal }} kcal</strong> — fra forsiden taster du bare antal stk.
-    </p>
+    <p v-if="preview" class="quickadd-new-label">{{ preview }}</p>
     <div class="form-actions">
       <button type="button" class="btn-ghost" @click="emit('cancel')">Annullér</button>
       <button class="btn-primary">Gem</button>

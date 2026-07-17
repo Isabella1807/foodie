@@ -20,6 +20,7 @@ const pendingCount = ref('')
 
 const unitChoices = [
   { value: null, label: '1 portion' },
+  { value: 'stk', label: '1 stk' },
   { value: 'g', label: '100 g' },
   { value: 'ml', label: '100 ml' },
 ]
@@ -41,12 +42,19 @@ const exactMatch = computed(() => {
   return q && data.foods.some((f) => f.name.toLowerCase() === q)
 })
 
-// Kcal for ét stk, når både pr.-100-tal og stk-vægt er tastet
-const pieceKcal = computed(() => {
-  const per100 = Math.round(Number(kcal.value))
+// Hjælpetekst der viser, hvad appen selv har regnet ud for den nye vare
+const newPreview = computed(() => {
+  const amount = Math.round(Number(kcal.value))
   const size = Number(newPieceSize.value)
-  if (!newPerUnit.value || !per100 || per100 <= 0 || !size || size <= 0) return 0
-  return Math.round((per100 * size) / 100)
+  if (!newPerUnit.value || !amount || amount <= 0) return ''
+  if (newPerUnit.value === 'stk') {
+    if (size > 0) return `100 g ≈ ${Math.round((amount / size) * 100)} kcal — kan logges i både stk og gram.`
+    return 'Uden vægt logges den i antal stk (antal-feltet).'
+  }
+  if (size > 0) {
+    return `Ét stk ≈ ${Math.round((amount * size) / 100)} kcal — fra forsiden taster du bare antal stk, så regner appen selv.`
+  }
+  return 'Mængden taster du først, når du logger den — tryk på den nye chip, når du spiser/drikker den.'
 })
 
 const pendingKcal = computed(() => {
@@ -115,12 +123,22 @@ function saveOnly() {
   const perNumber = Math.round(Number(kcal.value))
   if (!name || !perNumber || perNumber <= 0) return
   const size = Number(newPieceSize.value)
-  data.addFood({
-    name,
-    kcal: perNumber,
-    per_unit: newPerUnit.value,
-    piece_size: newPerUnit.value && size > 0 ? size : null,
-  })
+  if (newPerUnit.value === 'stk') {
+    // Tastet pr. stk: med vægt regnes 100 g-tallet baglæns, uden vægt
+    // gemmes den som almindelig portions-vare
+    if (size > 0) {
+      data.addFood({ name, kcal: Math.round((perNumber / size) * 100), per_unit: 'g', piece_size: size })
+    } else {
+      data.addFood({ name, kcal: perNumber })
+    }
+  } else {
+    data.addFood({
+      name,
+      kcal: perNumber,
+      per_unit: newPerUnit.value,
+      piece_size: newPerUnit.value && size > 0 ? size : null,
+    })
+  }
   // Behold navnet i søgefeltet — så dukker den nye chip op som kvittering
   kcal.value = ''
   newPerUnit.value = null
@@ -227,7 +245,13 @@ function logNew() {
             type="number"
             min="1"
             inputmode="numeric"
-            :placeholder="newPerUnit ? `kcal pr. 100 ${newPerUnit} (fra etiketten)` : 'kcal'"
+            :placeholder="
+              newPerUnit === 'stk'
+                ? 'kcal pr. stk'
+                : newPerUnit
+                  ? `kcal pr. 100 ${newPerUnit} (fra etiketten)`
+                  : 'kcal'
+            "
             aria-label="Kalorier"
             required
           />
@@ -244,23 +268,18 @@ function logNew() {
         </template>
         <template v-else>
           <label class="piece-size">
-            Vejer/fylder ét stk noget fast? (valgfrit)
+            {{ newPerUnit === 'stk' ? 'Vejer ét stk? (valgfrit, i gram)' : 'Vejer/fylder ét stk noget fast? (valgfrit)' }}
             <input
               v-model="newPieceSize"
               type="number"
               min="0.1"
               step="any"
               inputmode="decimal"
-              :placeholder="`${newPerUnit} pr. stk — fx én kiks = 13 g`"
+              :placeholder="newPerUnit === 'stk' ? 'fx ét kirsebær = 8 g' : `${newPerUnit} pr. stk — fx én kiks = 13 g`"
               aria-label="Vægt pr. stk"
             />
           </label>
-          <p v-if="pieceKcal" class="quickadd-new-label">
-            Ét stk ≈ <strong>{{ pieceKcal }} kcal</strong> — fra forsiden taster du bare antal stk, så regner appen selv.
-          </p>
-          <p v-else class="quickadd-new-label">
-            Mængden taster du først, når du logger den — tryk på den nye chip, når du spiser/drikker den.
-          </p>
+          <p v-if="newPreview" class="quickadd-new-label">{{ newPreview }}</p>
         </template>
       </form>
     </template>
