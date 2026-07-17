@@ -5,7 +5,7 @@ virker også uden net og sender data op til Supabase, når nettet er tilbage.
 
 ## Teknik
 
-Vue 3 + Vite + Pinia · Supabase (database + login) · vite-plugin-pwa · hostes på Vercel.
+Vue 3 + Vite + Pinia · Supabase (database + login) · vite-plugin-pwa · hostes på GitHub Pages.
 
 ## Kør lokalt
 
@@ -39,5 +39,8 @@ upsert, så en ændring der bliver sendt to gange, ikke laver dubletter.
 
 ## Deploy
 
-Push til `main` → Vercel bygger og deployer automatisk. Husk at sætte de to
-env-variabler i Vercel-projektet (Settings → Environment Variables).
+Push til `main` → GitHub Actions bygger og lægger appen på GitHub Pages:
+https://isabella1807.github.io/foodie/
+
+Workflowet ligger i `.github/workflows/deploy.yml` (env-værdierne står direkte
+deri — de er offentlige af design).

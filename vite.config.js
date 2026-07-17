@@ -3,6 +3,8 @@ import vue from '@vitejs/plugin-vue'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  // Appen bor på isabella1807.github.io/foodie/ — altså i en undermappe
+  base: '/foodie/',
   plugins: [
     vue(),
     VitePWA({
@@ -13,15 +15,15 @@ export default defineConfig({
         short_name: 'foodie',
         description: 'Hold styr på dagens kalorier',
         lang: 'da',
-        start_url: '/',
-        scope: '/',
+        start_url: '/foodie/',
+        scope: '/foodie/',
         display: 'standalone',
         background_color: '#faf8f5',
         theme_color: '#2f7d4f',
         icons: [
-          { src: '/pwa-192x192.png', sizes: '192x192', type: 'image/png' },
-          { src: '/pwa-512x512.png', sizes: '512x512', type: 'image/png' },
-          { src: '/maskable-icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
+          { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' },
+          { src: 'maskable-icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
       // Ingen runtimeCaching: Supabase-kald må aldrig caches af service workeren —
