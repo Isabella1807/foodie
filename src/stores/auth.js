@@ -19,7 +19,13 @@ export const useAuthStore = defineStore('auth', {
       try {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) {
-          this.error = 'Kunne ikke logge ind. Tjek email og kodeord.'
+          if (error.code === 'email_not_confirmed') {
+            this.error = 'Din bruger er ikke bekræftet endnu. I Supabase: Authentication → Users → tryk på de tre prikker ved brugeren → "Confirm email".'
+          } else if (error.code === 'invalid_credentials') {
+            this.error = 'Forkert email eller kodeord.'
+          } else {
+            this.error = `Kunne ikke logge ind: ${error.message}`
+          }
           return false
         }
         const user = { id: data.user.id, email: data.user.email }
