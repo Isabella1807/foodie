@@ -1,12 +1,23 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useDataStore } from '../stores/data'
 import { useAuthStore } from '../stores/auth'
+import { starterFoods } from '../data/starterFoods'
 import FoodForm from '../components/FoodForm.vue'
 import StarterBanner from '../components/StarterBanner.vue'
 
 const data = useDataStore()
 const auth = useAuthStore()
+
+// Standardvarer der endnu ikke er i hendes liste — så nye varer i
+// startlisten kan hentes ind uden at røre resten
+const missingStarters = computed(() =>
+  starterFoods.filter((s) => !data.foods.some((f) => f.name.toLowerCase() === s.name.toLowerCase())),
+)
+
+function importMissing() {
+  for (const food of missingStarters.value) data.addFood(food)
+}
 
 // null = lukket, 'new' = ny madvare, ellers den madvare der rettes
 const editing = ref(null)
@@ -47,6 +58,12 @@ function removeFood(food) {
       <button class="row-delete" aria-label="Slet madvare" @click="removeFood(food)">✕</button>
     </div>
   </section>
+
+  <p v-if="data.foods.length && missingStarters.length" class="import-more">
+    <button class="link" @click="importMissing">
+      Hent {{ missingStarters.length }} nye varer fra standardlisten
+    </button>
+  </p>
 
   <footer class="foods-footer">
     <span class="muted">{{ auth.user.email }}</span>

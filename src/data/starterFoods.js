@@ -15,4 +15,20 @@ export const starterFoods = [
   { name: 'Pizza (2 stykker)', kcal: 540 },
   { name: 'Håndfuld nødder', kcal: 180 },
   { name: 'Mørk chokolade (2 stykker)', kcal: 110 },
+  // Tal fra officielle produktsider (mcdonalds.com/dk, arla.dk m.fl.), juli 2026
+  { name: 'Cola, alm. dåse (330 ml)', kcal: 139 },
+  { name: 'Mixed Team Box (McDonald’s)', kcal: 800 },
+  { name: 'Pommes frites, stor (McDonald’s)', kcal: 430 },
+  { name: 'Pommes frites sauce, 1 stk (McDonald’s)', kcal: 19 },
+  { name: 'Cola, stor (McDonald’s)', kcal: 213 },
+  // Go-to-turen: Mixed Team Box 800 + stor fritter 430 + 4 sauce 76 + stor cola 213
+  { name: 'En omgang McDonald’s (go-to)', kcal: 1519 },
+  { name: 'McFlurry med Smarties', kcal: 353 },
+  { name: 'Letmælk, 1 liter', kcal: 460 },
+  { name: 'Letmælk, ½ liter', kcal: 230 },
+  { name: 'Letmælk, ¼ liter', kcal: 115 },
+  { name: 'Toms Guld Barre Orangeknas (45 g)', kcal: 246 },
+  { name: 'Maltesers, 1 kugle', kcal: 10 },
+  { name: 'Magic Stars, 1 stjerne', kcal: 6 },
+  { name: 'Ritter Sport Butter Biscuit (hel plade)', kcal: 544 },
 ]

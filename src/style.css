@@ -218,6 +218,40 @@ button {
   gap: 12px;
 }
 
+.quickadd-row {
+  display: flex;
+  gap: 10px;
+}
+
+.quickadd-row .quickadd-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.count-wrap {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.count-wrap input {
+  width: 64px;
+  text-align: center;
+}
+
+.count-hint {
+  margin: -4px 0 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.import-more {
+  text-align: center;
+  margin: 4px 0;
+}
+
 .quickadd-matches {
   display: flex;
   flex-wrap: wrap;

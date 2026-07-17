@@ -5,7 +5,14 @@ import { useDataStore } from '../stores/data'
 const data = useDataStore()
 const query = ref('')
 const kcal = ref('')
+const count = ref(1)
 const saveToList = ref(true)
+
+// Antal-feltet: "25" + tryk på Maltesers-chippen = 25 × kcal pr. kugle
+function safeCount() {
+  const n = Math.round(Number(count.value))
+  return n >= 1 ? n : 1
+}
 
 const matches = computed(() => {
   const q = query.value.trim().toLowerCase()
@@ -21,34 +28,49 @@ const exactMatch = computed(() => {
 function reset() {
   query.value = ''
   kcal.value = ''
+  count.value = 1
   saveToList.value = true
 }
 
 function logFood(food) {
-  data.logEntry({ name: food.name, kcal: food.kcal, foodId: food.id })
+  const n = safeCount()
+  data.logEntry({
+    name: n > 1 ? `${n} × ${food.name}` : food.name,
+    kcal: food.kcal * n,
+    foodId: food.id,
+  })
   reset()
 }
 
 function logNew() {
   const name = query.value.trim()
-  const amount = Math.round(Number(kcal.value))
-  if (!name || !amount || amount <= 0) return
+  const perPiece = Math.round(Number(kcal.value))
+  if (!name || !perPiece || perPiece <= 0) return
+  const n = safeCount()
   let foodId = null
-  if (saveToList.value) foodId = data.addFood({ name, kcal: amount }).id
-  data.logEntry({ name, kcal: amount, foodId })
+  // Gemmes med kcal pr. styk — antallet ganges kun på selve måltidet
+  if (saveToList.value) foodId = data.addFood({ name, kcal: perPiece }).id
+  data.logEntry({ name: n > 1 ? `${n} × ${name}` : name, kcal: perPiece * n, foodId })
   reset()
 }
 </script>
 
 <template>
   <section class="card quickadd">
-    <input
-      v-model="query"
-      type="text"
-      class="quickadd-input"
-      placeholder="Hvad har du spist?"
-      aria-label="Søg eller skriv en madvare"
-    />
+    <div class="quickadd-row">
+      <input
+        v-model="query"
+        type="text"
+        class="quickadd-input"
+        placeholder="Hvad har du spist?"
+        aria-label="Søg eller skriv en madvare"
+      />
+      <label class="count-wrap">
+        <span aria-hidden="true">×</span>
+        <input v-model="count" type="number" min="1" inputmode="numeric" aria-label="Antal" />
+      </label>
+    </div>
+    <p v-if="safeCount() > 1" class="count-hint">Der logges {{ safeCount() }} stk ad gangen</p>
 
     <div v-if="matches.length" class="quickadd-matches">
       <button v-for="food in matches" :key="food.id" class="chip" @click="logFood(food)">
