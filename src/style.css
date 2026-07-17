@@ -236,7 +236,8 @@ button {
   font-weight: 400;
 }
 
-.count-wrap input {
+/* skal slå den generelle input[type='number']-regel (width: 100%) */
+.count-wrap input[type='number'] {
   width: 64px;
   text-align: center;
 }
