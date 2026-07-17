@@ -279,6 +279,28 @@ button {
   margin-left: 2px;
 }
 
+.chip.selected {
+  background: var(--green);
+  color: #fff;
+}
+
+.unit-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.9rem;
+}
+
+.unit-choice-label {
+  font-weight: 500;
+}
+
+.unit-choice-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .quickadd-new {
   border-top: 1px dashed var(--line);
   padding-top: 12px;

@@ -6,9 +6,13 @@ create table public.foods (
   user_id      uuid not null default auth.uid() references auth.users (id) on delete cascade,
   name         text not null,
   kcal         integer not null check (kcal >= 0),
+  per_unit     text check (per_unit in ('g', 'ml')), -- sat = kcal er pr. 100 g/ml; tom = kcal er pr. portion
   last_used_at timestamptz,
   created_at   timestamptz not null default now()
 );
+
+-- Kørte du en ældre udgave af dette skema, så tilføj kolonnen med:
+-- alter table public.foods add column per_unit text check (per_unit in ('g', 'ml'));
 
 create table public.entries (
   id         uuid primary key,

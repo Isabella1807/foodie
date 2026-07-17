@@ -74,21 +74,30 @@ export const useDataStore = defineStore('data', {
       this.flush()
     },
 
-    addFood({ name, kcal }) {
-      const food = { id: crypto.randomUUID(), name, kcal, last_used_at: null, created_at: now() }
+    // per_unit udelades af payload når den er tom, så en database uden
+    // kolonnen ikke afviser almindelige portions-varer
+    foodPayload(food) {
+      const payload = { ...food }
+      if (payload.per_unit == null) delete payload.per_unit
+      return payload
+    },
+
+    addFood({ name, kcal, per_unit = null }) {
+      const food = { id: crypto.randomUUID(), name, kcal, per_unit, last_used_at: null, created_at: now() }
       this.foods.push(food)
       this.persist()
-      this.queue('upsert_food', { ...food })
+      this.queue('upsert_food', this.foodPayload(food))
       return food
     },
 
-    updateFood(id, { name, kcal }) {
+    updateFood(id, { name, kcal, per_unit = null }) {
       const food = this.foods.find((f) => f.id === id)
       if (!food) return
       food.name = name
       food.kcal = kcal
+      food.per_unit = per_unit
       this.persist()
-      this.queue('upsert_food', { ...food })
+      this.queue('upsert_food', this.foodPayload(food))
     },
 
     deleteFood(id) {
@@ -110,7 +119,7 @@ export const useDataStore = defineStore('data', {
       if (food) food.last_used_at = entry.created_at
       this.persist()
       this.queue('upsert_entry', { ...entry })
-      if (food) this.queue('upsert_food', { ...food })
+      if (food) this.queue('upsert_food', this.foodPayload(food))
     },
 
     deleteEntry(id) {

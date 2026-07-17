@@ -53,7 +53,7 @@ function removeFood(food) {
   <section v-if="data.foodsByName.length" class="card list">
     <div v-for="food in data.foodsByName" :key="food.id" class="row">
       <span class="row-name">{{ food.name }}</span>
-      <span class="row-kcal">{{ food.kcal }} kcal</span>
+      <span class="row-kcal">{{ food.kcal }} kcal{{ food.per_unit ? ` / 100 ${food.per_unit}` : '' }}</span>
       <button class="row-action" @click="editing = food">Ret</button>
       <button class="row-delete" aria-label="Slet madvare" @click="removeFood(food)">✕</button>
     </div>
