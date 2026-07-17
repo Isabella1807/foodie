@@ -10,6 +10,8 @@ const saveToList = ref(true)
 
 // Ny vare: gælder tallet én portion eller 100 g/ml?
 const newPerUnit = ref(null)
+// Valgfrit: hvad vejer/fylder ét stk (fx én kiks = 13 g)?
+const newPieceSize = ref('')
 
 // Pr.-100-vare der venter på "hvor meget?"
 const pending = ref(null)
@@ -38,6 +40,14 @@ const exactMatch = computed(() => {
   return q && data.foods.some((f) => f.name.toLowerCase() === q)
 })
 
+// Kcal for ét stk, når både pr.-100-tal og stk-vægt er tastet
+const pieceKcal = computed(() => {
+  const per100 = Math.round(Number(kcal.value))
+  const size = Number(newPieceSize.value)
+  if (!newPerUnit.value || !per100 || per100 <= 0 || !size || size <= 0) return 0
+  return Math.round((per100 * size) / 100)
+})
+
 const pendingKcal = computed(() => {
   const qty = Math.round(Number(pendingAmount.value))
   if (!pending.value || !qty || qty <= 0) return 0
@@ -50,6 +60,7 @@ function reset() {
   count.value = 1
   saveToList.value = true
   newPerUnit.value = null
+  newPieceSize.value = ''
   pending.value = null
   pendingAmount.value = ''
 }
@@ -90,10 +101,17 @@ function saveOnly() {
   const name = query.value.trim()
   const perNumber = Math.round(Number(kcal.value))
   if (!name || !perNumber || perNumber <= 0) return
-  data.addFood({ name, kcal: perNumber, per_unit: newPerUnit.value })
+  if (pieceKcal.value) {
+    // Stk-vægt er udfyldt: gem som stk-vare (fx "Chokoladekiks, 1 stk" = 66
+    // kcal), så antal-feltet klarer resten — "4 kiks" uden gram-regning
+    data.addFood({ name: `${name}, 1 stk`, kcal: pieceKcal.value })
+  } else {
+    data.addFood({ name, kcal: perNumber, per_unit: newPerUnit.value })
+  }
   // Behold navnet i søgefeltet — så dukker den nye chip op som kvittering
   kcal.value = ''
   newPerUnit.value = null
+  newPieceSize.value = ''
 }
 
 function logNew() {
@@ -191,9 +209,26 @@ function logNew() {
             Gem kun i listen — log ikke noget nu
           </button>
         </template>
-        <p v-else class="quickadd-new-label">
-          Mængden taster du først, når du logger den — tryk på den nye chip, når du spiser/drikker den.
-        </p>
+        <template v-else>
+          <label class="piece-size">
+            Vejer/fylder ét stk noget fast? (valgfrit)
+            <input
+              v-model="newPieceSize"
+              type="number"
+              min="0.1"
+              step="any"
+              inputmode="decimal"
+              :placeholder="`${newPerUnit} pr. stk — fx én kiks = 13 g`"
+              aria-label="Vægt pr. stk"
+            />
+          </label>
+          <p v-if="pieceKcal" class="quickadd-new-label">
+            Ét stk ≈ <strong>{{ pieceKcal }} kcal</strong> — varen gemmes pr. stk, så du fremover kun taster antal.
+          </p>
+          <p v-else class="quickadd-new-label">
+            Mængden taster du først, når du logger den — tryk på den nye chip, når du spiser/drikker den.
+          </p>
+        </template>
       </form>
     </template>
   </section>
