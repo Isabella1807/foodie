@@ -10,7 +10,6 @@ const saveToList = ref(true)
 
 // Ny vare: gælder tallet én portion eller 100 g/ml?
 const newPerUnit = ref(null)
-const newAmount = ref('')
 
 // Pr.-100-vare der venter på "hvor meget?"
 const pending = ref(null)
@@ -51,7 +50,6 @@ function reset() {
   count.value = 1
   saveToList.value = true
   newPerUnit.value = null
-  newAmount.value = ''
   pending.value = null
   pendingAmount.value = ''
 }
@@ -95,7 +93,6 @@ function saveOnly() {
   data.addFood({ name, kcal: perNumber, per_unit: newPerUnit.value })
   // Behold navnet i søgefeltet — så dukker den nye chip op som kvittering
   kcal.value = ''
-  newAmount.value = ''
   newPerUnit.value = null
 }
 
@@ -104,21 +101,9 @@ function logNew() {
   const perNumber = Math.round(Number(kcal.value))
   if (!name || !perNumber || perNumber <= 0) return
   const n = safeCount()
-
-  let entryName = name
-  let entryKcal = perNumber * n
-  if (newPerUnit.value) {
-    const qty = Math.round(Number(newAmount.value))
-    if (!qty || qty <= 0) return
-    entryName = `${name} (${qty} ${newPerUnit.value})`
-    entryKcal = Math.round((perNumber * qty) / 100) * n
-  }
-
   let foodId = null
-  // Gemmes med tallet som indtastet (pr. portion eller pr. 100) — antal og
-  // mængde ganges kun på selve måltidet
-  if (saveToList.value) foodId = data.addFood({ name, kcal: perNumber, per_unit: newPerUnit.value }).id
-  data.logEntry({ name: n > 1 ? `${n} × ${entryName}` : entryName, kcal: entryKcal, foodId })
+  if (saveToList.value) foodId = data.addFood({ name, kcal: perNumber }).id
+  data.logEntry({ name: n > 1 ? `${n} × ${name}` : name, kcal: perNumber * n, foodId })
   reset()
 }
 </script>
@@ -165,8 +150,14 @@ function logNew() {
         </button>
       </div>
 
-      <form v-if="query.trim() && !exactMatch" class="quickadd-new" @submit.prevent="logNew">
-        <p class="quickadd-new-label">Log "{{ query.trim() }}" som ny:</p>
+      <form
+        v-if="query.trim() && !exactMatch"
+        class="quickadd-new"
+        @submit.prevent="newPerUnit ? saveOnly() : logNew()"
+      >
+        <p class="quickadd-new-label">
+          {{ newPerUnit ? `Gem "${query.trim()}" i madlisten:` : `Log "${query.trim()}" som ny:` }}
+        </p>
         <div class="unit-choice-options">
           <button
             v-for="choice in unitChoices"
@@ -185,29 +176,24 @@ function logNew() {
             type="number"
             min="1"
             inputmode="numeric"
-            :placeholder="newPerUnit ? 'kcal pr. 100' : 'kcal'"
+            :placeholder="newPerUnit ? `kcal pr. 100 ${newPerUnit} (fra etiketten)` : 'kcal'"
             aria-label="Kalorier"
             required
           />
-          <input
-            v-if="newPerUnit"
-            v-model="newAmount"
-            type="number"
-            min="1"
-            inputmode="numeric"
-            :placeholder="`antal ${newPerUnit}`"
-            aria-label="Mængde"
-            required
-          />
-          <button class="btn-primary">Log</button>
+          <button class="btn-primary">{{ newPerUnit ? 'Gem i listen' : 'Log' }}</button>
         </div>
-        <label class="check">
-          <input v-model="saveToList" type="checkbox" />
-          Gem i madlisten
-        </label>
-        <button type="button" class="btn-ghost save-only" @click="saveOnly">
-          Gem kun i listen — log ikke noget nu
-        </button>
+        <template v-if="!newPerUnit">
+          <label class="check">
+            <input v-model="saveToList" type="checkbox" />
+            Gem i madlisten
+          </label>
+          <button type="button" class="btn-ghost save-only" @click="saveOnly">
+            Gem kun i listen — log ikke noget nu
+          </button>
+        </template>
+        <p v-else class="quickadd-new-label">
+          Mængden taster du først, når du logger den — tryk på den nye chip, når du spiser/drikker den.
+        </p>
       </form>
     </template>
   </section>
