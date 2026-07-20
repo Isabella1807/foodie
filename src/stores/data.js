@@ -21,6 +21,7 @@ export const useDataStore = defineStore('data', {
       celebrations: cache.celebrations || [], // dage markeret som hygge-/festdag: { id, date }
       // Krops-tal til at anslå tid til målet — kun lokalt, synkes ikke
       profile: cache.profile || { height_cm: null, age: null, sex: null, activity: null },
+      notify: cache.notify || false, // fast notifikation med dagens kalorier (pr. enhed)
       outbox: load('outbox', []),
       flushing: false,
     }
@@ -151,6 +152,7 @@ export const useDataStore = defineStore('data', {
         goals: this.goals,
         celebrations: this.celebrations,
         profile: this.profile,
+        notify: this.notify,
       })
     },
 
@@ -244,6 +246,12 @@ export const useDataStore = defineStore('data', {
       this.persist()
     },
 
+    // Fast notifikation med dagens kalorier — til/fra pr. enhed (kun lokalt)
+    setNotify(on) {
+      this.notify = on
+      this.persist()
+    },
+
     // Slå hyggedag til/fra for en dato — over-farven på den dag dæmpes så en
     // planlagt festdag ikke ser ud som en fejl
     toggleCelebration(date) {
@@ -267,6 +275,7 @@ export const useDataStore = defineStore('data', {
       this.goals = { kcal_goal: 1500, goal_kg: null }
       this.celebrations = []
       this.profile = { height_cm: null, age: null, sex: null, activity: null }
+      this.notify = false
       this.outbox = []
       remove('cache')
       remove('outbox')

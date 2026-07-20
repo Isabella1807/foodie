@@ -1,10 +1,26 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useDataStore } from '../stores/data'
+import { askNotifyPermission } from '../lib/liveStatus'
 
 const data = useDataStore()
 const editing = ref(null) // null | 'kcal' | 'weight'
 const input = ref('')
+
+const notifySupported = typeof Notification !== 'undefined'
+
+async function toggleNotify() {
+  if (data.notify) {
+    data.setNotify(false)
+    return
+  }
+  const ok = await askNotifyPermission()
+  if (ok) {
+    data.setNotify(true)
+  } else {
+    alert('Giv "foodie" lov til notifikationer i telefonens indstillinger for at bruge det. Læg også appen på hjemmeskærmen.')
+  }
+}
 
 const fmt = (n) => n.toLocaleString('da-DK')
 const fmtKg = (n) => n.toLocaleString('da-DK', { maximumFractionDigits: 1 })
@@ -71,6 +87,12 @@ function save() {
     <div class="goal-row">
       <span class="goal-key">Vejedag</span>
       <span class="goal-val">onsdag</span>
+    </div>
+
+    <div v-if="notifySupported" class="goal-row">
+      <span class="goal-key">Fast notifikation</span>
+      <span class="goal-val" :class="{ 'good-text': data.notify }">{{ data.notify ? 'til' : 'fra' }}</span>
+      <button class="link" @click="toggleNotify">{{ data.notify ? 'slå fra' : 'slå til' }}</button>
     </div>
   </section>
 </template>
