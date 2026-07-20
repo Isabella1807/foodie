@@ -1,7 +1,11 @@
 # foodie
 
-Lille privat kalorie-app (PWA). Log hvad du spiser, se dagens total og historikken —
-virker også uden net og sender data op til Supabase, når nettet er tilbage.
+Lille privat kalorie- og vægt-tracker (PWA) med fokus på et bæredygtigt vægttab.
+Log hvad du spiser, se dagens total og en støttende "dagens status", følg ugens
+gennemsnit, og se en farvekalender der viser hver dag som under/omkring/over dit
+mål. Følg vægten med en graf og glidende gennemsnit, milepæle og fremskridt mod
+målvægten — og marker hygge-/festdage, så en planlagt dag ikke ligner en fejl.
+Virker også uden net og sender data op til Supabase, når nettet er tilbage.
 
 ## Teknik
 
@@ -29,6 +33,10 @@ Værdierne findes i Supabase-dashboardet under Project Settings → API.
 2. Kør `sql/schema.sql` i SQL Editor
 3. Opret din bruger under Authentication → Users → Add user (sæt "Auto Confirm")
 4. Slå nye tilmeldinger fra: Authentication → Sign In / Providers → "Allow new users to sign up" → fra
+
+Har du allerede databasen kørende fra før, så kør kun den nederste del af
+`sql/schema.sql` (fra kommentaren om ældre udgaver og ned) — den tilføjer
+tabellerne til vægt og mål.
 
 ## Sådan virker offline-delen
 

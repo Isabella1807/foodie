@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { useDataStore } from '../stores/data'
 import { useAuthStore } from '../stores/auth'
 import { starterFoods } from '../data/starterFoods'
+import { unitName } from '../lib/units'
 import FoodForm from '../components/FoodForm.vue'
 import StarterBanner from '../components/StarterBanner.vue'
 
@@ -56,8 +57,8 @@ function removeFood(food) {
       <span class="row-kcal">
         {{
           food.per_unit && food.piece_size
-            ? `${Math.round((food.kcal * food.piece_size) / 100)} kcal/stk`
-            : `${food.kcal} kcal${food.per_unit ? ` / 100 ${food.per_unit}` : ''}`
+            ? `${Math.round((food.kcal * food.piece_size) / 100)} kcal/styk`
+            : `${food.kcal} kcal${food.per_unit ? ` / 100 ${unitName(food.per_unit)}` : ''}`
         }}
       </span>
       <button class="row-action" @click="editing = food">Ret</button>

@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { supabase } from '../lib/supabase'
 import { load, save, remove } from '../lib/storage'
-import { localToday } from '../lib/dates'
+import { localToday, weekStart } from '../lib/dates'
 
 const now = () => new Date().toISOString()
 
@@ -11,10 +11,14 @@ const now = () => new Date().toISOString()
 // ændring bliver sendt to gange.
 export const useDataStore = defineStore('data', {
   state: () => {
-    const cache = load('cache', { foods: [], entries: [] })
+    // Ældre cacher mangler weights/goals — derfor fallback pr. felt
+    const cache = load('cache', {})
     return {
-      foods: cache.foods,
-      entries: cache.entries,
+      foods: cache.foods || [],
+      entries: cache.entries || [],
+      weights: cache.weights || [],
+      goals: cache.goals || { kcal_goal: 1500, goal_kg: null },
+      celebrations: cache.celebrations || [], // dage markeret som hygge-/festdag: { id, date }
       outbox: load('outbox', []),
       flushing: false,
     }
@@ -32,19 +36,92 @@ export const useDataStore = defineStore('data', {
       return this.todayEntries.reduce((sum, e) => sum + e.kcal, 0)
     },
 
-    historyDays(state) {
-      const byDay = new Map()
+    // Alt spist siden mandag — bruges til ugens budget (dagligt mål × 7)
+    weekTotal(state) {
+      const start = weekStart(localToday())
+      return state.entries
+        .filter((e) => e.eaten_on >= start && e.eaten_on <= localToday())
+        .reduce((sum, e) => sum + e.kcal, 0)
+    },
+
+    // Antal dage i denne uge, hvor der er logget noget — så ugens over/under
+    // kun regnes på de dage, hun faktisk har tastet ind
+    weekLoggedDays(state) {
+      const start = weekStart(localToday())
+      const days = new Set()
       for (const e of state.entries) {
-        if (!byDay.has(e.eaten_on)) byDay.set(e.eaten_on, { date: e.eaten_on, total: 0, entries: [] })
-        const day = byDay.get(e.eaten_on)
-        day.total += e.kcal
-        day.entries.push(e)
+        if (e.eaten_on >= start && e.eaten_on <= localToday()) days.add(e.eaten_on)
       }
-      const days = [...byDay.values()].sort((a, b) => (a.date < b.date ? 1 : -1))
-      for (const day of days) {
-        day.entries.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-      }
-      return days
+      return days.size
+    },
+
+    // Ugens gennemsnit pr. logget dag — det tal, der viser om ugen samlet
+    // holder, selv om en enkelt dag har været høj
+    weekAverage() {
+      return this.weekLoggedDays ? Math.round(this.weekTotal / this.weekLoggedDays) : 0
+    },
+
+    // Opslag: er en bestemt dato markeret som hyggedag?
+    isCelebration(state) {
+      return (date) => state.celebrations.some((c) => c.date === date)
+    },
+
+    // Vejninger, nyeste først
+    weighIns(state) {
+      return [...state.weights].sort((a, b) => {
+        if (a.measured_on !== b.measured_on) return a.measured_on < b.measured_on ? 1 : -1
+        return new Date(b.created_at) - new Date(a.created_at)
+      })
+    },
+
+    latestWeight() {
+      return this.weighIns[0] ?? null
+    },
+
+    previousWeight() {
+      return this.weighIns[1] ?? null
+    },
+
+    // Den første vejning er startvægten — den vægttabet regnes fra
+    startWeight() {
+      return this.weighIns[this.weighIns.length - 1] ?? null
+    },
+
+    // Dagligt mål — 1500 kcal som standard, indtil hun selv sætter et andet
+    dailyGoal(state) {
+      return state.goals.kcal_goal ?? 1500
+    },
+
+    // Har hun vejet sig i denne uge (mandag–søndag)?
+    weighedThisWeek() {
+      const latest = this.latestWeight
+      return !!latest && weekStart(latest.measured_on) === weekStart(localToday())
+    },
+
+    // Kg tabt fra startvægten til nyeste vejning
+    weightLost() {
+      const latest = this.latestWeight
+      const start = this.startWeight
+      return latest && start ? Math.round((start.kg - latest.kg) * 10) / 10 : null
+    },
+
+    // Hvor langt mod målvægten, i procent (0 % ved start, 100 % ved målet)
+    weightProgress() {
+      const latest = this.latestWeight
+      const start = this.startWeight
+      const goal = this.goals.goal_kg
+      if (!goal || !start || !latest) return null
+      const total = start.kg - goal
+      if (total <= 0) return null
+      return Math.max(0, Math.min(100, Math.round(((start.kg - latest.kg) / total) * 100)))
+    },
+
+    // Kg der stadig mangler til målvægten
+    weightToGo() {
+      const latest = this.latestWeight
+      const goal = this.goals.goal_kg
+      if (!goal || !latest) return null
+      return Math.max(0, Math.round((latest.kg - goal) * 10) / 10)
     },
 
     // Til hurtig logning: senest brugte øverst
@@ -65,7 +142,13 @@ export const useDataStore = defineStore('data', {
 
   actions: {
     persist() {
-      save('cache', { foods: this.foods, entries: this.entries })
+      save('cache', {
+        foods: this.foods,
+        entries: this.entries,
+        weights: this.weights,
+        goals: this.goals,
+        celebrations: this.celebrations,
+      })
     },
 
     queue(type, payload) {
@@ -130,9 +213,50 @@ export const useDataStore = defineStore('data', {
       this.queue('delete_entry', { id })
     },
 
+    // Én vejning pr. uge — vejer hun sig igen i samme uge, opdateres ugens tal
+    logWeight(kg) {
+      const today = localToday()
+      const wk = weekStart(today)
+      let weight = this.weights.find((w) => weekStart(w.measured_on) === wk)
+      if (weight) {
+        weight.kg = kg
+        weight.measured_on = today
+      } else {
+        weight = { id: crypto.randomUUID(), kg, measured_on: today, created_at: now() }
+        this.weights.push(weight)
+      }
+      this.persist()
+      this.queue('upsert_weight', { ...weight })
+    },
+
+    setGoals(changes) {
+      this.goals = { ...this.goals, ...changes }
+      this.persist()
+      this.queue('upsert_goals', { kcal_goal: this.goals.kcal_goal, goal_kg: this.goals.goal_kg })
+    },
+
+    // Slå hyggedag til/fra for en dato — over-farven på den dag dæmpes så en
+    // planlagt festdag ikke ser ud som en fejl
+    toggleCelebration(date) {
+      const existing = this.celebrations.find((c) => c.date === date)
+      if (existing) {
+        this.celebrations = this.celebrations.filter((c) => c.date !== date)
+        this.persist()
+        this.queue('delete_celebration', { id: existing.id })
+      } else {
+        const celebration = { id: crypto.randomUUID(), date }
+        this.celebrations.push(celebration)
+        this.persist()
+        this.queue('upsert_celebration', { ...celebration })
+      }
+    },
+
     reset() {
       this.foods = []
       this.entries = []
+      this.weights = []
+      this.goals = { kcal_goal: 1500, goal_kg: null }
+      this.celebrations = []
       this.outbox = []
       remove('cache')
       remove('outbox')
@@ -182,6 +306,15 @@ export const useDataStore = defineStore('data', {
           return supabase.from('entries').upsert(op.payload)
         case 'delete_entry':
           return supabase.from('entries').delete().eq('id', op.payload.id)
+        case 'upsert_weight':
+          return supabase.from('weights').upsert(op.payload)
+        case 'upsert_goals':
+          // Én række pr. bruger — databasen sætter selv user_id ud fra login
+          return supabase.from('goals').upsert(op.payload, { onConflict: 'user_id' })
+        case 'upsert_celebration':
+          return supabase.from('celebrations').upsert(op.payload)
+        case 'delete_celebration':
+          return supabase.from('celebrations').delete().eq('id', op.payload.id)
         default:
           return { error: { code: 'unknown_op' } }
       }
@@ -192,13 +325,22 @@ export const useDataStore = defineStore('data', {
     async refresh() {
       if (this.outbox.length) return
       try {
-        const [foods, entries] = await Promise.all([
+        const [foods, entries, weights, goals, celebrations] = await Promise.all([
           supabase.from('foods').select('*'),
           supabase.from('entries').select('*'),
+          supabase.from('weights').select('*'),
+          supabase.from('goals').select('*'),
+          supabase.from('celebrations').select('*'),
         ])
         if (foods.error || entries.error) return
         this.foods = foods.data
         this.entries = entries.data
+        // De nye tabeller kan mangle i en ældre database — så beholdes de lokale tal
+        if (!weights.error) this.weights = weights.data
+        if (!celebrations.error) this.celebrations = celebrations.data
+        if (!goals.error && goals.data.length) {
+          this.goals = { kcal_goal: goals.data[0].kcal_goal, goal_kg: goals.data[0].goal_kg }
+        }
         this.persist()
       } catch {
         /* offline — cachen gælder stadig */

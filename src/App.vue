@@ -5,13 +5,13 @@ import { useDataStore } from './stores/data'
 import TabBar from './components/TabBar.vue'
 import LoginView from './views/LoginView.vue'
 import TodayView from './views/TodayView.vue'
-import HistoryView from './views/HistoryView.vue'
+import CalendarView from './views/CalendarView.vue'
 import FoodsView from './views/FoodsView.vue'
 
 const auth = useAuthStore()
 const data = useDataStore()
 
-const tabs = { today: TodayView, history: HistoryView, foods: FoodsView }
+const tabs = { today: TodayView, calendar: CalendarView, foods: FoodsView }
 const currentTab = ref('today')
 
 onMounted(() => {

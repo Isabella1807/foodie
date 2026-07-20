@@ -4,7 +4,7 @@ defineEmits(['update:modelValue'])
 
 const tabs = [
   { id: 'today', label: 'I dag', icon: '🍽️' },
-  { id: 'history', label: 'Historik', icon: '📅' },
+  { id: 'calendar', label: 'Kalender', icon: '📅' },
   { id: 'foods', label: 'Mad', icon: '🍎' },
 ]
 </script>

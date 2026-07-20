@@ -1,6 +1,6 @@
 // Alt lokalt data ligger i localStorage under disse tre nøgler
 const KEYS = {
-  cache: 'foodie:cache', // { foods: [...], entries: [...] } — det skærmen viser
+  cache: 'foodie:cache', // { foods, entries, weights, goals } — det skærmen viser
   outbox: 'foodie:outbox', // kø af ændringer der endnu ikke er sendt til Supabase
   user: 'foodie:user', // { id, email } — hvem det lokale data tilhører
 }

@@ -1,27 +1,28 @@
 <script setup>
 import { ref, computed } from 'vue'
+import { unitName } from '../lib/units'
 
 const props = defineProps({ food: Object })
 const emit = defineEmits(['save', 'cancel'])
 
 const name = ref(props.food?.name ?? '')
 const kcal = ref(props.food?.kcal ?? '')
-// null = kcal gælder én portion; 'g'/'ml' = kcal gælder pr. 100 g/ml;
-// 'stk' = kcal tastes pr. stk, og appen regner selv 100 g-tallet baglæns
+// null = kcal gælder én portion; 'g'/'ml' = kcal gælder pr. 100 gram/milliliter;
+// 'stk' = kcal tastes pr. styk, og appen regner selv 100 gram-tallet baglæns
 const perUnit = ref(props.food?.per_unit ?? null)
-// Valgfri: hvad ét stk vejer/fylder (fx én kiks = 13 g)
+// Valgfri: hvad ét styk vejer/fylder (fx én kiks = 13 gram)
 const pieceSize = ref(props.food?.piece_size ?? '')
 
 const unitChoices = [
   { value: null, label: '1 portion' },
-  { value: 'stk', label: '1 stk' },
-  { value: 'g', label: '100 g' },
-  { value: 'ml', label: '100 ml' },
+  { value: 'stk', label: '1 styk' },
+  { value: 'g', label: '100 gram' },
+  { value: 'ml', label: '100 milliliter' },
 ]
 
 const kcalLabel = computed(() => {
-  if (perUnit.value === 'stk') return 'Kalorier pr. stk'
-  if (perUnit.value) return `Kalorier pr. 100 ${perUnit.value} (står på etiketten)`
+  if (perUnit.value === 'stk') return 'Kalorier pr. styk'
+  if (perUnit.value) return `Kalorier pr. 100 ${unitName(perUnit.value)} (står på etiketten)`
   return 'Kalorier pr. portion'
 })
 
@@ -31,11 +32,11 @@ const preview = computed(() => {
   const size = Number(pieceSize.value)
   if (!amount || amount <= 0) return ''
   if (perUnit.value === 'stk') {
-    if (size > 0) return `100 g ≈ ${Math.round((amount / size) * 100)} kcal — kan logges i både stk og gram.`
-    return 'Uden vægt kan den kun logges i antal stk (antal-feltet på forsiden).'
+    if (size > 0) return `100 gram ≈ ${Math.round((amount / size) * 100)} kcal — kan logges i både styk og gram.`
+    return 'Uden vægt logges den i antal styk.'
   }
   if (perUnit.value && size > 0) {
-    return `Ét stk ≈ ${Math.round((amount * size) / 100)} kcal — fra forsiden taster du bare antal stk.`
+    return `Én hel ≈ ${Math.round((amount * size) / 100)} kcal — så kan du logge i hel, halv og kvart.`
   }
   return ''
 })
@@ -90,14 +91,18 @@ function submit() {
       <input v-model="kcal" type="number" min="1" inputmode="numeric" required />
     </label>
     <label v-if="perUnit">
-      {{ perUnit === 'stk' ? 'Ét stk vejer (valgfrit, i gram)' : 'Ét stk vejer/fylder (valgfrit)' }}
+      {{
+        perUnit === 'stk'
+          ? 'Vejer ét styk? (valgfrit, i gram)'
+          : 'Hvor meget vejer én hel/portion?'
+      }}
       <input
         v-model="pieceSize"
         type="number"
         min="0.1"
         step="any"
         inputmode="decimal"
-        :placeholder="perUnit === 'stk' ? 'fx ét kirsebær = 8 g' : `${perUnit} pr. stk — fx én kiks = 13 g`"
+        :placeholder="perUnit === 'stk' ? 'fx ét kirsebær = 8 gram' : `${unitName(perUnit)} pr. hel — fx én ananas ≈ 900 gram`"
       />
     </label>
     <p v-if="preview" class="quickadd-new-label">{{ preview }}</p>
