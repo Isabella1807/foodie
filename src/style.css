@@ -1187,6 +1187,12 @@ label {
   font-size: 0.85rem;
 }
 
+.foods-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .muted {
   color: var(--muted);
 }
@@ -1282,7 +1288,9 @@ label {
   .app-main > .card,
   .app-main > .empty,
   .app-main > .import-more,
-  .app-main > .foods-footer {
+  .app-main > .foods-footer,
+  .app-main > .foods-search,
+  .app-main > .foods-filters {
     width: 100%;
     max-width: 560px;
     margin-left: auto;

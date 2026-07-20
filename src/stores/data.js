@@ -22,6 +22,7 @@ export const useDataStore = defineStore('data', {
       // Krops-tal til at anslå tid til målet — kun lokalt, synkes ikke
       profile: cache.profile || { height_cm: null, age: null, sex: null, activity: null },
       notify: cache.notify || false, // fast notifikation med dagens kalorier (pr. enhed)
+      dismissedStarters: cache.dismissedStarters || [], // slettede varenavne — foreslås ikke igen
       outbox: load('outbox', []),
       flushing: false,
     }
@@ -153,6 +154,7 @@ export const useDataStore = defineStore('data', {
         celebrations: this.celebrations,
         profile: this.profile,
         notify: this.notify,
+        dismissedStarters: this.dismissedStarters,
       })
     },
 
@@ -191,6 +193,12 @@ export const useDataStore = defineStore('data', {
     },
 
     deleteFood(id) {
+      // Husk navnet, så en slettet standard-vare ikke foreslås igen
+      const food = this.foods.find((f) => f.id === id)
+      if (food) {
+        const name = food.name.toLowerCase()
+        if (!this.dismissedStarters.includes(name)) this.dismissedStarters.push(name)
+      }
       this.foods = this.foods.filter((f) => f.id !== id)
       this.persist()
       this.queue('delete_food', { id })
@@ -276,6 +284,7 @@ export const useDataStore = defineStore('data', {
       this.celebrations = []
       this.profile = { height_cm: null, age: null, sex: null, activity: null }
       this.notify = false
+      this.dismissedStarters = []
       this.outbox = []
       remove('cache')
       remove('outbox')

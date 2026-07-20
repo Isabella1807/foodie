@@ -10,10 +10,42 @@ import StarterBanner from '../components/StarterBanner.vue'
 const data = useDataStore()
 const auth = useAuthStore()
 
-// Standardvarer der endnu ikke er i hendes liste — så nye varer i
-// startlisten kan hentes ind uden at røre resten
+const query = ref('')
+const filter = ref('all')
+
+const FILTERS = [
+  { value: 'all', label: 'Alle' },
+  { value: 'portion', label: 'Portioner' },
+  { value: 'stk', label: 'Stk' },
+  { value: 'g', label: 'Gram' },
+  { value: 'ml', label: 'Milliliter' },
+]
+
+// Hvilken slags vare: portion, styk (kender stk-vægt), eller ren gram/ml
+function foodType(f) {
+  if (!f.per_unit) return 'portion'
+  if (f.piece_size) return 'stk'
+  return f.per_unit
+}
+
+// Madlisten filtreret efter søgeord og valgt type
+const visibleFoods = computed(() => {
+  const q = query.value.trim().toLowerCase()
+  return data.foodsByName.filter((f) => {
+    if (q && !f.name.toLowerCase().includes(q)) return false
+    if (filter.value !== 'all' && foodType(f) !== filter.value) return false
+    return true
+  })
+})
+
+// Standardvarer der hverken er i hendes liste eller er blevet slettet —
+// en slettet vare skal ikke dukke op som forslag igen
 const missingStarters = computed(() =>
-  starterFoods.filter((s) => !data.foods.some((f) => f.name.toLowerCase() === s.name.toLowerCase())),
+  starterFoods.filter(
+    (s) =>
+      !data.foods.some((f) => f.name.toLowerCase() === s.name.toLowerCase()) &&
+      !data.dismissedStarters.includes(s.name.toLowerCase()),
+  ),
 )
 
 function importMissing() {
@@ -51,8 +83,30 @@ function removeFood(food) {
 
   <StarterBanner v-if="!data.foods.length && !editing" />
 
-  <section v-if="data.foodsByName.length" class="card list">
-    <div v-for="food in data.foodsByName" :key="food.id" class="row">
+  <template v-if="data.foods.length && !editing">
+    <input
+      v-model="query"
+      type="text"
+      class="foods-search"
+      placeholder="Søg i madlisten…"
+      aria-label="Søg i madlisten"
+    />
+    <div class="foods-filters">
+      <button
+        v-for="f in FILTERS"
+        :key="f.value"
+        type="button"
+        class="chip"
+        :class="{ selected: filter === f.value }"
+        @click="filter = f.value"
+      >
+        {{ f.label }}
+      </button>
+    </div>
+  </template>
+
+  <section v-if="visibleFoods.length" class="card list">
+    <div v-for="food in visibleFoods" :key="food.id" class="row">
       <span class="row-name">{{ food.name }}</span>
       <span class="row-kcal">
         {{
@@ -65,6 +119,7 @@ function removeFood(food) {
       <button class="row-delete" aria-label="Slet madvare" @click="removeFood(food)">✕</button>
     </div>
   </section>
+  <p v-else-if="data.foods.length && !editing" class="empty">Ingen varer matcher.</p>
 
   <p v-if="data.foods.length && missingStarters.length" class="import-more">
     <button class="link" @click="importMissing">
