@@ -665,6 +665,11 @@ button {
   color: var(--green-dark);
 }
 
+.maint-line {
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
 /* ---- forventet tid til målet ---- */
 
 .forecast {

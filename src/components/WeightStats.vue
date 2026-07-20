@@ -4,6 +4,8 @@ import { useDataStore } from '../stores/data'
 
 const data = useDataStore()
 const fmtKg = (n) => n.toLocaleString('da-DK', { maximumFractionDigits: 1 })
+const fmtKcal = (n) => n.toLocaleString('da-DK')
+const maint = computed(() => data.measuredMaintenance)
 const MONTHS = [
   'januar', 'februar', 'marts', 'april', 'maj', 'juni',
   'juli', 'august', 'september', 'oktober', 'november', 'december',
@@ -73,5 +75,12 @@ const forecast = computed(() => {
     <p v-else-if="remaining === 0" class="stat-forecast">Du har nået din målvægt 🎉</p>
     <p v-else-if="!goal" class="weight-note">Sæt en målvægt under "Mine mål", så regner jeg et forventet tidspunkt ud.</p>
     <p v-else class="weight-note">Vej dig nogle uger endnu, så viser jeg, hvornår du når målet med dit tempo.</p>
+
+    <p v-if="maint.ready" class="stat-forecast maint-line">
+      Dit faktiske forbrug er ca. <b>{{ fmtKcal(maint.kcal) }} kcal/dag</b> — målt over {{ maint.weeks }} uger ud fra din logning og vægt.
+    </p>
+    <p v-else class="weight-note maint-line">
+      Dit faktiske forbrug regnes ud, når du har logget mad og vejet dig i et par uger.
+    </p>
   </section>
 </template>

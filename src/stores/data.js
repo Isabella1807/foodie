@@ -128,6 +128,50 @@ export const useDataStore = defineStore('data', {
       return Math.max(0, Math.round((latest.kg - goal) * 10) / 10)
     },
 
+    // Dit FAKTISKE daglige forbrug, regnet ud fra din egen logning:
+    // gennemsnitligt indtag + det daglige underskud (vægttab × 7700 ÷ dage).
+    // Kræver mindst 2 ugers vejninger og rimelig konsekvent logning imellem.
+    measuredMaintenance(state) {
+      if (this.weighIns.length < 2 || !state.entries.length) return { ready: false, reason: 'weight' }
+      const parse = (s) => {
+        const [y, m, d] = s.split('-').map(Number)
+        return new Date(y, m - 1, d)
+      }
+      // Mål kun i den periode, hvor der også er logget mad — så en gammel
+      // vejning fra før logningen ikke forvrider tallet
+      const firstLog = state.entries.reduce((min, e) => (e.eaten_on < min ? e.eaten_on : min), state.entries[0].eaten_on)
+      const inLog = this.weighIns
+        .filter((w) => w.measured_on >= firstLog)
+        .sort((a, b) => (a.measured_on < b.measured_on ? -1 : 1))
+      if (inLog.length < 2) return { ready: false, reason: 'weight' }
+
+      const first = inLog[0]
+      const last = inLog[inLog.length - 1]
+      const windowDays = Math.round((parse(last.measured_on) - parse(first.measured_on)) / 86400000)
+      if (windowDays < 14) return { ready: false, reason: 'time' }
+
+      let total = 0
+      const days = new Set()
+      for (const e of state.entries) {
+        if (e.eaten_on >= first.measured_on && e.eaten_on <= last.measured_on) {
+          total += e.kcal
+          days.add(e.eaten_on)
+        }
+      }
+      const loggedDays = days.size
+      if (loggedDays < 10 || loggedDays < windowDays * 0.5) {
+        return { ready: false, reason: 'logging' }
+      }
+
+      const avgIntake = total / loggedDays
+      const deficitPerDay = ((first.kg - last.kg) * 7700) / windowDays
+      return {
+        ready: true,
+        kcal: Math.round(avgIntake + deficitPerDay),
+        weeks: Math.round(windowDays / 7),
+      }
+    },
+
     // Til hurtig logning: senest brugte øverst
     recentFoods(state) {
       return [...state.foods].sort((a, b) => {
