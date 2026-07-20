@@ -304,6 +304,28 @@ button {
   font-weight: 600;
 }
 
+.weight-past {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* to knapper i bunden af vægt-kortet */
+.weight-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.weight-actions > button {
+  flex: 1;
+}
+
+.weight-entry {
+  padding-top: 4px;
+  border-top: 1px solid var(--line);
+}
+
 .weight-status {
   margin: 2px 0 0;
   font-weight: 600;
@@ -641,6 +663,29 @@ button {
 
 .stat-forecast b {
   color: var(--green-dark);
+}
+
+/* ---- forventet tid til målet ---- */
+
+.forecast {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.forecast-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.forecast-row {
+  display: flex;
+  gap: 10px;
+}
+
+.forecast-row label {
+  flex: 1;
 }
 
 .cal-coach {

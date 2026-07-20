@@ -1,11 +1,16 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useDataStore } from '../stores/data'
-import { formatDayLabel } from '../lib/dates'
+import { formatDayLabel, localToday } from '../lib/dates'
 
 const data = useDataStore()
 const weightInput = ref('')
-const showInput = ref(false) // vises manuelt før vejedagen eller ved rettelse
+const today = localToday()
+const mode = ref(null) // null | 'now' (vej i dag) | 'past' (tidligere vejning)
+
+// Felter til en tidligere vejning (med dato)
+const pastDate = ref('')
+const pastKg = ref('')
 
 // Fast vejedag: onsdag. (0 = søndag, 3 = onsdag)
 const WEEKDAYS = ['søndag', 'mandag', 'tirsdag', 'onsdag', 'torsdag', 'fredag', 'lørdag']
@@ -54,19 +59,25 @@ const weighState = computed(() => {
   return 'overdue'
 })
 
-// Vis vejefeltet automatisk på selve dagen og bagefter; før dagen (og ved
-// "ret") vises det først, når hun selv trykker
-const inputVisible = computed(() => {
-  const s = weighState.value
-  return s === 'today' || s === 'overdue' || s === 'first' || showInput.value
-})
+function toggle(m) {
+  mode.value = mode.value === m ? null : m
+}
 
 function saveWeight() {
   const kg = toKg(weightInput.value)
   if (!kg) return
   data.logWeight(kg)
   weightInput.value = ''
-  showInput.value = false
+  mode.value = null
+}
+
+function savePast() {
+  const kg = toKg(pastKg.value)
+  if (!pastDate.value || !kg) return
+  data.logWeight(kg, pastDate.value)
+  pastKg.value = ''
+  pastDate.value = ''
+  mode.value = null
 }
 </script>
 
@@ -82,7 +93,6 @@ function saveWeight() {
       <p v-if="weekChange" class="week-change" :class="weekChange.cls">
         Siden sidste vejning: {{ weekChange.text }}
       </p>
-      <p v-else class="weight-note">Vej dig igen næste uge, så viser jeg ugens ændring her.</p>
     </template>
     <p v-else class="weight-note">Vej dig én gang om ugen, så kan du følge dit vægttab her.</p>
 
@@ -104,20 +114,12 @@ function saveWeight() {
     <p v-else-if="goal && latest" class="weight-note">Målvægt: {{ fmtKg(goal) }} kg</p>
     <p v-else-if="!goal && latest" class="weight-note">Sæt en målvægt under "Mine mål" for at følge fremgangen.</p>
 
-    <p v-if="weighState === 'today'" class="weight-prompt">I dag er vejedag ⚖️ 👇</p>
-    <p v-else-if="weighState === 'overdue'" class="weight-prompt">
-      Du mangler at veje dig i denne uge 👇
-    </p>
-    <p v-else-if="weighState === 'upcoming'" class="weight-note">
-      Vejedag er på {{ weighDayName }} ⚖️ — så minder vi dig igen.
-      <button class="link" @click="showInput = true">vej alligevel nu</button>
-    </p>
-    <p v-else-if="weighState === 'done'" class="weight-note">
-      Næste vejning: {{ weighDayName }}
-      <button class="link" @click="showInput = !showInput">ret</button>
-    </p>
+    <p v-if="weighState === 'today'" class="weight-prompt">I dag er vejedag ⚖️</p>
+    <p v-else-if="weighState === 'overdue'" class="weight-prompt">Du mangler at veje dig i denne uge</p>
+    <p v-else-if="weighState === 'upcoming'" class="weight-note">Vejedag er på {{ weighDayName }} ⚖️</p>
+    <p v-else-if="weighState === 'done'" class="weight-note">Næste vejning: {{ weighDayName }}</p>
 
-    <form v-if="inputVisible" class="weight-log" @submit.prevent="saveWeight">
+    <form v-if="mode === 'now'" class="weight-log weight-entry" @submit.prevent="saveWeight">
       <input
         v-model="weightInput"
         type="text"
@@ -127,5 +129,16 @@ function saveWeight() {
       />
       <button class="btn-primary" :disabled="!toKg(weightInput)">Gem</button>
     </form>
+
+    <form v-else-if="mode === 'past'" class="weight-past weight-entry" @submit.prevent="savePast">
+      <input v-model="pastDate" type="date" :max="today" aria-label="Dato for vejning" />
+      <input v-model="pastKg" type="text" inputmode="decimal" placeholder="vægt i kg" aria-label="Vægt i kg" />
+      <button class="btn-primary" :disabled="!pastDate || !toKg(pastKg)">Gem</button>
+    </form>
+
+    <div class="weight-actions">
+      <button type="button" class="btn-primary" @click="toggle('now')">Vej nu</button>
+      <button type="button" class="btn-secondary" @click="toggle('past')">Tidligere vejning</button>
+    </div>
   </section>
 </template>

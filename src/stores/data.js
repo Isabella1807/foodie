@@ -19,6 +19,8 @@ export const useDataStore = defineStore('data', {
       weights: cache.weights || [],
       goals: cache.goals || { kcal_goal: 1500, goal_kg: null },
       celebrations: cache.celebrations || [], // dage markeret som hygge-/festdag: { id, date }
+      // Krops-tal til at anslå tid til målet — kun lokalt, synkes ikke
+      profile: cache.profile || { height_cm: null, age: null, sex: null, activity: null },
       outbox: load('outbox', []),
       flushing: false,
     }
@@ -148,6 +150,7 @@ export const useDataStore = defineStore('data', {
         weights: this.weights,
         goals: this.goals,
         celebrations: this.celebrations,
+        profile: this.profile,
       })
     },
 
@@ -213,16 +216,16 @@ export const useDataStore = defineStore('data', {
       this.queue('delete_entry', { id })
     },
 
-    // Én vejning pr. uge — vejer hun sig igen i samme uge, opdateres ugens tal
-    logWeight(kg) {
-      const today = localToday()
-      const wk = weekStart(today)
+    // Én vejning pr. uge — vejer hun sig igen i samme uge, opdateres ugens tal.
+    // date kan gives, hvis man vil taste en tidligere vejning ind.
+    logWeight(kg, date = localToday()) {
+      const wk = weekStart(date)
       let weight = this.weights.find((w) => weekStart(w.measured_on) === wk)
       if (weight) {
         weight.kg = kg
-        weight.measured_on = today
+        weight.measured_on = date
       } else {
-        weight = { id: crypto.randomUUID(), kg, measured_on: today, created_at: now() }
+        weight = { id: crypto.randomUUID(), kg, measured_on: date, created_at: now() }
         this.weights.push(weight)
       }
       this.persist()
@@ -233,6 +236,12 @@ export const useDataStore = defineStore('data', {
       this.goals = { ...this.goals, ...changes }
       this.persist()
       this.queue('upsert_goals', { kcal_goal: this.goals.kcal_goal, goal_kg: this.goals.goal_kg })
+    },
+
+    // Krops-tal gemmes kun lokalt (bruges til at anslå tid til målet)
+    setProfile(changes) {
+      this.profile = { ...this.profile, ...changes }
+      this.persist()
     },
 
     // Slå hyggedag til/fra for en dato — over-farven på den dag dæmpes så en
@@ -257,6 +266,7 @@ export const useDataStore = defineStore('data', {
       this.weights = []
       this.goals = { kcal_goal: 1500, goal_kg: null }
       this.celebrations = []
+      this.profile = { height_cm: null, age: null, sex: null, activity: null }
       this.outbox = []
       remove('cache')
       remove('outbox')

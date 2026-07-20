@@ -5,6 +5,7 @@ import { monthGrid, monthLabel, localToday, formatDayLabel } from '../lib/dates'
 import { highDayMessage, celebrationMessage } from '../lib/coach'
 import WeightChart from '../components/WeightChart.vue'
 import WeightStats from '../components/WeightStats.vue'
+import GoalForecast from '../components/GoalForecast.vue'
 
 const data = useDataStore()
 
@@ -178,4 +179,5 @@ const openMessage = computed(() => {
 
   <WeightChart />
   <WeightStats />
+  <GoalForecast />
 </template>
