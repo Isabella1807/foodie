@@ -34,9 +34,10 @@ Værdierne findes i Supabase-dashboardet under Project Settings → API.
 3. Opret din bruger under Authentication → Users → Add user (sæt "Auto Confirm")
 4. Slå nye tilmeldinger fra: Authentication → Sign In / Providers → "Allow new users to sign up" → fra
 
-Har du allerede databasen kørende fra før, så kør kun den nederste del af
-`sql/schema.sql` (fra kommentaren om ældre udgaver og ned) — den tilføjer
-tabellerne til vægt og mål.
+Har du allerede databasen kørende fra før, så kør kun de dele, du mangler.
+`sql/schema.sql` har to "kør kun herfra og ned"-markeringer: den første tilføjer
+tabellerne til vægt og mål, den sidste tilføjer krops-tal og aktivitet pr. dag
+(så de matcher på alle enheder). Kør den eller de dele, din database ikke har endnu.
 
 ## Sådan virker offline-delen
 

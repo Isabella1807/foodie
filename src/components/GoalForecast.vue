@@ -1,15 +1,10 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useDataStore } from '../stores/data'
+import { ACTIVITY_LEVELS, factorOf } from '../lib/activity'
 
 const data = useDataStore()
 
-const ACTIVITY = [
-  { value: 'stille', label: 'Stillesiddende', factor: 1.2 },
-  { value: 'let', label: 'Let aktiv', factor: 1.375 },
-  { value: 'moderat', label: 'Moderat', factor: 1.55 },
-  { value: 'aktiv', label: 'Meget aktiv', factor: 1.725 },
-]
 const MONTHS = [
   'januar', 'februar', 'marts', 'april', 'maj', 'juni',
   'juli', 'august', 'september', 'oktober', 'november', 'december',
@@ -35,7 +30,7 @@ const showForm = computed(() => editing.value || !complete.value)
 const forecast = computed(() => {
   if (!complete.value || !currentKg.value || !goalKg.value) return null
   if (currentKg.value <= goalKg.value) return { reached: true }
-  const factor = ACTIVITY.find((a) => a.value === p.value.activity)?.factor ?? 1.375
+  const factor = factorOf(p.value.activity)
   const s = p.value.sex === 'mand' ? 5 : -161
   let w = currentKg.value
   let weeks = 0
@@ -116,7 +111,7 @@ function save() {
         <span class="unit-choice-label">Hvor aktiv er du?</span>
         <div class="unit-choice-options">
           <button
-            v-for="a in ACTIVITY"
+            v-for="a in ACTIVITY_LEVELS"
             :key="a.value"
             type="button"
             class="chip"

@@ -2,17 +2,17 @@
 import { computed } from 'vue'
 import { useDataStore } from '../stores/data'
 import { localToday } from '../lib/dates'
+import DayActivity from './DayActivity.vue'
 
 const data = useDataStore()
 const today = localToday()
 const fmt = (n) => n.toLocaleString('da-DK')
 const fmtKg = (n) => n.toLocaleString('da-DK', { maximumFractionDigits: 1 })
 
-const goal = computed(() => data.dailyGoal)
 const isHygge = computed(() => data.isCelebration(today))
 
-// Ugens snit farves gult, hvis det ligger over dagsmålet (ellers grønt)
-const avgOver = computed(() => !!data.weekAverage && data.weekAverage > goal.value)
+// Ugens snit farves gult, hvis ugen samlet ligger over budgettet (ellers grønt)
+const avgOver = computed(() => data.weekOver !== null && data.weekOver > 0)
 </script>
 
 <template>
@@ -37,6 +37,8 @@ const avgOver = computed(() => !!data.weekAverage && data.weekAverage > goal.val
         <p class="stat-label">din vægt nu</p>
       </div>
     </div>
+
+    <DayActivity :date="today" when="i dag" />
 
     <button type="button" class="hygge-toggle" :class="{ on: isHygge }" @click="data.toggleCelebration(today)">
       {{ isHygge ? '🎉 I dag er en hyggedag' : 'Marker i dag som hyggedag' }}

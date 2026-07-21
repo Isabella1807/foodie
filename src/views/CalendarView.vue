@@ -6,6 +6,8 @@ import { highDayMessage, celebrationMessage } from '../lib/coach'
 import WeightChart from '../components/WeightChart.vue'
 import WeightStats from '../components/WeightStats.vue'
 import GoalForecast from '../components/GoalForecast.vue'
+import DayActivity from '../components/DayActivity.vue'
+import QuickAdd from '../components/QuickAdd.vue'
 
 const data = useDataStore()
 
@@ -33,8 +35,10 @@ const totals = computed(() => {
 function statusOf(date, total) {
   if (date > today) return 'future'
   if (!total) return 'none'
-  if (total < goal.value - BAND) return 'under'
-  if (total > goal.value + BAND) return 'over'
+  // Mål mod dagens eget budget: en aktiv dag har mere plads, før den er "over"
+  const budget = data.dayBudget(date)
+  if (total < budget - BAND) return 'under'
+  if (total > budget + BAND) return 'over'
   return 'around'
 }
 
@@ -53,10 +57,12 @@ const weeks = computed(() =>
       }
     })
     // Ugens over/under regnes kun på de dage der faktisk er logget, så en
-    // glemt dag ikke trækker ugen kunstigt "under"
-    const loggedDays = cells.filter((c) => c.total > 0).length
-    const weekTotal = cells.reduce((sum, c) => sum + c.total, 0)
-    const over = loggedDays ? weekTotal - goal.value * loggedDays : null
+    // glemt dag ikke trækker ugen kunstigt "under" — hver dag mod sit eget
+    // budget, så aktive dages ekstra plads tæller med
+    const logged = cells.filter((c) => c.total > 0)
+    const weekTotal = logged.reduce((sum, c) => sum + c.total, 0)
+    const weekBudget = logged.reduce((sum, c) => sum + data.dayBudget(c.date), 0)
+    const over = logged.length ? weekTotal - weekBudget : null
     return { cells, over }
   }),
 )
@@ -85,9 +91,9 @@ function next() {
 }
 
 function tapDay(cell) {
+  // Alle dage frem til i dag kan åbnes — også tomme dage, så et glemt måltid
+  // kan tastes ind bagud, og dagen kan markeres som hyggedag
   if (cell.status === 'future') return
-  // Dage uden mad kan stadig åbnes, hvis de skal markeres som hyggedag
-  if (!cell.total && !cell.hygge && cell.date !== today) return
   openDay.value = openDay.value === cell.date ? null : cell.date
 }
 
@@ -103,9 +109,13 @@ const openTotal = computed(() => openEntries.value.reduce((sum, e) => sum + e.kc
 const openMessage = computed(() => {
   if (!openDay.value) return ''
   if (data.isCelebration(openDay.value)) return celebrationMessage()
-  const over = openTotal.value - goal.value
+  const over = openTotal.value - data.dayBudget(openDay.value)
   return over > BAND ? highDayMessage(over) : ''
 })
+
+function remove(entry) {
+  if (confirm(`Slet "${entry.food_name}"?`)) data.deleteEntry(entry.id)
+}
 </script>
 
 <template>
@@ -164,9 +174,11 @@ const openMessage = computed(() => {
     <div v-for="e in openEntries" :key="e.id" class="row row-sub">
       <span class="row-name">{{ e.food_name }}</span>
       <span class="row-kcal">{{ e.kcal }} kcal</span>
+      <button class="row-delete" aria-label="Slet måltid" @click="remove(e)">✕</button>
     </div>
     <p v-if="!openEntries.length" class="empty">Intet mad logget denne dag.</p>
     <p v-if="openMessage" class="status-coach cal-coach">{{ openMessage }}</p>
+    <DayActivity :date="openDay" when="den dag" />
     <button
       type="button"
       class="hygge-toggle"
@@ -176,6 +188,8 @@ const openMessage = computed(() => {
       {{ data.isCelebration(openDay) ? 'Fjern hyggedag' : 'Marker som hyggedag' }}
     </button>
   </section>
+
+  <QuickAdd v-if="openDay" :key="openDay" :date="openDay" />
 
   <WeightChart />
   <WeightStats />

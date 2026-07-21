@@ -4,13 +4,13 @@ import { useDataStore } from '../stores/data'
 
 const data = useDataStore()
 
-const goal = computed(() => data.dailyGoal)
+const goal = computed(() => data.todayBudget) // dagsmål + ekstra plads på en aktiv dag
 const left = computed(() => goal.value - data.todayTotal) // + = tilbage, - = over
 const pct = computed(() => Math.min(100, Math.round((data.todayTotal / goal.value) * 100)))
 
-// Ugen måles mod målet ganget med de dage, hun faktisk har logget — så en
-// enkelt høj dag ikke ødelægger noget, hvis andre dage er lave
-const weekAllowance = computed(() => goal.value * data.weekLoggedDays)
+// Ugen måles mod budgettet for de dage, hun faktisk har logget (en aktiv dag
+// tæller med sin ekstra plads) — så en enkelt høj dag ikke ødelægger noget
+const weekAllowance = computed(() => data.weekBudgetLogged)
 const weekDiff = computed(() => weekAllowance.value - data.weekTotal) // + = under, - = over
 const weekPct = computed(() =>
   weekAllowance.value > 0 ? Math.min(100, Math.round((data.weekTotal / weekAllowance.value) * 100)) : 0,

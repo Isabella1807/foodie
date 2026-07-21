@@ -18,7 +18,7 @@ const currentTab = ref('today')
 // Hold ikon-tallet og den faste notifikation i sync med dagens kalorier
 function refreshLiveStatus() {
   updateBadge(data.todayTotal)
-  updateNotification(data.notify, data.todayTotal, data.dailyGoal)
+  updateNotification(data.notify, data.todayTotal, data.todayBudget)
 }
 
 onMounted(() => {
@@ -35,7 +35,7 @@ onMounted(() => {
   })
 })
 
-watch(() => [data.todayTotal, data.dailyGoal, data.notify], refreshLiveStatus)
+watch(() => [data.todayTotal, data.todayBudget, data.notify], refreshLiveStatus)
 </script>
 
 <template>

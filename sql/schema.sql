@@ -88,3 +88,36 @@ create policy "own celebrations" on public.celebrations
 
 create index weights_user_measured_idx on public.weights (user_id, measured_on desc);
 create index celebrations_user_date_idx on public.celebrations (user_id, date);
+
+-- Kørte du en ældre udgave af dette skema, så kør kun alt herfra og ned.
+-- Det tilføjer krops-tal og aktivitet pr. dag, så de matcher på alle enheder.
+
+-- Krops-tal: én række pr. bruger (højde, alder, køn, generelt aktivitetsniveau)
+create table public.profiles (
+  user_id   uuid primary key default auth.uid() references auth.users (id) on delete cascade,
+  height_cm integer check (height_cm > 0),
+  age       integer check (age > 0),
+  sex       text check (sex in ('kvinde', 'mand')),
+  activity  text check (activity in ('stille', 'let', 'moderat', 'aktiv'))
+);
+
+-- Aktivitet pr. dag: én række for hver dag, der er sat til et niveau
+create table public.day_activity (
+  user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  date    date not null,
+  level   text not null check (level in ('stille', 'let', 'moderat', 'aktiv')),
+  primary key (user_id, date)
+);
+
+alter table public.profiles     enable row level security;
+alter table public.day_activity enable row level security;
+
+create policy "own profile" on public.profiles
+  for all to authenticated
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid());
+
+create policy "own day_activity" on public.day_activity
+  for all to authenticated
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid());

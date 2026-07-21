@@ -2,6 +2,15 @@
 import { ref, computed } from 'vue'
 import { useDataStore } from '../stores/data'
 import { unitName } from '../lib/units'
+import { localToday, formatDayLabel } from '../lib/dates'
+
+// date: hvilken dag måltidet lægges på. Uden den lander det på i dag — så på
+// forsiden logger den som før, mens kalenderen kan sende en tidligere dato med.
+const props = defineProps({
+  date: { type: String, default: null },
+})
+const targetDate = computed(() => props.date || localToday())
+const forPastDay = computed(() => !!props.date && props.date !== localToday())
 
 const data = useDataStore()
 const query = ref('')
@@ -189,7 +198,7 @@ function logFood(food) {
 }
 
 function logOption(opt) {
-  data.logEntry({ name: opt.name, kcal: opt.kcal, foodId: pending.value.id })
+  data.logEntry({ name: opt.name, kcal: opt.kcal, foodId: pending.value.id, eaten_on: targetDate.value })
   reset()
 }
 
@@ -210,7 +219,7 @@ function logPending() {
   } else {
     name = `${food.name} (${Math.round(Number(pendingAmount.value))} ${unitName(food.per_unit)})`
   }
-  data.logEntry({ name, kcal: pendingKcal.value, foodId: food.id })
+  data.logEntry({ name, kcal: pendingKcal.value, foodId: food.id, eaten_on: targetDate.value })
   reset()
 }
 
@@ -263,7 +272,7 @@ function logDirect() {
   const name = query.value.trim()
   const n = Math.round(Number(kcal.value))
   if (!name || !n || n <= 0) return
-  data.logEntry({ name, kcal: n })
+  data.logEntry({ name, kcal: n, eaten_on: targetDate.value })
   reset()
 }
 
@@ -277,6 +286,7 @@ function submitNew() {
 
 <template>
   <section class="card quickadd">
+    <p v-if="forPastDay" class="quickadd-forday">Tilføjer til <b>{{ formatDayLabel(targetDate) }}</b></p>
     <div class="quickadd-row">
       <input
         v-model="query"

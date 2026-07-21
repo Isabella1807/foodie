@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { supabase } from '../lib/supabase'
 import { load, save, remove } from '../lib/storage'
 import { localToday, weekStart } from '../lib/dates'
+import { kcalPerKgOf } from '../lib/activity'
 
 const now = () => new Date().toISOString()
 
@@ -19,8 +20,12 @@ export const useDataStore = defineStore('data', {
       weights: cache.weights || [],
       goals: cache.goals || { kcal_goal: 1500, goal_kg: null },
       celebrations: cache.celebrations || [], // dage markeret som hygge-/festdag: { id, date }
-      // Krops-tal til at anslå tid til målet — kun lokalt, synkes ikke
+      // Krops-tal til at anslå tid til målet og ekstra plads på aktive dage.
+      // Synces nu, så de samme tal gælder på alle enheder
       profile: cache.profile || { height_cm: null, age: null, sex: null, activity: null },
+      // Valgt aktivitet pr. dag, fx { '2026-07-20': 'moderat' } — en mere aktiv
+      // dag giver ekstra plads i dagens mål. Synces også
+      dayActivity: cache.dayActivity || {},
       notify: cache.notify || false, // fast notifikation med dagens kalorier (pr. enhed)
       dismissedStarters: cache.dismissedStarters || [], // slettede varenavne — foreslås ikke igen
       outbox: load('outbox', []),
@@ -48,15 +53,20 @@ export const useDataStore = defineStore('data', {
         .reduce((sum, e) => sum + e.kcal, 0)
     },
 
-    // Antal dage i denne uge, hvor der er logget noget — så ugens over/under
+    // Datoerne i denne uge, hvor der er logget noget — så ugens over/under
     // kun regnes på de dage, hun faktisk har tastet ind
-    weekLoggedDays(state) {
+    weekLoggedDates(state) {
       const start = weekStart(localToday())
+      const today = localToday()
       const days = new Set()
       for (const e of state.entries) {
-        if (e.eaten_on >= start && e.eaten_on <= localToday()) days.add(e.eaten_on)
+        if (e.eaten_on >= start && e.eaten_on <= today) days.add(e.eaten_on)
       }
-      return days.size
+      return [...days]
+    },
+
+    weekLoggedDays() {
+      return this.weekLoggedDates.length
     },
 
     // Ugens gennemsnit pr. logget dag — det tal, der viser om ugen samlet
@@ -94,6 +104,53 @@ export const useDataStore = defineStore('data', {
     // Dagligt mål — 1500 kcal som standard, indtil hun selv sætter et andet
     dailyGoal(state) {
       return state.goals.kcal_goal ?? 1500
+    },
+
+    // Den vægt beregningerne bruger: nyeste vejning, ellers startvægten
+    bodyWeight() {
+      return this.latestWeight?.kg ?? this.startWeight?.kg ?? null
+    },
+
+    // Kan vi regne ekstra plads ud? Kræver højde, alder, køn, et generelt
+    // aktivitetsniveau og en vægt — ellers er der ikke nok tal
+    canComputeBurn(state) {
+      const p = state.profile
+      return !!(p.height_cm && p.age && p.sex && p.activity && this.bodyWeight)
+    },
+
+    // Ekstra kalorier en dags aktivitet giver oveni dagsmålet, i forhold til
+    // dit generelle niveau: en mere aktiv dag forbrænder mere, så du kan spise
+    // tilsvarende mere og stadig ligge i samme underskud. Regnes ud fra din
+    // vægt og hvor meget hvert niveau dækker (kcal pr. kg). 0 hvis tallene
+    // mangler eller dagen svarer til dit generelle niveau.
+    activityBonus(state) {
+      return (date) => {
+        if (!this.canComputeBurn) return 0
+        const base = state.profile.activity
+        const level = state.dayActivity[date] || base
+        return Math.round(this.bodyWeight * (kcalPerKgOf(level) - kcalPerKgOf(base)))
+      }
+    },
+
+    // Dagens samlede budget = dagsmålet + evt. ekstra plads for den dags aktivitet
+    dayBudget() {
+      return (date) => this.dailyGoal + this.activityBonus(date)
+    },
+
+    // I dags budget (dagsmål + ekstra plads, hvis i dag er sat til mere aktiv)
+    todayBudget() {
+      return this.dayBudget(localToday())
+    },
+
+    // Ugens samlede budget hen over de dage, der er logget — så en aktiv dag
+    // med ekstra plads tæller rigtigt med, når ugen gøres op
+    weekBudgetLogged() {
+      return this.weekLoggedDates.reduce((sum, d) => sum + this.dayBudget(d), 0)
+    },
+
+    // Ugens over/under mod budgettet (+ = over, − = under). null hvis intet logget
+    weekOver() {
+      return this.weekLoggedDays ? this.weekTotal - this.weekBudgetLogged : null
     },
 
     // Har hun vejet sig i denne uge (mandag–søndag)?
@@ -197,6 +254,7 @@ export const useDataStore = defineStore('data', {
         goals: this.goals,
         celebrations: this.celebrations,
         profile: this.profile,
+        dayActivity: this.dayActivity,
         notify: this.notify,
         dismissedStarters: this.dismissedStarters,
       })
@@ -248,12 +306,14 @@ export const useDataStore = defineStore('data', {
       this.queue('delete_food', { id })
     },
 
-    logEntry({ name, kcal, foodId = null }) {
+    // eaten_on kan gives, hvis man taster et glemt måltid ind på en tidligere
+    // dag; ellers lander det på dagens lokale kalenderdag
+    logEntry({ name, kcal, foodId = null, eaten_on = localToday() }) {
       const entry = {
         id: crypto.randomUUID(),
         food_name: name,
         kcal,
-        eaten_on: localToday(), // lokal kalenderdag — kl. 00:30 tæller stadig som "i nat"
+        eaten_on, // lokal kalenderdag — kl. 00:30 tæller stadig som "i nat"
         created_at: now(),
       }
       this.entries.push(entry)
@@ -292,10 +352,30 @@ export const useDataStore = defineStore('data', {
       this.queue('upsert_goals', { kcal_goal: this.goals.kcal_goal, goal_kg: this.goals.goal_kg })
     },
 
-    // Krops-tal gemmes kun lokalt (bruges til at anslå tid til målet)
+    // Krops-tal — gemmes lokalt og sendes op, så de matcher på alle enheder
     setProfile(changes) {
       this.profile = { ...this.profile, ...changes }
       this.persist()
+      this.queue('upsert_profile', { ...this.profile })
+    },
+
+    // Sæt (eller ryd) aktiviteten for en enkelt dag. Svarer valget til dit
+    // generelle niveau, fjernes markeringen igen — så følger dagen bare det
+    // generelle niveau uden ekstra plads.
+    setDayActivity(date, level) {
+      const next = { ...this.dayActivity }
+      const had = date in next
+      if (!level || level === this.profile.activity) {
+        delete next[date]
+        this.dayActivity = next
+        this.persist()
+        if (had) this.queue('delete_day_activity', { date })
+      } else {
+        next[date] = level
+        this.dayActivity = next
+        this.persist()
+        this.queue('upsert_day_activity', { date, level })
+      }
     },
 
     // Fast notifikation med dagens kalorier — til/fra pr. enhed (kun lokalt)
@@ -327,6 +407,7 @@ export const useDataStore = defineStore('data', {
       this.goals = { kcal_goal: 1500, goal_kg: null }
       this.celebrations = []
       this.profile = { height_cm: null, age: null, sex: null, activity: null }
+      this.dayActivity = {}
       this.notify = false
       this.dismissedStarters = []
       this.outbox = []
@@ -387,6 +468,14 @@ export const useDataStore = defineStore('data', {
           return supabase.from('celebrations').upsert(op.payload)
         case 'delete_celebration':
           return supabase.from('celebrations').delete().eq('id', op.payload.id)
+        case 'upsert_profile':
+          // Én række pr. bruger — databasen sætter selv user_id ud fra login
+          return supabase.from('profiles').upsert(op.payload, { onConflict: 'user_id' })
+        case 'upsert_day_activity':
+          // Én række pr. dag — databasen sætter selv user_id ud fra login
+          return supabase.from('day_activity').upsert(op.payload, { onConflict: 'user_id,date' })
+        case 'delete_day_activity':
+          return supabase.from('day_activity').delete().eq('date', op.payload.date)
         default:
           return { error: { code: 'unknown_op' } }
       }
@@ -397,12 +486,14 @@ export const useDataStore = defineStore('data', {
     async refresh() {
       if (this.outbox.length) return
       try {
-        const [foods, entries, weights, goals, celebrations] = await Promise.all([
+        const [foods, entries, weights, goals, celebrations, profiles, dayActivity] = await Promise.all([
           supabase.from('foods').select('*'),
           supabase.from('entries').select('*'),
           supabase.from('weights').select('*'),
           supabase.from('goals').select('*'),
           supabase.from('celebrations').select('*'),
+          supabase.from('profiles').select('*'),
+          supabase.from('day_activity').select('*'),
         ])
         if (foods.error || entries.error) return
         this.foods = foods.data
@@ -412,6 +503,22 @@ export const useDataStore = defineStore('data', {
         if (!celebrations.error) this.celebrations = celebrations.data
         if (!goals.error && goals.data.length) {
           this.goals = { kcal_goal: goals.data[0].kcal_goal, goal_kg: goals.data[0].goal_kg }
+        }
+        // Krops-tal: behold et lokalt tal, hvor serveren ikke har nogen — så et
+        // tal tastet her ikke forsvinder, før det er nået at blive sendt op
+        if (!profiles.error && profiles.data.length) {
+          const p = profiles.data[0]
+          this.profile = {
+            height_cm: p.height_cm ?? this.profile.height_cm,
+            age: p.age ?? this.profile.age,
+            sex: p.sex ?? this.profile.sex,
+            activity: p.activity ?? this.profile.activity,
+          }
+        }
+        // Dag-aktivitet: læg serverens dage oveni de lokale (serveren vinder pr. dag)
+        if (!dayActivity.error) {
+          const serverDays = Object.fromEntries(dayActivity.data.map((d) => [d.date, d.level]))
+          this.dayActivity = { ...this.dayActivity, ...serverDays }
         }
         this.persist()
       } catch {

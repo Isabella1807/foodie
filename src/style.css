@@ -902,6 +902,12 @@ button {
   gap: 12px;
 }
 
+.quickadd-forday {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
 .quickadd-row {
   display: flex;
   gap: 10px;
@@ -1031,6 +1037,17 @@ button {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+/* dag-aktivitet: adskilt lidt fra resten af kortet */
+.day-activity {
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+.day-activity-bonus {
+  margin: 0;
+  font-size: 0.9rem;
 }
 
 .quickadd-new {

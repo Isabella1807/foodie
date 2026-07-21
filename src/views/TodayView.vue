@@ -11,10 +11,10 @@ import GoalsCard from '../components/GoalsCard.vue'
 
 const data = useDataStore()
 
-// Pille øverst: er ugens snit under eller over dagsmålet?
+// Pille øverst: ligger ugen samlet under eller over budgettet?
 const weekStatus = computed(() => {
-  if (!data.weekAverage) return null
-  return data.weekAverage <= data.dailyGoal
+  if (data.weekOver === null) return null
+  return data.weekOver <= 0
     ? { text: 'I underskud denne uge', cls: 'week-pill-good' }
     : { text: 'Over målet denne uge', cls: 'week-pill-warn' }
 })
@@ -28,7 +28,7 @@ function remove(entry) {
   <header class="view-header center">
     <p class="eyebrow">{{ formatFullDate(localToday()) }}</p>
     <p class="today-number">
-      {{ data.todayTotal }}<span class="today-goal"> / {{ data.dailyGoal }}</span>
+      {{ data.todayTotal }}<span class="today-goal"> / {{ data.todayBudget }}</span>
       <span class="today-unit">kcal</span>
     </p>
     <span v-if="weekStatus" class="week-pill" :class="weekStatus.cls">{{ weekStatus.text }}</span>
