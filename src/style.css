@@ -13,9 +13,10 @@
   --danger: #b04a36;
   --amber: #d9a441;
   --amber-dark: #8a6420;
-  --cal-under: #c9e8d2;
-  --cal-around: #f4e3ab;
-  --cal-over: #f1c9b9;
+  --cal-under: #c9e8d2; /* til og med dagens budget */
+  --cal-near: #e2f1e6; /* lige over: op til 100 kcal */
+  --cal-some: #f4e3ab; /* noget over: op til 200 kcal */
+  --cal-over: #f0bfae; /* mere end 200 over */
   --hygge: #e7dcf3;
   --hygge-dark: #5b4a7a;
   --radius: 14px;
@@ -431,8 +432,13 @@ button {
   color: var(--green-dark);
 }
 
-.cal-day.s-around {
-  background: var(--cal-around);
+.cal-day.s-near {
+  background: var(--cal-near);
+  color: var(--green-dark);
+}
+
+.cal-day.s-some {
+  background: var(--cal-some);
   color: #7a5510;
 }
 
@@ -495,8 +501,12 @@ button {
   background: var(--cal-under);
 }
 
-.dot.d-around {
-  background: var(--cal-around);
+.dot.d-near {
+  background: var(--cal-near);
+}
+
+.dot.d-some {
+  background: var(--cal-some);
 }
 
 .dot.d-over {

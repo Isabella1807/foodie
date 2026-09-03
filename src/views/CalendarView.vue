@@ -22,7 +22,12 @@ const openDay = ref(null)
 
 const today = localToday()
 const weekdays = ['Ma', 'Ti', 'On', 'To', 'Fr', 'Lø', 'Sø']
-const BAND = 100 // "lige omkring" målet = inden for 100 kcal
+// Farver i kalenderen, målt mod dagens budget: til og med budgettet er grønt,
+// op til 100 over er lysegrønt (inden for det man alligevel ikke kan måle),
+// op til 200 over er gult, og derover er rødt
+const NEAR = 100
+const SOME = 200
+const BAND = NEAR // den beroligende besked vises fra "gul" og op
 const fmt = (n) => n.toLocaleString('da-DK')
 
 const goal = computed(() => data.dailyGoal)
@@ -39,9 +44,10 @@ function statusOf(date, total) {
   if (!total) return 'none'
   // Mål mod dagens eget budget: en aktiv dag har mere plads, før den er "over"
   const budget = data.dayBudget(date)
-  if (total < budget - BAND) return 'under'
-  if (total > budget + BAND) return 'over'
-  return 'around'
+  if (total <= budget) return 'under'
+  if (total <= budget + NEAR) return 'near'
+  if (total <= budget + SOME) return 'some'
+  return 'over'
 }
 
 const weeks = computed(() =>
@@ -160,9 +166,10 @@ function remove(entry) {
     </div>
 
     <div class="cal-legend">
-      <span><i class="dot d-under"></i>under {{ fmt(goal) }}</span>
-      <span><i class="dot d-around"></i>omkring {{ fmt(goal) }}</span>
-      <span><i class="dot d-over"></i>over {{ fmt(goal) }}</span>
+      <span><i class="dot d-under"></i>til og med {{ fmt(goal) }}</span>
+      <span><i class="dot d-near"></i>op til {{ fmt(goal + NEAR) }}</span>
+      <span><i class="dot d-some"></i>op til {{ fmt(goal + SOME) }}</span>
+      <span><i class="dot d-over"></i>over {{ fmt(goal + SOME) }}</span>
       <span class="cal-legend-week">
         uge-tal: <b class="good-text">−</b> under · <b class="over-text">+</b> over ugens mål
       </span>
