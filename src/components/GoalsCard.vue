@@ -145,8 +145,8 @@ function save() {
     </div>
 
     <div class="goal-row">
-      <span class="goal-key">Vejedag</span>
-      <span class="goal-val">onsdag</span>
+      <span class="goal-key">Vejning</span>
+      <span class="goal-val">hver morgen</span>
     </div>
 
     <div v-if="notifySupported" class="goal-row">

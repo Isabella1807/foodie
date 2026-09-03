@@ -5,15 +5,26 @@ import { useDataStore } from '../stores/data'
 const data = useDataStore()
 const fmtKg = (n) => n.toLocaleString('da-DK', { maximumFractionDigits: 1 })
 
+function toDate(s) {
+  const [y, m, d] = s.split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
+const daysBetween = (a, b) => Math.round((toDate(b) - toDate(a)) / 86400000)
+
 // Ældste vejning først, så grafen læses fra venstre mod højre
-const series = computed(() => [...data.weighIns].reverse())
+const series = computed(() => [...data.weighIns].reverse().map((w) => ({ ...w, kg: Number(w.kg) })))
 const hasChart = computed(() => series.value.length >= 2)
 
-// Glidende gennemsnit over de op til 3 seneste vejninger — så almindelige
-// udsving fra væske, salt og mad ikke føles som fiaskoer
+// 7-dages gennemsnit: for hver vejning gennemsnittet af de vejninger, der
+// ligger inden for de foregående 7 dage — så almindelige udsving fra væske,
+// salt og mad ikke føles som fiaskoer. Med daglige vejninger bliver linjen
+// jævn; med ugentlige følger den bare punkterne.
 const smoothed = computed(() =>
-  series.value.map((w, i) => {
-    const window = series.value.slice(Math.max(0, i - 2), i + 1)
+  series.value.map((w) => {
+    const window = series.value.filter((p) => {
+      const d = daysBetween(p.measured_on, w.measured_on)
+      return d >= 0 && d < 7
+    })
     const avg = window.reduce((sum, p) => sum + p.kg, 0) / window.length
     return { ...w, avg }
   }),
@@ -42,32 +53,39 @@ const chart = computed(() => {
   const room = (max - min) * 0.18
   min -= room
   max += room
-  const x = (i) => PAD + (i / (pts.length - 1)) * (W - 2 * PAD)
+  // Tiden på tværs: en uge uden vejning fylder stadig en uge, så daglige og
+  // ugentlige vejninger kan stå i samme graf uden at forvride forløbet
+  const first = pts[0].measured_on
+  const span = Math.max(1, daysBetween(first, pts[pts.length - 1].measured_on))
+  const x = (p) => PAD + (daysBetween(first, p.measured_on) / span) * (W - 2 * PAD)
   const y = (kg) => PAD + (1 - (kg - min) / (max - min)) * (H - PAD - PAD_BOTTOM)
-  const line = (key) => pts.map((p, i) => `${x(i).toFixed(1)},${y(p[key]).toFixed(1)}`).join(' ')
+  const line = (key) => pts.map((p) => `${x(p).toFixed(1)},${y(p[key]).toFixed(1)}`).join(' ')
   const goalInView = goal && goal >= min && goal <= max
   return {
     raw: line('kg'),
     avg: line('avg'),
     goalY: goalInView ? y(goal).toFixed(1) : null,
-    dots: pts.map((p, i) => ({ cx: x(i).toFixed(1), cy: y(p.kg).toFixed(1) })),
+    dots: pts.map((p) => ({ cx: x(p).toFixed(1), cy: y(p.kg).toFixed(1) })),
+    // Mange daglige punkter: mindre prikker, så linjen stadig kan ses
+    r: pts.length > 20 ? 1.8 : 2.6,
   }
 })
 
-// Milepæle: hver 5 kg fra startvægten ned mod målvægten
+// Milepæle: hver 5 kg fra startvægten ned mod målvægten — nået, når
+// 7-dages gennemsnittet er under
 const milestones = computed(() => {
   const start = data.startWeight
-  const latest = data.latestWeight
+  const now = data.currentWeight
   const goal = data.goals.goal_kg
   if (!start || !goal) return []
   const list = []
-  let m = Math.floor((start.kg - 0.001) / 5) * 5
+  let m = Math.floor((Number(start.kg) - 0.001) / 5) * 5
   while (m > goal) {
     list.push(m)
     m -= 5
   }
   list.push(Math.round(goal * 10) / 10)
-  return list.map((kg) => ({ kg, reached: !!latest && latest.kg <= kg + 0.05 }))
+  return list.map((kg) => ({ kg, reached: now != null && now <= kg + 0.05 }))
 })
 </script>
 
@@ -75,7 +93,7 @@ const milestones = computed(() => {
   <section class="card weight-dash">
     <div class="weight-top">
       <p class="eyebrow">vægtudvikling</p>
-      <p v-if="data.latestWeight" class="weight-when">{{ fmtKg(data.latestWeight.kg) }} kg nu</p>
+      <p v-if="data.currentWeight != null" class="weight-when">{{ fmtKg(data.currentWeight) }} kg i snit nu</p>
     </div>
 
     <svg
@@ -95,13 +113,13 @@ const milestones = computed(() => {
       />
       <polyline :points="chart.raw" class="svg-raw" />
       <polyline :points="chart.avg" class="svg-avg" />
-      <circle v-for="(d, i) in chart.dots" :key="i" :cx="d.cx" :cy="d.cy" r="2.6" class="svg-dot" />
+      <circle v-for="(d, i) in chart.dots" :key="i" :cx="d.cx" :cy="d.cy" :r="chart.r" class="svg-dot" />
     </svg>
     <p v-else class="weight-note">Vej dig et par gange, så tegner grafen din udvikling her.</p>
 
     <div v-if="chart" class="weight-legend">
       <span><i class="ln ln-raw"></i>vejning</span>
-      <span><i class="ln ln-avg"></i>glidende gennemsnit</span>
+      <span><i class="ln ln-avg"></i>7-dages gennemsnit</span>
       <span v-if="chart.goalY !== null"><i class="ln ln-goal"></i>mål {{ fmtKg(data.goals.goal_kg) }} kg</span>
     </div>
 

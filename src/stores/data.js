@@ -8,6 +8,13 @@ import { sumMacros, defaultMacroGoals, MACROS } from '../lib/nutrition'
 
 const now = () => new Date().toISOString()
 
+// Dato-tekst (YYYY-MM-DD) til lokal dato, og antal dage fra a til b
+const parseDay = (s) => {
+  const [y, m, d] = s.split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
+const daysBetween = (a, b) => Math.round((b - a) / 86400000)
+
 // Kopi uden de valgfrie felter, der er tomme
 function withoutEmpty(obj, optional) {
   const copy = { ...obj }
@@ -103,10 +110,6 @@ export const useDataStore = defineStore('data', {
       return this.weighIns[0] ?? null
     },
 
-    previousWeight() {
-      return this.weighIns[1] ?? null
-    },
-
     // Den første vejning er startvægten — den vægttabet regnes fra
     startWeight() {
       return this.weighIns[this.weighIns.length - 1] ?? null
@@ -117,9 +120,9 @@ export const useDataStore = defineStore('data', {
       return state.goals.kcal_goal ?? 1500
     },
 
-    // Den vægt beregningerne bruger: nyeste vejning, ellers startvægten
+    // Den vægt beregningerne bruger: 7-dages gennemsnittet, ellers startvægten
     bodyWeight() {
-      return this.latestWeight?.kg ?? this.startWeight?.kg ?? null
+      return this.currentWeight ?? this.startWeight?.kg ?? null
     },
 
     // Kan vi regne ekstra plads ud? Kræver højde, alder, køn, et generelt
@@ -164,36 +167,64 @@ export const useDataStore = defineStore('data', {
       return this.weekLoggedDays ? this.weekTotal - this.weekBudgetLogged : null
     },
 
-    // Har hun vejet sig i denne uge (mandag–søndag)?
-    weighedThisWeek() {
-      const latest = this.latestWeight
-      return !!latest && weekStart(latest.measured_on) === weekStart(localToday())
+    // Har hun vejet sig i dag?
+    weighedToday() {
+      return this.latestWeight?.measured_on === localToday()
     },
 
-    // Kg tabt fra startvægten til nyeste vejning
-    weightLost() {
+    // Vægten svinger 1–2 kg fra dag til dag af vand og salt. Derfor er "din
+    // vægt" gennemsnittet af de sidste 7 dages vejninger (regnet fra den
+    // seneste), og "siden sidste uge" sammenligner med de 7 dage før dem.
+    weightWindows() {
       const latest = this.latestWeight
+      if (!latest) return { current: null, previous: null, count: 0 }
+      const end = parseDay(latest.measured_on)
+      const inWindow = (from, to) =>
+        this.weighIns.filter((w) => {
+          const d = daysBetween(end, parseDay(w.measured_on))
+          return d > -to && d <= -from
+        })
+      const avg = (list) => (list.length ? Math.round((list.reduce((s, w) => s + Number(w.kg), 0) / list.length) * 10) / 10 : null)
+      const current = inWindow(0, 7)
+      const previous = inWindow(7, 14)
+      return { current: avg(current), previous: avg(previous), count: current.length }
+    },
+
+    // Den vægt der vises og regnes med: 7-dages gennemsnittet
+    currentWeight() {
+      return this.weightWindows.current
+    },
+
+    // Ændring fra sidste uges gennemsnit til denne uges (null indtil der er to uger)
+    weekChange() {
+      const { current, previous } = this.weightWindows
+      return current != null && previous != null ? Math.round((current - previous) * 10) / 10 : null
+    },
+
+    // Kg tabt fra startvægten til nu (7-dages gennemsnittet)
+    weightLost() {
+      const now = this.currentWeight
       const start = this.startWeight
-      return latest && start ? Math.round((start.kg - latest.kg) * 10) / 10 : null
+      return now != null && start ? Math.round((start.kg - now) * 10) / 10 : null
     },
 
     // Hvor langt mod målvægten, i procent (0 % ved start, 100 % ved målet)
     weightProgress() {
-      const latest = this.latestWeight
+      const now = this.currentWeight
       const start = this.startWeight
       const goal = this.goals.goal_kg
-      if (!goal || !start || !latest) return null
+      if (!goal || !start || now == null) return null
       const total = start.kg - goal
       if (total <= 0) return null
-      return Math.max(0, Math.min(100, Math.round(((start.kg - latest.kg) / total) * 100)))
+      return Math.max(0, Math.min(100, Math.round(((start.kg - now) / total) * 100)))
     },
 
     // Kg der stadig mangler til målvægten
     weightToGo() {
-      const latest = this.latestWeight
+      const now = this.currentWeight
       const goal = this.goals.goal_kg
-      if (!goal || !latest) return null
-      return Math.max(0, Math.round((latest.kg - goal) * 10) / 10)
+      if (!goal || now == null) return null
+      return Math.max(0, Math.round((now - goal) * 10) / 10)
     },
 
     // Dit faktiske daglige forbrug, regnet løbende ud fra de seneste ugers
@@ -348,14 +379,12 @@ export const useDataStore = defineStore('data', {
       this.queue('delete_entry', { id })
     },
 
-    // Én vejning pr. uge — vejer hun sig igen i samme uge, opdateres ugens tal.
+    // Én vejning pr. dag — vejer hun sig igen samme dag, rettes dagens tal.
     // date kan gives, hvis man vil taste en tidligere vejning ind.
     logWeight(kg, date = localToday()) {
-      const wk = weekStart(date)
-      let weight = this.weights.find((w) => weekStart(w.measured_on) === wk)
+      let weight = this.weights.find((w) => w.measured_on === date)
       if (weight) {
         weight.kg = kg
-        weight.measured_on = date
       } else {
         weight = { id: crypto.randomUUID(), kg, measured_on: date, created_at: now() }
         this.weights.push(weight)

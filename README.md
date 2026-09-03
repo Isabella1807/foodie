@@ -3,7 +3,7 @@
 Lille privat kalorie- og vægt-tracker (PWA) med fokus på et bæredygtigt vægttab.
 Log hvad du spiser, se dagens total og en støttende "dagens status", følg ugens
 gennemsnit, og se en farvekalender der viser hver dag som under/omkring/over dit
-mål. Følg vægten med en graf og glidende gennemsnit, milepæle og fremskridt mod
+mål. Vej dig hver morgen og følg vægten som 7-dages gennemsnit med graf, milepæle og fremskridt mod
 målvægten — og marker hygge-/festdage, så en planlagt dag ikke ligner en fejl.
 Skan stregkoden på en vare, så slår appen den op i Open Food Facts og henter
 kalorier, protein, kulhydrat og fedt; dagens protein, kulhydrat og fedt vises

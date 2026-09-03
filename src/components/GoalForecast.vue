@@ -23,7 +23,7 @@ const sex = ref(null)
 const activity = ref(null)
 
 const p = computed(() => data.profile)
-const currentKg = computed(() => data.latestWeight?.kg ?? data.startWeight?.kg ?? null)
+const currentKg = computed(() => data.currentWeight ?? data.startWeight?.kg ?? null)
 const goalKg = computed(() => data.goals.goal_kg)
 const intake = computed(() => data.dailyGoal)
 const burn = computed(() => data.measuredBurn)

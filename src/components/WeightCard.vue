@@ -3,6 +3,9 @@ import { ref, computed } from 'vue'
 import { useDataStore } from '../stores/data'
 import { formatDayLabel, localToday } from '../lib/dates'
 
+// Daglig vejning. Det store tal er gennemsnittet af de sidste 7 dages
+// vejninger, ikke dagens tal — vægten svinger 1–2 kg fra dag til dag af vand
+// og salt, og det skal ikke fylde. Ændringen måles mod ugen før.
 const data = useDataStore()
 const weightInput = ref('')
 const today = localToday()
@@ -11,12 +14,6 @@ const mode = ref(null) // null | 'now' (vej i dag) | 'past' (tidligere vejning)
 // Felter til en tidligere vejning (med dato)
 const pastDate = ref('')
 const pastKg = ref('')
-
-// Fast vejedag: onsdag. (0 = søndag, 3 = onsdag)
-const WEEKDAYS = ['søndag', 'mandag', 'tirsdag', 'onsdag', 'torsdag', 'fredag', 'lørdag']
-const WEIGH_WEEKDAY = 3
-const weighDayName = WEEKDAYS[WEIGH_WEEKDAY]
-const todayWeekday = new Date().getDay()
 
 // "97,4" og "97.4" skal begge virke — dansk tastatur giver komma
 function toKg(value) {
@@ -27,36 +24,19 @@ function toKg(value) {
 const fmtKg = (n) => n.toLocaleString('da-DK', { maximumFractionDigits: 1 })
 
 const latest = computed(() => data.latestWeight)
-const previous = computed(() => data.previousWeight)
 const start = computed(() => data.startWeight)
 const goal = computed(() => data.goals.goal_kg)
-const weighedThisWeek = computed(() => data.weighedThisWeek)
+const weighedToday = computed(() => data.weighedToday)
+const windows = computed(() => data.weightWindows)
+const current = computed(() => data.currentWeight)
 
-const sinceLast = computed(() =>
-  latest.value && previous.value ? Math.round((latest.value.kg - previous.value.kg) * 10) / 10 : null,
-)
-
-// Tydelig linje: ændringen fra sidste vejning (som ligger en uge tilbage)
+// Tydelig linje: ændringen fra sidste uges gennemsnit til denne uges
 const weekChange = computed(() => {
-  if (sinceLast.value == null) return null
-  const v = sinceLast.value
+  const v = data.weekChange
+  if (v == null) return null
   if (v < 0) return { text: `−${fmtKg(Math.abs(v))} kg`, cls: 'good-text' }
   if (v > 0) return { text: `+${fmtKg(v)} kg`, cls: 'over-text' }
   return { text: '±0 kg', cls: '' }
-})
-
-// Hvor er vi i ugens veje-rutine?
-//  done     = allerede vejet i denne uge
-//  first    = har aldrig vejet sig (startvægt mangler) — kan altid tastes
-//  today    = det er onsdag og der mangler en vejning
-//  overdue  = onsdag er passeret uden vejning (torsdag–søndag)
-//  upcoming = mandag/tirsdag — vejedagen er på vej
-const weighState = computed(() => {
-  if (weighedThisWeek.value) return 'done'
-  if (!start.value) return 'first'
-  if (todayWeekday === WEIGH_WEEKDAY) return 'today'
-  if (todayWeekday === 1 || todayWeekday === 2) return 'upcoming'
-  return 'overdue'
 })
 
 function toggle(m) {
@@ -88,13 +68,20 @@ function savePast() {
       <p v-if="latest" class="weight-when">vejet {{ formatDayLabel(latest.measured_on) }}</p>
     </div>
 
-    <template v-if="latest">
-      <p class="weight-number">{{ fmtKg(latest.kg) }}<span class="weight-unit">kg</span></p>
-      <p v-if="weekChange" class="week-change" :class="weekChange.cls">
-        Siden sidste vejning: {{ weekChange.text }}
+    <template v-if="latest && current != null">
+      <p class="weight-number">{{ fmtKg(current) }}<span class="weight-unit">kg</span></p>
+      <p class="weight-note weight-avg-note">
+        <template v-if="windows.count > 1">
+          gennemsnit af {{ windows.count }} vejninger de sidste 7 dage · seneste {{ fmtKg(latest.kg) }} kg
+        </template>
+        <template v-else>seneste vejning — vej dig dagligt, så viser jeg ugens gennemsnit her</template>
       </p>
+      <p v-if="weekChange" class="week-change" :class="weekChange.cls">Siden sidste uge: {{ weekChange.text }}</p>
+      <p v-else class="weight-note">Efter et par ugers vejninger sammenligner jeg med ugen før.</p>
     </template>
-    <p v-else class="weight-note">Vej dig én gang om ugen, så kan du følge dit vægttab her.</p>
+    <p v-else class="weight-note">
+      Vej dig hver morgen, så kan du følge dit vægttab her. Appen viser ugens gennemsnit, så en enkelt dag ikke betyder noget.
+    </p>
 
     <template v-if="data.weightProgress !== null">
       <p class="weight-status">
@@ -114,17 +101,15 @@ function savePast() {
     <p v-else-if="goal && latest" class="weight-note">Målvægt: {{ fmtKg(goal) }} kg</p>
     <p v-else-if="!goal && latest" class="weight-note">Sæt en målvægt under "Mine mål" for at følge fremgangen.</p>
 
-    <p v-if="weighState === 'today'" class="weight-prompt">I dag er vejedag ⚖️</p>
-    <p v-else-if="weighState === 'overdue'" class="weight-prompt">Du mangler at veje dig i denne uge</p>
-    <p v-else-if="weighState === 'upcoming'" class="weight-note">Vejedag er på {{ weighDayName }} ⚖️</p>
-    <p v-else-if="weighState === 'done'" class="weight-note">Næste vejning: {{ weighDayName }}</p>
+    <p v-if="latest && !weighedToday" class="weight-prompt">Du har ikke vejet dig i dag endnu ⚖️</p>
+    <p v-else-if="weighedToday" class="weight-note">Vejet i dag ✓ Næste vejning: i morgen tidlig</p>
 
     <form v-if="mode === 'now'" class="weight-log weight-entry" @submit.prevent="saveWeight">
       <input
         v-model="weightInput"
         type="text"
         inputmode="decimal"
-        :placeholder="weighedThisWeek ? 'ret ugens vægt (kg)' : 'din vægt i kg'"
+        :placeholder="weighedToday ? 'ret dagens vægt (kg)' : 'din vægt i kg'"
         aria-label="Din vægt i kg"
       />
       <button class="btn-primary" :disabled="!toKg(weightInput)">Gem</button>
@@ -137,7 +122,7 @@ function savePast() {
     </form>
 
     <div class="weight-actions">
-      <button type="button" class="btn-primary" @click="toggle('now')">Vej nu</button>
+      <button type="button" class="btn-primary" @click="toggle('now')">{{ weighedToday ? 'Ret dagens vægt' : 'Vej nu' }}</button>
       <button type="button" class="btn-secondary" @click="toggle('past')">Tidligere vejning</button>
     </div>
   </section>

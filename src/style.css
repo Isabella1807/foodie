@@ -1108,6 +1108,12 @@ button {
   min-width: 90px;
 }
 
+/* linjen under det store vægt-tal: hvad gennemsnittet bygger på */
+.weight-avg-note {
+  margin-top: -6px;
+  font-size: 0.78rem;
+}
+
 /* ---- protein, kulhydrat og fedt: tre små målere under dagens tal ---- */
 
 .macro-line {

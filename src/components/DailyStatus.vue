@@ -32,8 +32,8 @@ const avgOver = computed(() => data.weekOver !== null && data.weekOver > 0)
           <div class="stat-bar-fill" :style="{ width: data.weightProgress + '%' }"></div>
         </div>
       </div>
-      <div v-else-if="data.latestWeight" class="stat">
-        <p class="stat-num">{{ fmtKg(data.latestWeight.kg) }}<span class="stat-pct">kg</span></p>
+      <div v-else-if="data.currentWeight != null" class="stat">
+        <p class="stat-num">{{ fmtKg(data.currentWeight) }}<span class="stat-pct">kg</span></p>
         <p class="stat-label">din vægt nu</p>
       </div>
     </div>
