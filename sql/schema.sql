@@ -121,3 +121,19 @@ create policy "own day_activity" on public.day_activity
   for all to authenticated
   using (user_id = auth.uid())
   with check (user_id = auth.uid());
+
+-- Kørte du en ældre udgave af dette skema, så kør kun alt herfra og ned.
+-- Det tilføjer protein, kulhydrat og fedt (gram) på madvarer og måltider, og
+-- en stregkode på madvaren, så en skannet vare genkendes næste gang.
+-- Tallene på en madvare følger kalorierne: pr. 100 g/ml hvis per_unit er sat,
+-- ellers pr. portion. På et måltid er det de gram, der faktisk blev spist.
+
+alter table public.foods   add column protein numeric check (protein >= 0);
+alter table public.foods   add column carbs   numeric check (carbs >= 0);
+alter table public.foods   add column fat     numeric check (fat >= 0);
+alter table public.foods   add column barcode text;
+alter table public.entries add column protein numeric check (protein >= 0);
+alter table public.entries add column carbs   numeric check (carbs >= 0);
+alter table public.entries add column fat     numeric check (fat >= 0);
+
+create index foods_user_barcode_idx on public.foods (user_id, barcode);

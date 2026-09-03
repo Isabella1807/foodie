@@ -4,8 +4,16 @@ import { load, save, remove } from '../lib/storage'
 import { localToday, weekStart } from '../lib/dates'
 import { kcalPerKgOf } from '../lib/activity'
 import { estimateBurn } from '../lib/burn'
+import { sumMacros } from '../lib/nutrition'
 
 const now = () => new Date().toISOString()
+
+// Kopi uden de valgfrie felter, der er tomme
+function withoutEmpty(obj, optional) {
+  const copy = { ...obj }
+  for (const key of optional) if (copy[key] == null) delete copy[key]
+  return copy
+}
 
 // Lokal-først: skærmen viser altid cachen; hver ændring lægges i en kø
 // (outbox) og sendes til Supabase når der er net. Alle id'er laves på
@@ -192,6 +200,16 @@ export const useDataStore = defineStore('data', {
       return estimateBurn(state.weights, state.entries)
     },
 
+    // Protein, kulhydrat og fedt for en dag — og hvor mange af dagens
+    // måltider der overhovedet havde tal for det
+    macrosFor(state) {
+      return (date) => sumMacros(state.entries.filter((e) => e.eaten_on === date))
+    },
+
+    todayMacros() {
+      return this.macrosFor(localToday())
+    },
+
     // Til hurtig logning: senest brugte øverst
     recentFoods(state) {
       return [...state.foods].sort((a, b) => {
@@ -230,29 +248,48 @@ export const useDataStore = defineStore('data', {
     },
 
     // Tomme valgfrie felter udelades af payload, så en database uden de
-    // nyeste kolonner ikke afviser almindelige varer
+    // nyeste kolonner ikke afviser almindelige varer og måltider
     foodPayload(food) {
-      const payload = { ...food }
-      if (payload.per_unit == null) delete payload.per_unit
-      if (payload.piece_size == null) delete payload.piece_size
-      return payload
+      return withoutEmpty(food, ['per_unit', 'piece_size', 'protein', 'carbs', 'fat', 'barcode'])
     },
 
-    addFood({ name, kcal, per_unit = null, piece_size = null }) {
-      const food = { id: crypto.randomUUID(), name, kcal, per_unit, piece_size, last_used_at: null, created_at: now() }
+    entryPayload(entry) {
+      return withoutEmpty(entry, ['protein', 'carbs', 'fat'])
+    },
+
+    // protein/carbs/fat: gram på samme grundlag som kcal. barcode: så en
+    // skannet vare genkendes næste gang
+    addFood({ name, kcal, per_unit = null, piece_size = null, protein = null, carbs = null, fat = null, barcode = null }) {
+      const food = {
+        id: crypto.randomUUID(),
+        name,
+        kcal,
+        per_unit,
+        piece_size,
+        protein,
+        carbs,
+        fat,
+        barcode,
+        last_used_at: null,
+        created_at: now(),
+      }
       this.foods.push(food)
       this.persist()
       this.queue('upsert_food', this.foodPayload(food))
       return food
     },
 
-    updateFood(id, { name, kcal, per_unit = null, piece_size = null }) {
+    updateFood(id, { name, kcal, per_unit = null, piece_size = null, protein = null, carbs = null, fat = null, barcode = null }) {
       const food = this.foods.find((f) => f.id === id)
       if (!food) return
       food.name = name
       food.kcal = kcal
       food.per_unit = per_unit
       food.piece_size = piece_size
+      food.protein = protein
+      food.carbs = carbs
+      food.fat = fat
+      food.barcode = barcode
       this.persist()
       this.queue('upsert_food', this.foodPayload(food))
     },
@@ -271,11 +308,15 @@ export const useDataStore = defineStore('data', {
 
     // eaten_on kan gives, hvis man taster et glemt måltid ind på en tidligere
     // dag; ellers lander det på dagens lokale kalenderdag
-    logEntry({ name, kcal, foodId = null, eaten_on = localToday() }) {
+    // protein/carbs/fat: de gram der faktisk blev spist (regnet ud af mængden)
+    logEntry({ name, kcal, protein = null, carbs = null, fat = null, foodId = null, eaten_on = localToday() }) {
       const entry = {
         id: crypto.randomUUID(),
         food_name: name,
         kcal,
+        protein,
+        carbs,
+        fat,
         eaten_on, // lokal kalenderdag — kl. 00:30 tæller stadig som "i nat"
         created_at: now(),
       }
@@ -283,7 +324,7 @@ export const useDataStore = defineStore('data', {
       const food = foodId ? this.foods.find((f) => f.id === foodId) : null
       if (food) food.last_used_at = entry.created_at
       this.persist()
-      this.queue('upsert_entry', { ...entry })
+      this.queue('upsert_entry', this.entryPayload(entry))
       if (food) this.queue('upsert_food', this.foodPayload(food))
     },
 

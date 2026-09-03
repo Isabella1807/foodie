@@ -8,8 +8,10 @@ import KcalGoal from '../components/KcalGoal.vue'
 import WeightCard from '../components/WeightCard.vue'
 import DailyStatus from '../components/DailyStatus.vue'
 import GoalsCard from '../components/GoalsCard.vue'
+import MacroLine from '../components/MacroLine.vue'
 
 const data = useDataStore()
+const macros = computed(() => data.todayMacros)
 
 // Pille øverst: ligger ugen samlet under eller over budgettet?
 const weekStatus = computed(() => {
@@ -31,6 +33,7 @@ function remove(entry) {
       {{ data.todayTotal }}<span class="today-goal"> / {{ data.todayBudget }}</span>
       <span class="today-unit">kcal</span>
     </p>
+    <MacroLine :macros="macros" />
     <span v-if="weekStatus" class="week-pill" :class="weekStatus.cls">{{ weekStatus.text }}</span>
     <KcalGoal />
     <p v-if="data.outbox.length" class="sync-note">Gemmes online, når du har net igen</p>

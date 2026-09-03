@@ -3,6 +3,10 @@ import { ref, computed } from 'vue'
 import { useDataStore } from '../stores/data'
 import { unitName } from '../lib/units'
 import { localToday, formatDayLabel } from '../lib/dates'
+import { scaleFood } from '../lib/nutrition'
+import { draftFromBarcode } from '../lib/openFoodFacts'
+import BarcodeScanner from './BarcodeScanner.vue'
+import FoodForm from './FoodForm.vue'
 
 // date: hvilken dag måltidet lægges på. Uden den lander det på i dag — så på
 // forsiden logger den som før, mens kalenderen kan sende en tidligere dato med.
@@ -27,6 +31,13 @@ const pendingAmount = ref('') // gram/milliliter
 const pendingCount = ref('') // styk
 const pendingGlass = ref('') // glas (kun drikkevarer)
 const pendingGulps = ref('') // tår (kun drikkevarer)
+
+// Stregkode: kameraet er åbent / varen slås op / et udkast til en ny vare
+// venter i den fulde formular (med protein, kulhydrat og fedt)
+const scanning = ref(false)
+const lookingUp = ref(false)
+const draft = ref(null)
+const draftNote = ref('')
 
 const unitChoices = [
   { value: null, label: '1 portion' },
@@ -87,6 +98,12 @@ const newPreview = computed(() => {
 // Drikkevare = flydende vare uden en fast styk-vægt
 const isDrink = computed(() => !!pending.value && pending.value.per_unit === 'ml' && !pending.value.piece_size)
 
+// Et hurtigvalg: tekst + kalorier og næringsstoffer for brøkdelen "factor" af
+// varens grundlag (1 = én portion eller 100 gram/milliliter)
+function option(food, label, name, factor) {
+  return { label, name, ...scaleFood(food, factor) }
+}
+
 // Faste hurtigvalg for den valgte vare (portion/styk/gram). Drikkevarer bruger
 // glas og tår i stedet — se nedenfor.
 const options = computed(() => {
@@ -101,11 +118,7 @@ const glassOptions = computed(() => {
   if (!food || !isDrink.value) return []
   return GLASSES.map((g) => {
     const label = g < 1 ? `${fracWord(g)} glas` : `${g} glas`
-    return {
-      label,
-      kcal: Math.round((food.kcal * g * GLASS_ML) / 100),
-      name: `${food.name} (${label} ≈ ${Math.round(g * GLASS_ML)} milliliter)`,
-    }
+    return option(food, label, `${food.name} (${label} ≈ ${Math.round(g * GLASS_ML)} milliliter)`, (g * GLASS_ML) / 100)
   })
 })
 
@@ -113,60 +126,50 @@ const glassOptions = computed(() => {
 const gulpOptions = computed(() => {
   const food = pending.value
   if (!food || !isDrink.value) return []
-  return GULPS.map((g) => ({
-    label: `${g} tår`,
-    kcal: Math.round((food.kcal * g * GULP_ML) / 100),
-    name: `${food.name} (${g} tår ≈ ${g * GULP_ML} milliliter)`,
-  }))
+  return GULPS.map((g) => option(food, `${g} tår`, `${food.name} (${g} tår ≈ ${g * GULP_ML} milliliter)`, (g * GULP_ML) / 100))
 })
 
 function buildOption(food, f) {
   const per = food.per_unit
   // Portionsvare: brøkdel af én portion
   if (!per) {
-    return {
-      label: f < 1 ? fracWord(f) : f === 1 ? 'en hel' : String(f),
-      kcal: Math.round(food.kcal * f),
-      name: f < 1 ? `${fracWord(f)} ${food.name}` : f === 1 ? food.name : `${f} × ${food.name}`,
-    }
+    const label = f < 1 ? fracWord(f) : f === 1 ? 'en hel' : String(f)
+    const name = f < 1 ? `${fracWord(f)} ${food.name}` : f === 1 ? food.name : `${f} × ${food.name}`
+    return option(food, label, name, f)
   }
   // Stykvare (vægten pr. styk kendes): brøkdel af ét styk
   if (food.piece_size) {
-    const pieceKcal = (food.kcal * food.piece_size) / 100
     const amount = Math.round(food.piece_size * f * 10) / 10
     const suffix = ` (${daNum(amount)} ${unitName(per)})`
     const base = f < 1 ? `${fracWord(f)} ${food.name}` : f === 1 ? food.name : `${f} × ${food.name}`
-    return {
-      label: f < 1 ? fracWord(f) : f === 1 ? '1 styk' : `${f} styk`,
-      kcal: Math.round(pieceKcal * f),
-      name: base + suffix,
-    }
+    const label = f < 1 ? fracWord(f) : f === 1 ? '1 styk' : `${f} styk`
+    return option(food, label, base + suffix, (food.piece_size * f) / 100)
   }
   // Pr.-100-vare uden styk-vægt: brøkdel af 100 gram/milliliter
   const amount = Math.round(100 * f)
-  return {
-    label: `${amount} ${unitName(per)}`,
-    kcal: Math.round(food.kcal * f),
-    name: `${food.name} (${amount} ${unitName(per)})`,
-  }
+  return option(food, `${amount} ${unitName(per)}`, `${food.name} (${amount} ${unitName(per)})`, f)
 }
 
-// Kcal for den præcise mængde (gram/milliliter, styk, glas eller tår)
-const pendingKcal = computed(() => {
+// Brøkdelen af varens grundlag for den præcise mængde (gram/milliliter, styk, glas eller tår)
+const pendingFactor = computed(() => {
   const food = pending.value
   if (!food) return 0
   const stk = Math.round(Number(pendingCount.value))
-  if (food.piece_size && stk > 0) return Math.round(((food.kcal * food.piece_size) / 100) * stk)
+  if (food.piece_size && stk > 0) return (food.piece_size * stk) / 100
   if (isDrink.value) {
     const glass = Number(pendingGlass.value)
-    if (glass > 0) return Math.round((food.kcal * glass * GLASS_ML) / 100)
+    if (glass > 0) return (glass * GLASS_ML) / 100
     const gulps = Math.round(Number(pendingGulps.value))
-    if (gulps > 0) return Math.round((food.kcal * gulps * GULP_ML) / 100)
+    if (gulps > 0) return (gulps * GULP_ML) / 100
   }
   const qty = Math.round(Number(pendingAmount.value))
-  if (qty > 0) return Math.round((food.kcal * qty) / 100)
+  if (qty > 0) return qty / 100
   return 0
 })
+
+// Kalorier og næringsstoffer for den præcise mængde
+const pendingPortion = computed(() => (pending.value && pendingFactor.value ? scaleFood(pending.value, pendingFactor.value) : null))
+const pendingKcal = computed(() => pendingPortion.value?.kcal ?? 0)
 
 // Tøm de andre præcis-felter, så kun ét bruges ad gangen
 function clearExcept(keep) {
@@ -197,14 +200,27 @@ function logFood(food) {
   pendingGulps.value = ''
 }
 
-function logOption(opt) {
-  data.logEntry({ name: opt.name, kcal: opt.kcal, foodId: pending.value.id, eaten_on: targetDate.value })
+// Log en mængde af den valgte vare — kalorier og næringsstoffer følger med
+function logPortion(name, portion) {
+  data.logEntry({
+    name,
+    kcal: portion.kcal,
+    protein: portion.protein,
+    carbs: portion.carbs,
+    fat: portion.fat,
+    foodId: pending.value.id,
+    eaten_on: targetDate.value,
+  })
   reset()
+}
+
+function logOption(opt) {
+  logPortion(opt.name, opt)
 }
 
 function logPending() {
   const food = pending.value
-  if (!food || !pendingKcal.value) return
+  if (!food || !pendingPortion.value) return
   const stk = Math.round(Number(pendingCount.value))
   const glass = Number(pendingGlass.value)
   const gulps = Math.round(Number(pendingGulps.value))
@@ -219,8 +235,7 @@ function logPending() {
   } else {
     name = `${food.name} (${Math.round(Number(pendingAmount.value))} ${unitName(food.per_unit)})`
   }
-  data.logEntry({ name, kcal: pendingKcal.value, foodId: food.id, eaten_on: targetDate.value })
-  reset()
+  logPortion(name, pendingPortion.value)
 }
 
 // Opret en ny vare ud fra felterne (navn, kcal og hvad tallet gælder for)
@@ -282,6 +297,32 @@ function submitNew() {
   if (newPerUnit.value) createAndPick()
   else logDirect()
 }
+
+// Stregkode læst: en kendt vare går direkte til "hvor meget?" — en ny slås op
+// i Open Food Facts og lander som udkast i den fulde formular
+async function onScanned(code) {
+  scanning.value = false
+  const known = data.foods.find((f) => f.barcode && f.barcode === code)
+  if (known) return logFood(known)
+  lookingUp.value = true
+  const result = await draftFromBarcode(code)
+  lookingUp.value = false
+  draft.value = result.draft
+  draftNote.value = result.note
+}
+
+// Den fulde formular med det, man selv har skrevet i søgefeltet som navn
+function openFullForm() {
+  draft.value = { name: query.value.trim() }
+  draftNote.value = ''
+}
+
+function saveDraft(values) {
+  const food = data.addFood(values)
+  draft.value = null
+  draftNote.value = ''
+  logFood(food)
+}
 </script>
 
 <template>
@@ -295,7 +336,17 @@ function submitNew() {
         placeholder="Hvad har du spist?"
         aria-label="Søg eller skriv en madvare"
       />
+      <button type="button" class="btn-scan" aria-label="Skan stregkode" title="Skan stregkode" @click="scanning = true">
+        <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+          <path
+            fill="currentColor"
+            d="M3 5h2v14H3zm3 0h1v14H6zm2 0h2v14H8zm3 0h1v14h-1zm2 0h3v14h-3zm4 0h1v14h-1zm2 0h2v14h-2z"
+          />
+        </svg>
+      </button>
     </div>
+
+    <BarcodeScanner v-if="scanning" @detected="onScanned" @cancel="scanning = false" />
 
     <div v-if="pending" class="quickadd-new">
       <p class="quickadd-new-label">Hvor meget {{ pending.name }}?</p>
@@ -394,6 +445,10 @@ function submitNew() {
       <button type="button" class="btn-ghost" @click="pending = null">Annullér</button>
     </div>
 
+    <p v-else-if="lookingUp" class="quickadd-new-label">Slår varen op i Open Food Facts…</p>
+
+    <FoodForm v-else-if="draft" :food="draft" :note="draftNote" embedded @save="saveDraft" @cancel="draft = null" />
+
     <template v-else>
       <div v-if="matches.length" class="quickadd-matches">
         <button v-for="food in matches" :key="food.id" class="chip" @click="logFood(food)">
@@ -463,6 +518,9 @@ function submitNew() {
           </button>
           <button type="button" class="btn-secondary" @click="saveOnly">Gem kun i listen</button>
         </div>
+        <button type="button" class="link full-form-link" @click="openFullForm">
+          Tilføj med protein, kulhydrat og fedt i stedet
+        </button>
       </form>
     </template>
   </section>

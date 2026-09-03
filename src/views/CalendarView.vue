@@ -8,6 +8,7 @@ import WeightStats from '../components/WeightStats.vue'
 import GoalForecast from '../components/GoalForecast.vue'
 import DayActivity from '../components/DayActivity.vue'
 import QuickAdd from '../components/QuickAdd.vue'
+import MacroLine from '../components/MacroLine.vue'
 
 const data = useDataStore()
 
@@ -104,6 +105,7 @@ const openEntries = computed(() => {
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
 })
 const openTotal = computed(() => openEntries.value.reduce((sum, e) => sum + e.kcal, 0))
+const openMacros = computed(() => (openDay.value ? data.macrosFor(openDay.value) : { counted: 0 }))
 
 // Beroligende besked på den åbne dag: hyggedag eller en dag over målet
 const openMessage = computed(() => {
@@ -171,6 +173,7 @@ function remove(entry) {
       <span>{{ formatDayLabel(openDay) }} <span v-if="data.isCelebration(openDay)">🎉</span></span>
       <span class="row-kcal strong">{{ fmt(openTotal) }} kcal</span>
     </div>
+    <MacroLine :macros="openMacros" left />
     <div v-for="e in openEntries" :key="e.id" class="row row-sub">
       <span class="row-name">{{ e.food_name }}</span>
       <span class="row-kcal">{{ e.kcal }} kcal</span>
