@@ -9,6 +9,7 @@ import GoalForecast from '../components/GoalForecast.vue'
 import DayActivity from '../components/DayActivity.vue'
 import QuickAdd from '../components/QuickAdd.vue'
 import MacroLine from '../components/MacroLine.vue'
+import { describeMacros } from '../lib/nutrition'
 
 const data = useDataStore()
 
@@ -173,9 +174,12 @@ function remove(entry) {
       <span>{{ formatDayLabel(openDay) }} <span v-if="data.isCelebration(openDay)">🎉</span></span>
       <span class="row-kcal strong">{{ fmt(openTotal) }} kcal</span>
     </div>
-    <MacroLine :macros="openMacros" left />
+    <MacroLine :macros="openMacros" :goals="data.macroGoals" left />
     <div v-for="e in openEntries" :key="e.id" class="row row-sub">
-      <span class="row-name">{{ e.food_name }}</span>
+      <span class="row-name">
+        {{ e.food_name }}
+        <small v-if="describeMacros(e)" class="row-macros">{{ describeMacros(e) }}</small>
+      </span>
       <span class="row-kcal">{{ e.kcal }} kcal</span>
       <button class="row-delete" aria-label="Slet måltid" @click="remove(e)">✕</button>
     </div>

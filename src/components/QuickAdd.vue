@@ -7,6 +7,7 @@ import { scaleFood } from '../lib/nutrition'
 import { draftFromBarcode } from '../lib/openFoodFacts'
 import BarcodeScanner from './BarcodeScanner.vue'
 import FoodForm from './FoodForm.vue'
+import RecipeBuilder from './RecipeBuilder.vue'
 
 // date: hvilken dag måltidet lægges på. Uden den lander det på i dag — så på
 // forsiden logger den som før, mens kalenderen kan sende en tidligere dato med.
@@ -38,6 +39,7 @@ const scanning = ref(false)
 const lookingUp = ref(false)
 const draft = ref(null)
 const draftNote = ref('')
+const building = ref(false) // bygge-formularen til en ret af flere varer
 
 const unitChoices = [
   { value: null, label: '1 portion' },
@@ -142,7 +144,9 @@ function buildOption(food, f) {
     const amount = Math.round(food.piece_size * f * 10) / 10
     const suffix = ` (${daNum(amount)} ${unitName(per)})`
     const base = f < 1 ? `${fracWord(f)} ${food.name}` : f === 1 ? food.name : `${f} × ${food.name}`
-    const label = f < 1 ? fracWord(f) : f === 1 ? '1 styk' : `${f} styk`
+    // En ret logges i portioner, andre stykvarer i styk
+    const unit = food.ingredients ? 'portion' : 'styk'
+    const label = f < 1 ? fracWord(f) : f === 1 ? `1 ${unit}` : `${f} ${food.ingredients ? 'portioner' : 'styk'}`
     return option(food, label, base + suffix, (food.piece_size * f) / 100)
   }
   // Pr.-100-vare uden styk-vægt: brøkdel af 100 gram/milliliter
@@ -317,10 +321,16 @@ function openFullForm() {
   draftNote.value = ''
 }
 
+// Byg en ret af flere varer — navnet fra søgefeltet bruges som forslag
+function openBuilder() {
+  building.value = true
+}
+
 function saveDraft(values) {
   const food = data.addFood(values)
   draft.value = null
   draftNote.value = ''
+  building.value = false
   logFood(food)
 }
 </script>
@@ -449,6 +459,8 @@ function saveDraft(values) {
 
     <FoodForm v-else-if="draft" :food="draft" :note="draftNote" embedded @save="saveDraft" @cancel="draft = null" />
 
+    <RecipeBuilder v-else-if="building" :name="query.trim()" embedded @save="saveDraft" @cancel="building = false" />
+
     <template v-else>
       <div v-if="matches.length" class="quickadd-matches">
         <button v-for="food in matches" :key="food.id" class="chip" @click="logFood(food)">
@@ -456,12 +468,16 @@ function saveDraft(values) {
           <span class="chip-kcal">
             {{
               food.per_unit && food.piece_size
-                ? `${Math.round((food.kcal * food.piece_size) / 100)} kcal/styk`
+                ? `${Math.round((food.kcal * food.piece_size) / 100)} kcal/${food.ingredients ? 'portion' : 'styk'}`
                 : `${food.kcal} kcal${food.per_unit ? `/100 ${unitName(food.per_unit)}` : ''}`
             }}
           </span>
         </button>
       </div>
+
+      <button v-if="!query.trim()" type="button" class="link full-form-link" @click="openBuilder">
+        Byg en ret af flere varer
+      </button>
 
       <form
         v-if="query.trim() && !exactMatch"
@@ -520,6 +536,9 @@ function saveDraft(values) {
         </div>
         <button type="button" class="link full-form-link" @click="openFullForm">
           Tilføj med protein, kulhydrat og fedt i stedet
+        </button>
+        <button type="button" class="link full-form-link" @click="openBuilder">
+          Byg "{{ query.trim() }}" som en ret af flere varer
         </button>
       </form>
     </template>

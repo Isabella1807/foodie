@@ -45,3 +45,27 @@ export function parseGrams(value) {
   const n = Number(String(value).replace(',', '.'))
   return Number.isFinite(n) && n >= 0 ? Math.round(n * 10) / 10 : null
 }
+
+// Kalorier pr. gram — bruges til at regne mål i gram ud fra kalorie-målet
+export const KCAL_PER_GRAM = { protein: 4, carbs: 4, fat: 9 }
+
+// Udgangspunkt for de daglige mål, som andel af kalorierne: lidt mere protein
+// end de almindelige anbefalinger, fordi protein mætter, når man taber sig.
+// Kan rettes under "mine mål".
+export const DEFAULT_SPLIT = { protein: 0.25, carbs: 0.45, fat: 0.3 }
+
+export function defaultMacroGoals(kcalGoal) {
+  const out = {}
+  for (const k of MACROS) out[k] = Math.round((kcalGoal * DEFAULT_SPLIT[k]) / KCAL_PER_GRAM[k])
+  return out
+}
+
+// Kort tekst til en liste: "12 g protein · 30 g kulhydrat · 5 g fedt"
+export function describeMacros(item) {
+  const parts = []
+  for (const k of MACROS) {
+    const v = grams(item?.[k])
+    if (v != null) parts.push(`${Math.round(v)} g ${MACRO_LABELS[k]}`)
+  }
+  return parts.join(' · ')
+}

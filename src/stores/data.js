@@ -4,7 +4,7 @@ import { load, save, remove } from '../lib/storage'
 import { localToday, weekStart } from '../lib/dates'
 import { kcalPerKgOf } from '../lib/activity'
 import { estimateBurn } from '../lib/burn'
-import { sumMacros } from '../lib/nutrition'
+import { sumMacros, defaultMacroGoals, MACROS } from '../lib/nutrition'
 
 const now = () => new Date().toISOString()
 
@@ -27,7 +27,9 @@ export const useDataStore = defineStore('data', {
       foods: cache.foods || [],
       entries: cache.entries || [],
       weights: cache.weights || [],
-      goals: cache.goals || { kcal_goal: 1500, goal_kg: null },
+      // Mål: dagligt kalorie-mål, målvægt og gram protein/kulhydrat/fedt pr. dag
+      // (tomt = appen regner et udgangspunkt ud fra kalorie-målet)
+      goals: { kcal_goal: 1500, goal_kg: null, protein_goal: null, carbs_goal: null, fat_goal: null, ...(cache.goals || {}) },
       celebrations: cache.celebrations || [], // dage markeret som hygge-/festdag: { id, date }
       // Krops-tal til at anslå tid til målet og ekstra plads på aktive dage.
       // Synces nu, så de samme tal gælder på alle enheder
@@ -200,6 +202,15 @@ export const useDataStore = defineStore('data', {
       return estimateBurn(state.weights, state.entries)
     },
 
+    // Dagens mål for protein, kulhydrat og fedt i gram: hendes egne tal, ellers
+    // et udgangspunkt regnet ud fra kalorie-målet (25/45/30 % af kalorierne)
+    macroGoals(state) {
+      const defaults = defaultMacroGoals(this.dailyGoal)
+      const out = {}
+      for (const k of MACROS) out[k] = state.goals[`${k}_goal`] ?? defaults[k]
+      return out
+    },
+
     // Protein, kulhydrat og fedt for en dag — og hvor mange af dagens
     // måltider der overhovedet havde tal for det
     macrosFor(state) {
@@ -250,7 +261,7 @@ export const useDataStore = defineStore('data', {
     // Tomme valgfrie felter udelades af payload, så en database uden de
     // nyeste kolonner ikke afviser almindelige varer og måltider
     foodPayload(food) {
-      return withoutEmpty(food, ['per_unit', 'piece_size', 'protein', 'carbs', 'fat', 'barcode'])
+      return withoutEmpty(food, ['per_unit', 'piece_size', 'protein', 'carbs', 'fat', 'barcode', 'ingredients'])
     },
 
     entryPayload(entry) {
@@ -258,8 +269,9 @@ export const useDataStore = defineStore('data', {
     },
 
     // protein/carbs/fat: gram på samme grundlag som kcal. barcode: så en
-    // skannet vare genkendes næste gang
-    addFood({ name, kcal, per_unit = null, piece_size = null, protein = null, carbs = null, fat = null, barcode = null }) {
+    // skannet vare genkendes næste gang. ingredients: sat når varen er en ret
+    // bygget af flere varer ({ items, total_weight, portions })
+    addFood({ name, kcal, per_unit = null, piece_size = null, protein = null, carbs = null, fat = null, barcode = null, ingredients = null }) {
       const food = {
         id: crypto.randomUUID(),
         name,
@@ -270,6 +282,7 @@ export const useDataStore = defineStore('data', {
         carbs,
         fat,
         barcode,
+        ingredients,
         last_used_at: null,
         created_at: now(),
       }
@@ -279,7 +292,7 @@ export const useDataStore = defineStore('data', {
       return food
     },
 
-    updateFood(id, { name, kcal, per_unit = null, piece_size = null, protein = null, carbs = null, fat = null, barcode = null }) {
+    updateFood(id, { name, kcal, per_unit = null, piece_size = null, protein = null, carbs = null, fat = null, barcode = null, ingredients = null }) {
       const food = this.foods.find((f) => f.id === id)
       if (!food) return
       food.name = name
@@ -290,6 +303,7 @@ export const useDataStore = defineStore('data', {
       food.carbs = carbs
       food.fat = fat
       food.barcode = barcode
+      food.ingredients = ingredients
       this.persist()
       this.queue('upsert_food', this.foodPayload(food))
     },
@@ -353,7 +367,9 @@ export const useDataStore = defineStore('data', {
     setGoals(changes) {
       this.goals = { ...this.goals, ...changes }
       this.persist()
-      this.queue('upsert_goals', { kcal_goal: this.goals.kcal_goal, goal_kg: this.goals.goal_kg })
+      // Alle fem felter sendes — også tomme, så et slettet protein-mål også
+      // nulstilles på serveren (kræver at databasen har de nye kolonner)
+      this.queue('upsert_goals', { ...this.goals })
     },
 
     // Krops-tal — gemmes lokalt og sendes op, så de matcher på alle enheder
@@ -408,7 +424,7 @@ export const useDataStore = defineStore('data', {
       this.foods = []
       this.entries = []
       this.weights = []
-      this.goals = { kcal_goal: 1500, goal_kg: null }
+      this.goals = { kcal_goal: 1500, goal_kg: null, protein_goal: null, carbs_goal: null, fat_goal: null }
       this.celebrations = []
       this.profile = { height_cm: null, age: null, sex: null, activity: null }
       this.dayActivity = {}
@@ -506,7 +522,14 @@ export const useDataStore = defineStore('data', {
         if (!weights.error) this.weights = weights.data
         if (!celebrations.error) this.celebrations = celebrations.data
         if (!goals.error && goals.data.length) {
-          this.goals = { kcal_goal: goals.data[0].kcal_goal, goal_kg: goals.data[0].goal_kg }
+          const g = goals.data[0]
+          this.goals = {
+            kcal_goal: g.kcal_goal,
+            goal_kg: g.goal_kg,
+            protein_goal: g.protein_goal ?? null,
+            carbs_goal: g.carbs_goal ?? null,
+            fat_goal: g.fat_goal ?? null,
+          }
         }
         // Krops-tal: behold et lokalt tal, hvor serveren ikke har nogen — så et
         // tal tastet her ikke forsvinder, før det er nået at blive sendt op

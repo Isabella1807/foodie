@@ -7,7 +7,9 @@ mål. Følg vægten med en graf og glidende gennemsnit, milepæle og fremskridt 
 målvægten — og marker hygge-/festdage, så en planlagt dag ikke ligner en fejl.
 Skan stregkoden på en vare, så slår appen den op i Open Food Facts og henter
 kalorier, protein, kulhydrat og fedt; dagens protein, kulhydrat og fedt vises
-under dagens tal. Appen regner også dit faktiske daglige forbrug ud løbende fra
+under dagens tal, mod et dagligt mål du kan rette. Byg en ret af flere varer
+(skan eller vælg dem og skriv mængden af hver), så retten gemmes som én vare,
+du logger i gram eller portioner. Appen regner også dit faktiske daglige forbrug ud løbende fra
 de seneste ugers logning og vejninger.
 Virker også uden net og sender data op til Supabase, når nettet er tilbage.
 
@@ -39,10 +41,11 @@ Værdierne findes i Supabase-dashboardet under Project Settings → API.
 4. Slå nye tilmeldinger fra: Authentication → Sign In / Providers → "Allow new users to sign up" → fra
 
 Har du allerede databasen kørende fra før, så kør kun de dele, du mangler.
-`sql/schema.sql` har tre "kør kun herfra og ned"-markeringer: den første tilføjer
+`sql/schema.sql` har fire "kør kun herfra og ned"-markeringer: den første tilføjer
 tabellerne til vægt og mål, den anden krops-tal og aktivitet pr. dag (så de
-matcher på alle enheder), og den sidste protein/kulhydrat/fedt og stregkode på
-madvarer og måltider. Kør den eller de dele, din database ikke har endnu.
+matcher på alle enheder), den tredje protein/kulhydrat/fedt og stregkode på
+madvarer og måltider, og den sidste daglige mål for protein/kulhydrat/fedt og
+ingredienser på retter. Kør den eller de dele, din database ikke har endnu.
 
 ## Sådan virker offline-delen
 

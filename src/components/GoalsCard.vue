@@ -3,9 +3,10 @@ import { ref, computed } from 'vue'
 import { useDataStore } from '../stores/data'
 import { askNotifyPermission } from '../lib/liveStatus'
 import { kgPerWeekAt } from '../lib/burn'
+import { MACROS, MACRO_LABELS } from '../lib/nutrition'
 
 const data = useDataStore()
-const editing = ref(null) // null | 'kcal' | 'weight'
+const editing = ref(null) // null | 'kcal' | 'weight' | 'protein' | 'carbs' | 'fat'
 const input = ref('')
 
 const notifySupported = typeof Notification !== 'undefined'
@@ -26,6 +27,7 @@ async function toggleNotify() {
 const fmt = (n) => n.toLocaleString('da-DK')
 const fmtKg = (n) => n.toLocaleString('da-DK', { maximumFractionDigits: 1 })
 const fmtRate = (n) => n.toLocaleString('da-DK', { maximumFractionDigits: 2 })
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1)
 
 const goal = computed(() => data.dailyGoal)
 const weekBudget = computed(() => goal.value * 7)
@@ -36,6 +38,10 @@ const burn = computed(() => data.measuredBurn)
 const deficit = computed(() => (burn.value.ready ? burn.value.kcal - goal.value : null))
 const expectedRate = computed(() => (burn.value.ready ? kgPerWeekAt(burn.value.kcal, goal.value) : null))
 
+// Dagens mål for protein, kulhydrat og fedt (gram) — egne tal eller udgangspunktet
+const macroGoals = computed(() => data.macroGoals)
+const anyCustom = computed(() => MACROS.some((k) => data.goals[`${k}_goal`] != null))
+
 // "65,5" og "65.5" skal begge virke
 function toKg(value) {
   const n = Number(String(value).replace(',', '.'))
@@ -44,15 +50,20 @@ function toKg(value) {
 
 function edit(which) {
   editing.value = which
-  input.value = which === 'kcal' ? goal.value : goalKg.value || ''
+  if (which === 'kcal') input.value = goal.value
+  else if (which === 'weight') input.value = goalKg.value || ''
+  else input.value = macroGoals.value[which]
 }
 
 function save() {
   if (editing.value === 'kcal') {
     const n = Math.round(Number(input.value))
     data.setGoals({ kcal_goal: n > 0 ? n : null })
-  } else {
+  } else if (editing.value === 'weight') {
     data.setGoals({ goal_kg: toKg(input.value) })
+  } else {
+    const n = Math.round(Number(input.value))
+    data.setGoals({ [`${editing.value}_goal`]: n > 0 ? n : null })
   }
   editing.value = null
 }
@@ -98,6 +109,27 @@ function save() {
     </p>
     <p v-else class="goal-note">
       Dit forbrug regnes ud, når du har vejet dig over et par uger og logget din mad imellem.
+    </p>
+
+    <div v-for="(k, i) in MACROS" :key="k" class="goal-row" :class="{ 'has-note': i === MACROS.length - 1 }">
+      <span class="goal-key">{{ cap(MACRO_LABELS[k]) }} pr. dag</span>
+      <form v-if="editing === k" class="goal-edit-form" @submit.prevent="save">
+        <input v-model="input" type="number" min="1" inputmode="numeric" :aria-label="`${cap(MACRO_LABELS[k])} pr. dag i gram`" />
+        <button class="btn-primary">Gem</button>
+      </form>
+      <template v-else>
+        <span class="goal-val">{{ fmt(macroGoals[k]) }} g</span>
+        <button class="link" @click="edit(k)">ret</button>
+      </template>
+    </div>
+    <p class="goal-note">
+      <template v-if="!anyCustom">
+        Et udgangspunkt regnet ud fra dit daglige mål: 25 % af kalorierne fra protein, 45 % fra kulhydrat og 30 % fra fedt.
+        Protein er sat lidt højere end de almindelige anbefalinger, fordi det mætter, når man taber sig. Ret tallene, hvis du har fået andre.
+      </template>
+      <template v-else>
+        Dine egne tal. Sletter du et tal, går det tilbage til udgangspunktet: 25 % af kalorierne fra protein, 45 % fra kulhydrat og 30 % fra fedt.
+      </template>
     </p>
 
     <div class="goal-row">

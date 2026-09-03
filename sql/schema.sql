@@ -137,3 +137,12 @@ alter table public.entries add column carbs   numeric check (carbs >= 0);
 alter table public.entries add column fat     numeric check (fat >= 0);
 
 create index foods_user_barcode_idx on public.foods (user_id, barcode);
+
+-- Kørte du en ældre udgave af dette skema, så kør kun alt herfra og ned.
+-- Det tilføjer daglige mål for protein, kulhydrat og fedt (gram), og plads til
+-- ingredienserne på en ret, så en ret bygget af flere varer kan ses og rettes.
+
+alter table public.goals add column protein_goal integer check (protein_goal > 0);
+alter table public.goals add column carbs_goal   integer check (carbs_goal > 0);
+alter table public.goals add column fat_goal     integer check (fat_goal > 0);
+alter table public.foods add column ingredients jsonb;

@@ -1098,32 +1098,80 @@ button {
   min-width: 90px;
 }
 
-/* ---- protein, kulhydrat og fedt ---- */
+/* ---- protein, kulhydrat og fedt: tre små målere under dagens tal ---- */
 
 .macro-line {
-  margin: 10px 0 0;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 4px 14px;
-  font-size: 0.85rem;
+  margin: 12px auto 0;
+  max-width: 340px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  font-size: 0.8rem;
   color: var(--muted);
-  font-variant-numeric: tabular-nums;
-}
-
-.macro-line b {
-  color: var(--ink);
-  font-weight: 600;
+  text-align: left;
 }
 
 .macro-line.left {
-  justify-content: flex-start;
-  margin: 0 0 6px;
+  margin: 0 0 8px;
+  max-width: none;
+}
+
+.macro-meter {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.macro-meter-num {
+  font-variant-numeric: tabular-nums;
+}
+
+.macro-meter-num b {
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.macro-meter-label {
+  font-size: 0.72rem;
+  letter-spacing: 0.03em;
+}
+
+.macro-meter-track {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--green-soft);
+  overflow: hidden;
+}
+
+.macro-meter-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--green);
+  opacity: 0.55;
+}
+
+.macro-meter-fill.done {
+  opacity: 1;
+}
+
+.macro-meter-fill.over {
+  background: var(--amber);
+  opacity: 1;
 }
 
 .macro-partial {
-  width: 100%;
-  font-size: 0.75rem;
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 0.72rem;
+}
+
+/* i lister: protein m.m. under navnet, småt */
+.row-macros {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-top: 1px;
 }
 
 /* tre små felter ved siden af hinanden */
@@ -1232,6 +1280,86 @@ button {
 .scanner-cancel {
   color: #fff;
   align-self: center;
+}
+
+/* ---- byg en ret ---- */
+
+.recipe-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.recipe-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.recipe-item {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.recipe-item-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.recipe-item-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.recipe-item-amount {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* skal slå den generelle input-regel (width: 100%) */
+.recipe-item-amount input[type='text'] {
+  width: 120px;
+  min-height: 40px;
+  padding: 8px 10px;
+  background: var(--card);
+}
+
+.recipe-item-unit {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.recipe-row {
+  display: flex;
+  gap: 8px;
+}
+
+.recipe-row label {
+  flex: 1;
+  min-width: 0;
+}
+
+.recipe-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-top: 1px dashed var(--line);
+  padding-top: 10px;
+}
+
+/* to knapper i madlistens overskrift */
+.foods-actions {
+  display: flex;
+  gap: 8px;
 }
 
 /* ---- formularer ---- */

@@ -9,6 +9,7 @@ import WeightCard from '../components/WeightCard.vue'
 import DailyStatus from '../components/DailyStatus.vue'
 import GoalsCard from '../components/GoalsCard.vue'
 import MacroLine from '../components/MacroLine.vue'
+import { describeMacros } from '../lib/nutrition'
 
 const data = useDataStore()
 const macros = computed(() => data.todayMacros)
@@ -33,7 +34,7 @@ function remove(entry) {
       {{ data.todayTotal }}<span class="today-goal"> / {{ data.todayBudget }}</span>
       <span class="today-unit">kcal</span>
     </p>
-    <MacroLine :macros="macros" />
+    <MacroLine :macros="macros" :goals="data.macroGoals" />
     <span v-if="weekStatus" class="week-pill" :class="weekStatus.cls">{{ weekStatus.text }}</span>
     <KcalGoal />
     <p v-if="data.outbox.length" class="sync-note">Gemmes online, når du har net igen</p>
@@ -46,7 +47,10 @@ function remove(entry) {
       <QuickAdd />
       <section v-if="data.todayEntries.length" class="card list">
         <div v-for="entry in data.todayEntries" :key="entry.id" class="row">
-          <span class="row-name">{{ entry.food_name }}</span>
+          <span class="row-name">
+            {{ entry.food_name }}
+            <small v-if="describeMacros(entry)" class="row-macros">{{ describeMacros(entry) }}</small>
+          </span>
           <span class="row-kcal">{{ entry.kcal }} kcal</span>
           <button class="row-delete" aria-label="Slet måltid" @click="remove(entry)">✕</button>
         </div>

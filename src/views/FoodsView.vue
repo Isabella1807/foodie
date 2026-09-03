@@ -4,7 +4,9 @@ import { useDataStore } from '../stores/data'
 import { useAuthStore } from '../stores/auth'
 import { starterFoods } from '../data/starterFoods'
 import { unitName } from '../lib/units'
+import { describeMacros } from '../lib/nutrition'
 import FoodForm from '../components/FoodForm.vue'
+import RecipeBuilder from '../components/RecipeBuilder.vue'
 import StarterBanner from '../components/StarterBanner.vue'
 
 const data = useDataStore()
@@ -15,14 +17,17 @@ const filter = ref('all')
 
 const FILTERS = [
   { value: 'all', label: 'Alle' },
+  { value: 'recipe', label: 'Retter' },
   { value: 'portion', label: 'Portioner' },
   { value: 'stk', label: 'Stk' },
   { value: 'g', label: 'Gram' },
   { value: 'ml', label: 'Milliliter' },
 ]
 
-// Hvilken slags vare: portion, styk (kender stk-vægt), eller ren gram/ml
+// Hvilken slags vare: ret (bygget af flere varer), portion, styk (kender
+// stk-vægt), eller ren gram/ml
 function foodType(f) {
+  if (f.ingredients) return 'recipe'
   if (!f.per_unit) return 'portion'
   if (f.piece_size) return 'stk'
   return f.per_unit
@@ -52,11 +57,25 @@ function importMissing() {
   for (const food of missingStarters.value) data.addFood(food)
 }
 
-// null = lukket, 'new' = ny madvare, ellers den madvare der rettes
+// Kalorie-teksten i listen: pr. styk/portion, pr. 100 eller pr. portion
+function kcalLabel(food) {
+  if (food.per_unit && food.piece_size) {
+    return `${Math.round((food.kcal * food.piece_size) / 100)} kcal/${food.ingredients ? 'portion' : 'styk'}`
+  }
+  return `${food.kcal} kcal${food.per_unit ? ` / 100 ${unitName(food.per_unit)}` : ''}`
+}
+
+// Hvad protein-tallene i listen gælder for
+function basis(food) {
+  return food.per_unit ? `pr. 100 ${unitName(food.per_unit)}` : 'pr. portion'
+}
+
+// null = lukket, 'new' = ny madvare, 'recipe' = ny ret, ellers den madvare der rettes
 const editing = ref(null)
+const editingRecipe = computed(() => editing.value === 'recipe' || !!editing.value?.ingredients)
 
 function saveFood(values) {
-  if (editing.value === 'new') data.addFood(values)
+  if (editing.value === 'new' || editing.value === 'recipe') data.addFood(values)
   else data.updateFood(editing.value.id, values)
   editing.value = null
 }
@@ -71,11 +90,20 @@ function removeFood(food) {
 <template>
   <header class="view-header split">
     <h1>Madliste</h1>
-    <button v-if="!editing" class="btn-primary" @click="editing = 'new'">Tilføj</button>
+    <div v-if="!editing" class="foods-actions">
+      <button class="btn-secondary" @click="editing = 'recipe'">Byg en ret</button>
+      <button class="btn-primary" @click="editing = 'new'">Tilføj</button>
+    </div>
   </header>
 
+  <RecipeBuilder
+    v-if="editing && editingRecipe"
+    :recipe="editing === 'recipe' ? null : editing"
+    @save="saveFood"
+    @cancel="editing = null"
+  />
   <FoodForm
-    v-if="editing"
+    v-else-if="editing"
     :food="editing === 'new' ? null : editing"
     @save="saveFood"
     @cancel="editing = null"
@@ -107,14 +135,12 @@ function removeFood(food) {
 
   <section v-if="visibleFoods.length" class="card list">
     <div v-for="food in visibleFoods" :key="food.id" class="row">
-      <span class="row-name">{{ food.name }}</span>
-      <span class="row-kcal">
-        {{
-          food.per_unit && food.piece_size
-            ? `${Math.round((food.kcal * food.piece_size) / 100)} kcal/styk`
-            : `${food.kcal} kcal${food.per_unit ? ` / 100 ${unitName(food.per_unit)}` : ''}`
-        }}
+      <span class="row-name">
+        {{ food.name }}
+        <small v-if="food.ingredients" class="row-macros">ret af {{ food.ingredients.items.length }} varer</small>
+        <small v-if="describeMacros(food)" class="row-macros">{{ describeMacros(food) }} {{ basis(food) }}</small>
       </span>
+      <span class="row-kcal">{{ kcalLabel(food) }}</span>
       <button class="row-action" @click="editing = food">Ret</button>
       <button class="row-delete" aria-label="Slet madvare" @click="removeFood(food)">✕</button>
     </div>
