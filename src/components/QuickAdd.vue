@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useDataStore } from '../stores/data'
 import { unitName } from '../lib/units'
 import { localToday, formatDayLabel } from '../lib/dates'
@@ -20,6 +20,14 @@ const forPastDay = computed(() => !!props.date && props.date !== localToday())
 const data = useDataStore()
 const query = ref('')
 const kcal = ref('')
+
+// Listen under søgefeltet: højst 8 ad gangen, medmindre hun beder om alle
+const SHOW_LIMIT = 8
+const showAll = ref(false)
+watch(query, () => (showAll.value = false))
+
+// Ret den valgte vare direkte fra "hvor meget?" — fx et forkert kalorietal
+const editingPending = ref(false)
 
 // Ny vare: gælder tallet én portion eller 100 gram/milliliter?
 const newPerUnit = ref(null)
@@ -65,11 +73,25 @@ function fracWord(f) {
   return String(f)
 }
 
-const matches = computed(() => {
+// Alle varer der matcher søgningen: dem hvor et ord BEGYNDER med det skrevne
+// først, derefter dem der bare indeholder det — hver gruppe med de senest
+// brugte øverst. Uden søgning: de 6 senest brugte.
+const allMatches = computed(() => {
   const q = query.value.trim().toLowerCase()
   if (!q) return data.recentFoods.slice(0, 6)
-  return data.recentFoods.filter((f) => f.name.toLowerCase().includes(q))
+  const starts = []
+  const rest = []
+  for (const f of data.recentFoods) {
+    const name = f.name.toLowerCase()
+    if (name.split(/\s+/).some((word) => word.startsWith(q))) starts.push(f)
+    else if (name.includes(q)) rest.push(f)
+  }
+  return [...starts, ...rest]
 })
+
+// Det der vises: højst SHOW_LIMIT, indtil hun trykker "vis alle"
+const matches = computed(() => (showAll.value ? allMatches.value : allMatches.value.slice(0, SHOW_LIMIT)))
+const hiddenCount = computed(() => allMatches.value.length - matches.value.length)
 
 const exactMatch = computed(() => {
   const q = query.value.trim().toLowerCase()
@@ -185,6 +207,7 @@ function clearExcept(keep) {
 
 function reset() {
   query.value = ''
+  editingPending.value = false
   kcal.value = ''
   newPerUnit.value = null
   newPieceSize.value = ''
@@ -198,6 +221,7 @@ function reset() {
 // Tryk på en vare = åbn hurtigvalgene (hel/halv/kvart, glas/tår + præcis mængde)
 function logFood(food) {
   pending.value = food
+  editingPending.value = false
   pendingAmount.value = ''
   pendingCount.value = ''
   pendingGlass.value = ''
@@ -326,6 +350,13 @@ function openBuilder() {
   building.value = true
 }
 
+// Gem rettelsen af den valgte vare og gå tilbage til "hvor meget?" med de nye tal
+function saveEdit(values) {
+  const id = pending.value.id
+  data.updateFood(id, values)
+  logFood(data.foods.find((f) => f.id === id) ?? pending.value)
+}
+
 function saveDraft(values) {
   const food = data.addFood(values)
   draft.value = null
@@ -339,12 +370,15 @@ function saveDraft(values) {
   <section class="card quickadd">
     <p v-if="forPastDay" class="quickadd-forday">Tilføjer til <b>{{ formatDayLabel(targetDate) }}</b></p>
     <div class="quickadd-row">
+      <!-- Ikke v-model: på Android-tastaturer med ordforslag venter v-model, til ordet
+           er færdigt (mellemrum/enter). :value + @input reagerer på hvert bogstav. -->
       <input
-        v-model="query"
+        :value="query"
         type="text"
         class="quickadd-input"
         placeholder="Hvad har du spist?"
         aria-label="Søg eller skriv en madvare"
+        @input="query = $event.target.value"
       />
       <button type="button" class="btn-scan" aria-label="Skan stregkode" title="Skan stregkode" @click="scanning = true">
         <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
@@ -358,7 +392,13 @@ function saveDraft(values) {
 
     <BarcodeScanner v-if="scanning" @detected="onScanned" @cancel="scanning = false" />
 
-    <div v-if="pending" class="quickadd-new">
+    <div v-if="pending && editingPending" class="quickadd-new">
+      <p class="quickadd-new-label">Ret {{ pending.name }}</p>
+      <RecipeBuilder v-if="pending.ingredients" :recipe="pending" embedded @save="saveEdit" @cancel="editingPending = false" />
+      <FoodForm v-else :food="pending" embedded @save="saveEdit" @cancel="editingPending = false" />
+    </div>
+
+    <div v-else-if="pending" class="quickadd-new">
       <p class="quickadd-new-label">Hvor meget {{ pending.name }}?</p>
 
       <div v-if="options.length" class="amount-options">
@@ -452,7 +492,10 @@ function saveDraft(values) {
         </div>
       </template>
 
-      <button type="button" class="btn-ghost" @click="pending = null">Annullér</button>
+      <div class="pending-actions">
+        <button type="button" class="btn-ghost" @click="pending = null">Annullér</button>
+        <button type="button" class="link full-form-link" @click="editingPending = true">Ret varen, fx et forkert tal</button>
+      </div>
     </div>
 
     <p v-else-if="lookingUp" class="quickadd-new-label">Slår varen op i Open Food Facts…</p>
@@ -474,6 +517,9 @@ function saveDraft(values) {
           </span>
         </button>
       </div>
+      <button v-if="hiddenCount > 0" type="button" class="link full-form-link" @click="showAll = true">
+        vis alle {{ allMatches.length }} varer
+      </button>
 
       <button v-if="!query.trim()" type="button" class="link full-form-link" @click="openBuilder">
         Byg en ret af flere varer

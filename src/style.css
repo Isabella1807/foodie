@@ -1206,6 +1206,15 @@ button {
   font-size: 0.85rem;
 }
 
+/* under "hvor meget?": annullér til venstre, ret varen til højre */
+.pending-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 /* ---- stregkode ---- */
 
 .btn-scan {

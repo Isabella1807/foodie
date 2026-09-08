@@ -112,12 +112,15 @@ function removeFood(food) {
   <StarterBanner v-if="!data.foods.length && !editing" />
 
   <template v-if="data.foods.length && !editing">
+    <!-- Ikke v-model: på Android-tastaturer med ordforslag venter v-model, til ordet
+         er færdigt (mellemrum/enter). :value + @input reagerer på hvert bogstav. -->
     <input
-      v-model="query"
+      :value="query"
       type="text"
       class="foods-search"
       placeholder="Søg i madlisten…"
       aria-label="Søg i madlisten"
+      @input="query = $event.target.value"
     />
     <div class="foods-filters">
       <button

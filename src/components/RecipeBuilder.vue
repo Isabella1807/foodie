@@ -156,12 +156,15 @@ function submit() {
     <p v-else-if="lookingUp" class="quickadd-new-label">Slår varen op i Open Food Facts…</p>
     <template v-else>
       <div class="quickadd-row">
+        <!-- Ikke v-model: på Android-tastaturer med ordforslag venter v-model, til ordet
+             er færdigt (mellemrum/enter). :value + @input reagerer på hvert bogstav. -->
         <input
-          v-model="search"
+          :value="search"
           type="text"
           class="quickadd-input"
           placeholder="Tilføj en vare fra madlisten…"
           aria-label="Søg efter vare til retten"
+          @input="search = $event.target.value"
         />
         <button type="button" class="btn-scan" aria-label="Skan stregkode" title="Skan stregkode" @click="scanning = true">
           <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
