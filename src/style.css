@@ -675,6 +675,25 @@ button {
   color: var(--muted);
 }
 
+/* redigering af dagsmålet: fast tal eller regnet ud fra forbruget */
+.goal-mode-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 0 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.goal-unit {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.goal-note-plain {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
 /* ---- vægt-statistik ---- */
 
 .weight-stats {
@@ -755,18 +774,10 @@ button {
   display: block;
 }
 
-.svg-raw {
-  fill: none;
-  stroke: #b9ccbf;
-  stroke-width: 1.5;
-  stroke-linejoin: round;
-  stroke-linecap: round;
-}
-
-.svg-avg {
+.svg-line {
   fill: none;
   stroke: var(--green);
-  stroke-width: 2.5;
+  stroke-width: 2;
   stroke-linejoin: round;
   stroke-linecap: round;
 }
@@ -799,13 +810,8 @@ button {
   vertical-align: 3px;
 }
 
-.ln-raw {
-  border-top-color: #b9ccbf;
-}
-
-.ln-avg {
+.ln-line {
   border-top-color: var(--green);
-  border-top-width: 3px;
 }
 
 .ln-goal {
@@ -1106,12 +1112,6 @@ button {
 .quickadd-new-row input {
   flex: 1;
   min-width: 90px;
-}
-
-/* linjen under det store vægt-tal: hvad gennemsnittet bygger på */
-.weight-avg-note {
-  margin-top: -6px;
-  font-size: 0.78rem;
 }
 
 /* ---- protein, kulhydrat og fedt: tre små målere under dagens tal ---- */

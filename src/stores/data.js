@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import { load, save, remove } from '../lib/storage'
 import { localToday, weekStart } from '../lib/dates'
 import { kcalPerKgOf } from '../lib/activity'
-import { estimateBurn } from '../lib/burn'
+import { estimateBurn, goalForRate } from '../lib/burn'
 import { sumMacros, defaultMacroGoals, MACROS } from '../lib/nutrition'
 
 const now = () => new Date().toISOString()
@@ -35,8 +35,10 @@ export const useDataStore = defineStore('data', {
       entries: cache.entries || [],
       weights: cache.weights || [],
       // Mål: dagligt kalorie-mål, målvægt og gram protein/kulhydrat/fedt pr. dag
-      // (tomt = appen regner et udgangspunkt ud fra kalorie-målet)
-      goals: { kcal_goal: 1500, goal_kg: null, protein_goal: null, carbs_goal: null, fat_goal: null, ...(cache.goals || {}) },
+      // (tomt = appen regner et udgangspunkt ud fra kalorie-målet).
+      // loss_per_week: sat = appen regner selv dagsmålet ud fra dit målte
+      // forbrug, så du taber så mange kg om ugen; kcal_goal er så kun reserven
+      goals: { kcal_goal: 1500, goal_kg: null, protein_goal: null, carbs_goal: null, fat_goal: null, loss_per_week: null, ...(cache.goals || {}) },
       celebrations: cache.celebrations || [], // dage markeret som hygge-/festdag: { id, date }
       // Krops-tal til at anslå tid til målet og ekstra plads på aktive dage.
       // Synces nu, så de samme tal gælder på alle enheder
@@ -115,12 +117,50 @@ export const useDataStore = defineStore('data', {
       return this.weighIns[this.weighIns.length - 1] ?? null
     },
 
-    // Dagligt mål — 1500 kcal som standard, indtil hun selv sætter et andet
-    dailyGoal(state) {
+    // Det faste daglige mål — 1500 kcal som standard, indtil hun selv sætter et andet
+    fixedGoal(state) {
       return state.goals.kcal_goal ?? 1500
     },
 
-    // Den vægt beregningerne bruger: 7-dages gennemsnittet, ellers startvægten
+    // Dit forbrug, som det så ud på en bestemt dato: kun vejninger til og med
+    // den dag tæller med. Bruges til ugens automatiske mål
+    burnAsOf(state) {
+      return (date) => estimateBurn(state.weights.filter((w) => w.measured_on <= date), state.entries)
+    },
+
+    // Ugens automatiske mål for en dato. Har hun bedt appen regne målet ud
+    // (loss_per_week sat), regnes det ud fra forbruget, som det så ud mandag i
+    // den uge — så tallet står fast hele ugen og først flytter sig næste mandag.
+    // Er forbruget ikke solidt nok endnu (for få vejninger), gælder det faste tal.
+    // Giver { auto: false } eller { auto: true, ready, goal, burn, floored, weekStart }
+    autoGoalFor(state) {
+      return (date) => {
+        const rate = state.goals.loss_per_week
+        if (!rate) return { auto: false }
+        const monday = weekStart(date)
+        const burn = this.burnAsOf(monday)
+        if (!burn.ready || !burn.solid) return { auto: true, ready: false, goal: this.fixedGoal, burn, floored: false, weekStart: monday }
+        const { goal, floored } = goalForRate(burn.kcal, rate)
+        return { auto: true, ready: true, goal, burn, floored, weekStart: monday }
+      }
+    },
+
+    // Ugens automatiske mål lige nu (til teksten under "Mine mål")
+    autoGoal() {
+      return this.autoGoalFor(localToday())
+    },
+
+    // Dagligt mål for en bestemt dato: ugens automatiske mål, ellers det faste tal
+    goalFor() {
+      return (date) => this.autoGoalFor(date).goal ?? this.fixedGoal
+    },
+
+    // Dagens mål
+    dailyGoal() {
+      return this.goalFor(localToday())
+    },
+
+    // Den vægt beregningerne bruger: den seneste vejning, ellers startvægten
     bodyWeight() {
       return this.currentWeight ?? this.startWeight?.kg ?? null
     },
@@ -148,7 +188,7 @@ export const useDataStore = defineStore('data', {
 
     // Dagens samlede budget = dagsmålet + evt. ekstra plads for den dags aktivitet
     dayBudget() {
-      return (date) => this.dailyGoal + this.activityBonus(date)
+      return (date) => this.goalFor(date) + this.activityBonus(date)
     },
 
     // I dags budget (dagsmål + ekstra plads, hvis i dag er sat til mere aktiv)
@@ -172,36 +212,23 @@ export const useDataStore = defineStore('data', {
       return this.latestWeight?.measured_on === localToday()
     },
 
-    // Vægten svinger 1–2 kg fra dag til dag af vand og salt. Derfor er "din
-    // vægt" gennemsnittet af de sidste 7 dages vejninger (regnet fra den
-    // seneste), og "siden sidste uge" sammenligner med de 7 dage før dem.
-    weightWindows() {
-      const latest = this.latestWeight
-      if (!latest) return { current: null, previous: null, count: 0 }
-      const end = parseDay(latest.measured_on)
-      const inWindow = (from, to) =>
-        this.weighIns.filter((w) => {
-          const d = daysBetween(end, parseDay(w.measured_on))
-          return d > -to && d <= -from
-        })
-      const avg = (list) => (list.length ? Math.round((list.reduce((s, w) => s + Number(w.kg), 0) / list.length) * 10) / 10 : null)
-      const current = inWindow(0, 7)
-      const previous = inWindow(7, 14)
-      return { current: avg(current), previous: avg(previous), count: current.length }
-    },
-
-    // Den vægt der vises og regnes med: 7-dages gennemsnittet
+    // Den vægt der vises og regnes med: den seneste vejning
     currentWeight() {
-      return this.weightWindows.current
+      const latest = this.latestWeight
+      return latest ? Number(latest.kg) : null
     },
 
-    // Ændring fra sidste uges gennemsnit til denne uges (null indtil der er to uger)
+    // Ændring siden for en uge siden: den seneste vejning mod den nyeste
+    // vejning, der ligger mindst 7 dage tidligere (null, hvis der ikke er en)
     weekChange() {
-      const { current, previous } = this.weightWindows
-      return current != null && previous != null ? Math.round((current - previous) * 10) / 10 : null
+      const latest = this.latestWeight
+      if (!latest) return null
+      const end = parseDay(latest.measured_on)
+      const previous = this.weighIns.find((w) => daysBetween(parseDay(w.measured_on), end) >= 7)
+      return previous ? Math.round((Number(latest.kg) - Number(previous.kg)) * 10) / 10 : null
     },
 
-    // Kg tabt fra startvægten til nu (7-dages gennemsnittet)
+    // Kg tabt fra startvægten til den seneste vejning
     weightLost() {
       const now = this.currentWeight
       const start = this.startWeight
@@ -396,7 +423,7 @@ export const useDataStore = defineStore('data', {
     setGoals(changes) {
       this.goals = { ...this.goals, ...changes }
       this.persist()
-      // Alle fem felter sendes — også tomme, så et slettet protein-mål også
+      // Alle felter sendes — også tomme, så et slettet protein-mål også
       // nulstilles på serveren (kræver at databasen har de nye kolonner)
       this.queue('upsert_goals', { ...this.goals })
     },
@@ -453,7 +480,7 @@ export const useDataStore = defineStore('data', {
       this.foods = []
       this.entries = []
       this.weights = []
-      this.goals = { kcal_goal: 1500, goal_kg: null, protein_goal: null, carbs_goal: null, fat_goal: null }
+      this.goals = { kcal_goal: 1500, goal_kg: null, protein_goal: null, carbs_goal: null, fat_goal: null, loss_per_week: null }
       this.celebrations = []
       this.profile = { height_cm: null, age: null, sex: null, activity: null }
       this.dayActivity = {}
@@ -558,6 +585,7 @@ export const useDataStore = defineStore('data', {
             protein_goal: g.protein_goal ?? null,
             carbs_goal: g.carbs_goal ?? null,
             fat_goal: g.fat_goal ?? null,
+            loss_per_week: g.loss_per_week ?? null,
           }
         }
         // Krops-tal: behold et lokalt tal, hvor serveren ikke har nogen — så et

@@ -3,9 +3,8 @@ import { ref, computed } from 'vue'
 import { useDataStore } from '../stores/data'
 import { formatDayLabel, localToday } from '../lib/dates'
 
-// Daglig vejning. Det store tal er gennemsnittet af de sidste 7 dages
-// vejninger, ikke dagens tal — vægten svinger 1–2 kg fra dag til dag af vand
-// og salt, og det skal ikke fylde. Ændringen måles mod ugen før.
+// Daglig vejning. Det store tal er den seneste vejning. Ændringen måles mod
+// vejningen for en uge siden, så en enkelt dags udsving ikke fylder for meget.
 const data = useDataStore()
 const weightInput = ref('')
 const today = localToday()
@@ -27,10 +26,9 @@ const latest = computed(() => data.latestWeight)
 const start = computed(() => data.startWeight)
 const goal = computed(() => data.goals.goal_kg)
 const weighedToday = computed(() => data.weighedToday)
-const windows = computed(() => data.weightWindows)
 const current = computed(() => data.currentWeight)
 
-// Tydelig linje: ændringen fra sidste uges gennemsnit til denne uges
+// Tydelig linje: ændringen siden vejningen for en uge siden
 const weekChange = computed(() => {
   const v = data.weekChange
   if (v == null) return null
@@ -70,17 +68,11 @@ function savePast() {
 
     <template v-if="latest && current != null">
       <p class="weight-number">{{ fmtKg(current) }}<span class="weight-unit">kg</span></p>
-      <p class="weight-note weight-avg-note">
-        <template v-if="windows.count > 1">
-          gennemsnit af {{ windows.count }} vejninger de sidste 7 dage · seneste {{ fmtKg(latest.kg) }} kg
-        </template>
-        <template v-else>seneste vejning — vej dig dagligt, så viser jeg ugens gennemsnit her</template>
-      </p>
       <p v-if="weekChange" class="week-change" :class="weekChange.cls">Siden sidste uge: {{ weekChange.text }}</p>
       <p v-else class="weight-note">Efter et par ugers vejninger sammenligner jeg med ugen før.</p>
     </template>
     <p v-else class="weight-note">
-      Vej dig hver morgen, så kan du følge dit vægttab her. Appen viser ugens gennemsnit, så en enkelt dag ikke betyder noget.
+      Vej dig hver morgen, så kan du følge dit vægttab her.
     </p>
 
     <template v-if="data.weightProgress !== null">

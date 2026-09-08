@@ -146,3 +146,9 @@ alter table public.goals add column protein_goal integer check (protein_goal > 0
 alter table public.goals add column carbs_goal   integer check (carbs_goal > 0);
 alter table public.goals add column fat_goal     integer check (fat_goal > 0);
 alter table public.foods add column ingredients jsonb;
+
+-- Kørte du en ældre udgave af dette skema, så kør kun alt herfra og ned.
+-- Det giver plads til et automatisk dagsmål: hvor mange kg om ugen du vil
+-- tabe — så regner appen selv dagsmålet ud fra dit målte forbrug.
+
+alter table public.goals add column loss_per_week numeric check (loss_per_week > 0);

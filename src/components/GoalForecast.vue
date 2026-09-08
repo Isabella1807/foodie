@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue'
 import { useDataStore } from '../stores/data'
 import { ACTIVITY_LEVELS, factorOf } from '../lib/activity'
-import { KCAL_PER_KG } from '../lib/burn'
+import { KCAL_PER_KG, goalForRate } from '../lib/burn'
 
 const data = useDataStore()
 
@@ -11,6 +11,7 @@ const MONTHS = [
   'juli', 'august', 'september', 'oktober', 'november', 'december',
 ]
 const fmt = (n) => n.toLocaleString('da-DK')
+const fmtRate = (n) => n.toLocaleString('da-DK', { maximumFractionDigits: 2 })
 
 // Forbruget falder, efterhånden som man taber sig — cirka 14 kcal/dag for
 // hvert kg (hvile-forbruget falder ca. 10 kcal pr. kg, plus lidt fra bevægelse)
@@ -26,28 +27,38 @@ const p = computed(() => data.profile)
 const currentKg = computed(() => data.currentWeight ?? data.startWeight?.kg ?? null)
 const goalKg = computed(() => data.goals.goal_kg)
 const intake = computed(() => data.dailyGoal)
+const rate = computed(() => data.goals.loss_per_week) // sat = appen regner selv dagsmålet ud
 const burn = computed(() => data.measuredBurn)
 
 const complete = computed(() => !!(p.value.height_cm && p.value.age && p.value.sex && p.value.activity))
 // Krops-tallene skal kun tastes, hvis der ikke er et målt forbrug at regne på
 const showForm = computed(() => editing.value || (!complete.value && !burn.value.ready))
 
+// Måneder og måned-navn for et antal uger fra nu
+function when(weeks) {
+  const date = new Date()
+  date.setDate(date.getDate() + weeks * 7)
+  return { months: Math.max(1, Math.round(weeks / 4.345)), label: `${MONTHS[date.getMonth()]} ${date.getFullYear()}` }
+}
+
 // Regn uge for uge: forbruget falder, efterhånden som vægten falder, så
 // vægttabet går lidt langsommere hen ad vejen (7700 kcal ≈ 1 kg).
-// burnAt(kg) giver det daglige forbrug ved en given vægt.
+// burnAt(kg) giver det daglige forbrug ved en given vægt. Regner appen selv
+// dagsmålet ud, følger målet med ned, så tempoet holdes. Går underskuddet i
+// nul før målvægten (fast mål), fortælles hvor langt man når i stedet.
 function simulate(burnAt) {
   let w = currentKg.value
   let weeks = 0
   while (w > goalKg.value && weeks < 520) {
-    const deficit = burnAt(w) - intake.value
-    if (deficit <= 30) return { impossible: true }
+    const burn = burnAt(w)
+    const eat = rate.value ? goalForRate(burn, rate.value).goal : intake.value
+    const deficit = burn - eat
+    if (deficit <= 30) return weeks ? { stallKg: Math.round(w), ...when(weeks) } : { impossible: true }
     w -= (deficit * 7) / KCAL_PER_KG
     weeks += 1
   }
   if (weeks >= 520) return { impossible: true }
-  const date = new Date()
-  date.setDate(date.getDate() + weeks * 7)
-  return { months: Math.max(1, Math.round(weeks / 4.345)), label: `${MONTHS[date.getMonth()]} ${date.getFullYear()}` }
+  return when(weeks)
 }
 
 // Helst ud fra dit MÅLTE forbrug (din egen logning og vægt). Kun hvis det
@@ -90,8 +101,17 @@ function save() {
     <p class="eyebrow">forventet tid til målet</p>
 
     <template v-if="!showForm">
-      <p v-if="forecast && forecast.months" class="stat-forecast">
-        <template v-if="forecast.source === 'measured'">
+      <p v-if="forecast && forecast.stallKg" class="stat-forecast">
+        Med <b>{{ fmt(intake) }} kcal/dag</b> når du ned omkring <b>{{ fmt(forecast.stallKg) }} kg</b> om ca. <b>{{ forecast.months }} måneder</b>.
+        Derefter står vægten stille, fordi man forbrænder mindre, når man bliver lettere — sæt målet lavere til den tid,
+        eller lad appen regne det ud under "Mine mål".
+      </p>
+      <p v-else-if="forecast && forecast.months" class="stat-forecast">
+        <template v-if="forecast.source === 'measured' && rate">
+          Dit forbrug er målt til ca. <b>{{ fmt(burn.kcal) }} kcal/dag</b>, og appen regner dit mål ud, så du taber ca. <b>{{ fmtRate(rate) }} kg om ugen</b>.
+          Holder du det, når du <b>{{ fmt(goalKg) }} kg</b> om ca. <b>{{ forecast.months }} måneder</b> — omkring {{ forecast.label }}.
+        </template>
+        <template v-else-if="forecast.source === 'measured'">
           Dit forbrug er målt til ca. <b>{{ fmt(burn.kcal) }} kcal/dag</b>. Holder du <b>{{ fmt(intake) }} kcal/dag</b>, når du <b>{{ fmt(goalKg) }} kg</b>
           om ca. <b>{{ forecast.months }} måneder</b> — omkring {{ forecast.label }}.
         </template>

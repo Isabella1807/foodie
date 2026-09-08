@@ -20,6 +20,12 @@ const WINDOWS = [
 ]
 const MIN_SPAN_DAYS = 14 // under to uger er tallet for tilfældigt
 
+// Skønnet er først SOLIDT nok til at styre dagsmålet af sig selv, når der er
+// mange vejninger over en længere periode — med få vejninger kan én skæv
+// vejning flytte tallet flere hundrede kcal. Daglige vejninger i ca. 3 uger.
+const SOLID_WEIGH_INS = 8
+const SOLID_SPAN_DAYS = 21
+
 function toDate(s) {
   const [y, m, d] = s.split('-').map(Number)
   return new Date(y, m - 1, d)
@@ -46,7 +52,7 @@ function slopePerDay(weighIns) {
 
 // weights: [{ measured_on, kg }], entries: [{ eaten_on, kcal }]
 // Giver { ready: false, reason } eller
-// { ready: true, kcal, kgPerWeek, weeks, weighIns, from, to }
+// { ready: true, kcal, kgPerWeek, weeks, weighIns, solid, from, to }
 export function estimateBurn(weights, entries) {
   if (!entries.length || weights.length < 2) return { ready: false, reason: 'weight' }
 
@@ -96,6 +102,7 @@ export function estimateBurn(weights, entries) {
     kgPerWeek: Math.round(-slope * 7 * 100) / 100,
     weeks: Math.max(2, Math.round(span / 7)),
     weighIns: picked.length,
+    solid: picked.length >= SOLID_WEIGH_INS && span >= SOLID_SPAN_DAYS,
     unloggedDays: span - loggedDays, // dage i perioden uden logning — gør tallet mere usikkert
     from: first.measured_on,
     to: latest.measured_on,
@@ -105,4 +112,15 @@ export function estimateBurn(weights, entries) {
 // Hvor mange kg om ugen et dagligt mål giver, når forbruget er kendt
 export function kgPerWeekAt(burn, dailyGoal) {
   return Math.round((((burn - dailyGoal) * 7) / KCAL_PER_KG) * 100) / 100
+}
+
+// Det laveste dagsmål appen selv vil foreslå — lavere bør man ikke gå uden en læge
+export const MIN_GOAL = 1200
+
+// Dagsmålet, der giver et bestemt vægttab om ugen, når forbruget er kendt:
+// forbruget minus det daglige underskud, rundet til nærmeste 50. Går det
+// under MIN_GOAL, sættes det til MIN_GOAL, og floored fortæller, at det skete.
+export function goalForRate(burn, kgPerWeek) {
+  const raw = Math.round((burn - (kgPerWeek * KCAL_PER_KG) / 7) / 50) * 50
+  return { goal: Math.max(MIN_GOAL, raw), floored: raw < MIN_GOAL }
 }

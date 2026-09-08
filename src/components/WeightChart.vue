@@ -15,34 +15,19 @@ const daysBetween = (a, b) => Math.round((toDate(b) - toDate(a)) / 86400000)
 const series = computed(() => [...data.weighIns].reverse().map((w) => ({ ...w, kg: Number(w.kg) })))
 const hasChart = computed(() => series.value.length >= 2)
 
-// 7-dages gennemsnit: for hver vejning gennemsnittet af de vejninger, der
-// ligger inden for de foregående 7 dage — så almindelige udsving fra væske,
-// salt og mad ikke føles som fiaskoer. Med daglige vejninger bliver linjen
-// jævn; med ugentlige følger den bare punkterne.
-const smoothed = computed(() =>
-  series.value.map((w) => {
-    const window = series.value.filter((p) => {
-      const d = daysBetween(p.measured_on, w.measured_on)
-      return d >= 0 && d < 7
-    })
-    const avg = window.reduce((sum, p) => sum + p.kg, 0) / window.length
-    return { ...w, avg }
-  }),
-)
-
 const W = 320
 const H = 132
 const PAD = 12
 const PAD_BOTTOM = 20
 
 const chart = computed(() => {
-  const pts = smoothed.value
+  const pts = series.value
   if (pts.length < 2) return null
   const goal = data.goals.goal_kg
   // Skalér efter selve vejningerne, så trenden er tydelig. Er målet tæt på,
   // tages det med, så mål-linjen kommer med i grafen; ellers vises målet kun
   // i milepælene og fremskridts-linjen nedenfor.
-  const kgs = pts.flatMap((p) => [p.kg, p.avg])
+  const kgs = pts.map((p) => p.kg)
   let min = Math.min(...kgs)
   let max = Math.max(...kgs)
   if (goal && max - goal <= 3) min = Math.min(min, goal)
@@ -59,11 +44,10 @@ const chart = computed(() => {
   const span = Math.max(1, daysBetween(first, pts[pts.length - 1].measured_on))
   const x = (p) => PAD + (daysBetween(first, p.measured_on) / span) * (W - 2 * PAD)
   const y = (kg) => PAD + (1 - (kg - min) / (max - min)) * (H - PAD - PAD_BOTTOM)
-  const line = (key) => pts.map((p) => `${x(p).toFixed(1)},${y(p[key]).toFixed(1)}`).join(' ')
+  const line = pts.map((p) => `${x(p).toFixed(1)},${y(p.kg).toFixed(1)}`).join(' ')
   const goalInView = goal && goal >= min && goal <= max
   return {
-    raw: line('kg'),
-    avg: line('avg'),
+    line,
     goalY: goalInView ? y(goal).toFixed(1) : null,
     dots: pts.map((p) => ({ cx: x(p).toFixed(1), cy: y(p.kg).toFixed(1) })),
     // Mange daglige punkter: mindre prikker, så linjen stadig kan ses
@@ -71,8 +55,8 @@ const chart = computed(() => {
   }
 })
 
-// Milepæle: hver 5 kg fra startvægten ned mod målvægten — nået, når
-// 7-dages gennemsnittet er under
+// Milepæle: hver 5 kg fra startvægten ned mod målvægten — nået, når den
+// seneste vejning er under
 const milestones = computed(() => {
   const start = data.startWeight
   const now = data.currentWeight
@@ -93,7 +77,7 @@ const milestones = computed(() => {
   <section class="card weight-dash">
     <div class="weight-top">
       <p class="eyebrow">vægtudvikling</p>
-      <p v-if="data.currentWeight != null" class="weight-when">{{ fmtKg(data.currentWeight) }} kg i snit nu</p>
+      <p v-if="data.currentWeight != null" class="weight-when">{{ fmtKg(data.currentWeight) }} kg nu</p>
     </div>
 
     <svg
@@ -111,15 +95,13 @@ const milestones = computed(() => {
         :y2="chart.goalY"
         class="svg-goal"
       />
-      <polyline :points="chart.raw" class="svg-raw" />
-      <polyline :points="chart.avg" class="svg-avg" />
+      <polyline :points="chart.line" class="svg-line" />
       <circle v-for="(d, i) in chart.dots" :key="i" :cx="d.cx" :cy="d.cy" :r="chart.r" class="svg-dot" />
     </svg>
     <p v-else class="weight-note">Vej dig et par gange, så tegner grafen din udvikling her.</p>
 
     <div v-if="chart" class="weight-legend">
-      <span><i class="ln ln-raw"></i>vejning</span>
-      <span><i class="ln ln-avg"></i>7-dages gennemsnit</span>
+      <span><i class="ln ln-line"></i>vejning</span>
       <span v-if="chart.goalY !== null"><i class="ln ln-goal"></i>mål {{ fmtKg(data.goals.goal_kg) }} kg</span>
     </div>
 
