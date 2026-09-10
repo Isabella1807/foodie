@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { supabase } from '../lib/supabase'
 import { load, save, remove } from '../lib/storage'
 import { localToday, weekStart } from '../lib/dates'
-import { kcalPerKgOf } from '../lib/activity'
+import { kcalPerKgOf, bodyBurn } from '../lib/activity'
 import { estimateBurn, goalForRate } from '../lib/burn'
 import { sumMacros, defaultMacroGoals, MACROS } from '../lib/nutrition'
 
@@ -34,11 +34,11 @@ export const useDataStore = defineStore('data', {
       foods: cache.foods || [],
       entries: cache.entries || [],
       weights: cache.weights || [],
-      // Mål: dagligt kalorie-mål, målvægt og gram protein/kulhydrat/fedt pr. dag
-      // (tomt = appen regner et udgangspunkt ud fra kalorie-målet).
+      // Mål: dagligt kalorie-mål, målvægt og gram protein/kulhydrat/fedt/fibre pr. dag
+      // (tomt = appen regner et udgangspunkt ud fra kalorie-målet og kroppen).
       // loss_per_week: sat = appen regner selv dagsmålet ud fra dit målte
       // forbrug, så du taber så mange kg om ugen; kcal_goal er så kun reserven
-      goals: { kcal_goal: 1500, goal_kg: null, protein_goal: null, carbs_goal: null, fat_goal: null, loss_per_week: null, ...(cache.goals || {}) },
+      goals: { kcal_goal: 1500, goal_kg: null, protein_goal: null, carbs_goal: null, fat_goal: null, fiber_goal: null, loss_per_week: null, ...(cache.goals || {}) },
       celebrations: cache.celebrations || [], // dage markeret som hygge-/festdag: { id, date }
       // Krops-tal til at anslå tid til målet og ekstra plads på aktive dage.
       // Synces nu, så de samme tal gælder på alle enheder
@@ -46,7 +46,11 @@ export const useDataStore = defineStore('data', {
       // Valgt aktivitet pr. dag, fx { '2026-07-20': 'moderat' } — en mere aktiv
       // dag giver ekstra plads i dagens mål. Synces også
       dayActivity: cache.dayActivity || {},
+      // Bevægelse pr. dag, fx { '2026-09-10': { minutes: 30, kind: 'vr' } } — et kryds
+      // for dagen, som IKKE ændrer dagens mål. Synces
+      movement: cache.movement || {},
       notify: cache.notify || false, // fast notifikation med dagens kalorier (pr. enhed)
+      nudgeHiddenOn: cache.nudgeHiddenOn || null, // dagen hun trykkede "ikke i dag" på forslagene (pr. enhed)
       dismissedStarters: cache.dismissedStarters || [], // slettede varenavne — foreslås ikke igen
       outbox: load('outbox', []),
       flushing: false,
@@ -260,10 +264,18 @@ export const useDataStore = defineStore('data', {
       return estimateBurn(state.weights, state.entries)
     },
 
-    // Dagens mål for protein, kulhydrat og fedt i gram: hendes egne tal, ellers
-    // et udgangspunkt regnet ud fra kalorie-målet (25/45/30 % af kalorierne)
+    // Det grundlag fiber-målet regnes ud fra: køn, og forbruget anslået ud fra
+    // køn, vægt, højde og alder (null, når krops-tallene ikke er udfyldt)
+    fiberBasis(state) {
+      const kg = this.currentWeight
+      return { ...state.profile, kg, kcalNeed: bodyBurn({ ...state.profile, kg }) }
+    },
+
+    // Dagens mål for protein, kulhydrat, fedt og fibre i gram: hendes egne tal,
+    // ellers et udgangspunkt — protein/kulhydrat/fedt ud fra kalorie-målet
+    // (25/45/30 % af kalorierne), fibre ud fra køn og kroppens forbrug
     macroGoals(state) {
-      const defaults = defaultMacroGoals(this.dailyGoal)
+      const defaults = defaultMacroGoals(this.dailyGoal, this.fiberBasis)
       const out = {}
       for (const k of MACROS) out[k] = state.goals[`${k}_goal`] ?? defaults[k]
       return out
@@ -305,7 +317,9 @@ export const useDataStore = defineStore('data', {
         celebrations: this.celebrations,
         profile: this.profile,
         dayActivity: this.dayActivity,
+        movement: this.movement,
         notify: this.notify,
+        nudgeHiddenOn: this.nudgeHiddenOn,
         dismissedStarters: this.dismissedStarters,
       })
     },
@@ -319,17 +333,17 @@ export const useDataStore = defineStore('data', {
     // Tomme valgfrie felter udelades af payload, så en database uden de
     // nyeste kolonner ikke afviser almindelige varer og måltider
     foodPayload(food) {
-      return withoutEmpty(food, ['per_unit', 'piece_size', 'protein', 'carbs', 'fat', 'barcode', 'ingredients'])
+      return withoutEmpty(food, ['per_unit', 'piece_size', 'protein', 'carbs', 'fat', 'fiber', 'barcode', 'ingredients'])
     },
 
     entryPayload(entry) {
-      return withoutEmpty(entry, ['protein', 'carbs', 'fat'])
+      return withoutEmpty(entry, ['protein', 'carbs', 'fat', 'fiber'])
     },
 
-    // protein/carbs/fat: gram på samme grundlag som kcal. barcode: så en
+    // protein/carbs/fat/fiber: gram på samme grundlag som kcal. barcode: så en
     // skannet vare genkendes næste gang. ingredients: sat når varen er en ret
     // bygget af flere varer ({ items, total_weight, portions })
-    addFood({ name, kcal, per_unit = null, piece_size = null, protein = null, carbs = null, fat = null, barcode = null, ingredients = null }) {
+    addFood({ name, kcal, per_unit = null, piece_size = null, protein = null, carbs = null, fat = null, fiber = null, barcode = null, ingredients = null }) {
       const food = {
         id: crypto.randomUUID(),
         name,
@@ -339,6 +353,7 @@ export const useDataStore = defineStore('data', {
         protein,
         carbs,
         fat,
+        fiber,
         barcode,
         ingredients,
         last_used_at: null,
@@ -350,7 +365,7 @@ export const useDataStore = defineStore('data', {
       return food
     },
 
-    updateFood(id, { name, kcal, per_unit = null, piece_size = null, protein = null, carbs = null, fat = null, barcode = null, ingredients = null }) {
+    updateFood(id, { name, kcal, per_unit = null, piece_size = null, protein = null, carbs = null, fat = null, fiber = null, barcode = null, ingredients = null }) {
       const food = this.foods.find((f) => f.id === id)
       if (!food) return
       food.name = name
@@ -360,6 +375,7 @@ export const useDataStore = defineStore('data', {
       food.protein = protein
       food.carbs = carbs
       food.fat = fat
+      food.fiber = fiber
       food.barcode = barcode
       food.ingredients = ingredients
       this.persist()
@@ -380,8 +396,8 @@ export const useDataStore = defineStore('data', {
 
     // eaten_on kan gives, hvis man taster et glemt måltid ind på en tidligere
     // dag; ellers lander det på dagens lokale kalenderdag
-    // protein/carbs/fat: de gram der faktisk blev spist (regnet ud af mængden)
-    logEntry({ name, kcal, protein = null, carbs = null, fat = null, foodId = null, eaten_on = localToday() }) {
+    // protein/carbs/fat/fiber: de gram der faktisk blev spist (regnet ud af mængden)
+    logEntry({ name, kcal, protein = null, carbs = null, fat = null, fiber = null, foodId = null, eaten_on = localToday() }) {
       const entry = {
         id: crypto.randomUUID(),
         food_name: name,
@@ -389,6 +405,7 @@ export const useDataStore = defineStore('data', {
         protein,
         carbs,
         fat,
+        fiber,
         eaten_on, // lokal kalenderdag — kl. 00:30 tæller stadig som "i nat"
         created_at: now(),
       }
@@ -398,6 +415,12 @@ export const useDataStore = defineStore('data', {
       this.persist()
       this.queue('upsert_entry', this.entryPayload(entry))
       if (food) this.queue('upsert_food', this.foodPayload(food))
+    },
+
+    // Skjul forslagene (protein/fibre halter bagefter) for resten af dagen
+    hideNudgeToday() {
+      this.nudgeHiddenOn = localToday()
+      this.persist()
     },
 
     deleteEntry(id) {
@@ -454,6 +477,24 @@ export const useDataStore = defineStore('data', {
       }
     },
 
+    // Sæt (eller ryd, med minutes = null) dagens bevægelse: minutter og evt. slags
+    setMovement(date, minutes, kind = null) {
+      const next = { ...this.movement }
+      const had = date in next
+      const n = Math.round(Number(minutes))
+      if (!n || n <= 0) {
+        delete next[date]
+        this.movement = next
+        this.persist()
+        if (had) this.queue('delete_movement', { date })
+      } else {
+        next[date] = { minutes: n, kind: kind || null }
+        this.movement = next
+        this.persist()
+        this.queue('upsert_movement', { date, minutes: n, kind: kind || null })
+      }
+    },
+
     // Fast notifikation med dagens kalorier — til/fra pr. enhed (kun lokalt)
     setNotify(on) {
       this.notify = on
@@ -480,11 +521,13 @@ export const useDataStore = defineStore('data', {
       this.foods = []
       this.entries = []
       this.weights = []
-      this.goals = { kcal_goal: 1500, goal_kg: null, protein_goal: null, carbs_goal: null, fat_goal: null, loss_per_week: null }
+      this.goals = { kcal_goal: 1500, goal_kg: null, protein_goal: null, carbs_goal: null, fat_goal: null, fiber_goal: null, loss_per_week: null }
       this.celebrations = []
       this.profile = { height_cm: null, age: null, sex: null, activity: null }
       this.dayActivity = {}
+      this.movement = {}
       this.notify = false
+      this.nudgeHiddenOn = null
       this.dismissedStarters = []
       this.outbox = []
       remove('cache')
@@ -552,6 +595,11 @@ export const useDataStore = defineStore('data', {
           return supabase.from('day_activity').upsert(op.payload, { onConflict: 'user_id,date' })
         case 'delete_day_activity':
           return supabase.from('day_activity').delete().eq('date', op.payload.date)
+        case 'upsert_movement':
+          // Én række pr. dag — databasen sætter selv user_id ud fra login
+          return supabase.from('movement').upsert(op.payload, { onConflict: 'user_id,date' })
+        case 'delete_movement':
+          return supabase.from('movement').delete().eq('date', op.payload.date)
         default:
           return { error: { code: 'unknown_op' } }
       }
@@ -562,7 +610,7 @@ export const useDataStore = defineStore('data', {
     async refresh() {
       if (this.outbox.length) return
       try {
-        const [foods, entries, weights, goals, celebrations, profiles, dayActivity] = await Promise.all([
+        const [foods, entries, weights, goals, celebrations, profiles, dayActivity, movement] = await Promise.all([
           supabase.from('foods').select('*'),
           supabase.from('entries').select('*'),
           supabase.from('weights').select('*'),
@@ -570,6 +618,7 @@ export const useDataStore = defineStore('data', {
           supabase.from('celebrations').select('*'),
           supabase.from('profiles').select('*'),
           supabase.from('day_activity').select('*'),
+          supabase.from('movement').select('*'),
         ])
         if (foods.error || entries.error) return
         this.foods = foods.data
@@ -585,6 +634,7 @@ export const useDataStore = defineStore('data', {
             protein_goal: g.protein_goal ?? null,
             carbs_goal: g.carbs_goal ?? null,
             fat_goal: g.fat_goal ?? null,
+            fiber_goal: g.fiber_goal ?? null,
             loss_per_week: g.loss_per_week ?? null,
           }
         }
@@ -603,6 +653,11 @@ export const useDataStore = defineStore('data', {
         if (!dayActivity.error) {
           const serverDays = Object.fromEntries(dayActivity.data.map((d) => [d.date, d.level]))
           this.dayActivity = { ...this.dayActivity, ...serverDays }
+        }
+        // Bevægelse: samme princip — serverens dage lægges oveni de lokale
+        if (!movement.error) {
+          const serverDays = Object.fromEntries(movement.data.map((m) => [m.date, { minutes: m.minutes, kind: m.kind ?? null }]))
+          this.movement = { ...this.movement, ...serverDays }
         }
         this.persist()
       } catch {

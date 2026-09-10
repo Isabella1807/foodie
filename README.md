@@ -6,8 +6,14 @@ gennemsnit, og se en farvekalender der viser hver dag som under/omkring/over dit
 mål. Vej dig hver morgen og følg vægten som 7-dages gennemsnit med graf, milepæle og fremskridt mod
 målvægten — og marker hygge-/festdage, så en planlagt dag ikke ligner en fejl.
 Skan stregkoden på en vare, så slår appen den op i Open Food Facts og henter
-kalorier, protein, kulhydrat og fedt; dagens protein, kulhydrat og fedt vises
-under dagens tal, mod et dagligt mål du kan rette. Byg en ret af flere varer
+kalorier, protein, kulhydrat, fedt og fibre; dagens protein, kulhydrat, fedt og
+fibre vises under dagens tal, mod et dagligt mål du kan rette (fiber-målet
+regnes ud fra køn, vægt, højde og alder). Halter protein eller fibre bagefter
+kalorierne, foreslår forsiden konkrete portioner fra din egen liste (og et par
+ideer udenfor den), som du kan logge med ét tryk. Sæt et kryds for dagens
+bevægelse (15 til 60 minutter, evt. gåtur/VR/cykel), se ugen som syv prikker og
+dagene i kalenderen — bevægelsen lægges ikke oveni dagens mål, den viser sig i
+dit målte forbrug. Byg en ret af flere varer
 (skan eller vælg dem og skriv mængden af hver), så retten gemmes som én vare,
 du logger i gram eller portioner. Appen regner også dit faktiske daglige forbrug ud løbende fra
 de seneste ugers logning og vejninger.
@@ -41,11 +47,15 @@ Værdierne findes i Supabase-dashboardet under Project Settings → API.
 4. Slå nye tilmeldinger fra: Authentication → Sign In / Providers → "Allow new users to sign up" → fra
 
 Har du allerede databasen kørende fra før, så kør kun de dele, du mangler.
-`sql/schema.sql` har fire "kør kun herfra og ned"-markeringer: den første tilføjer
+`sql/schema.sql` har syv "kør kun herfra og ned"-markeringer: den første tilføjer
 tabellerne til vægt og mål, den anden krops-tal og aktivitet pr. dag (så de
 matcher på alle enheder), den tredje protein/kulhydrat/fedt og stregkode på
-madvarer og måltider, og den sidste daglige mål for protein/kulhydrat/fedt og
-ingredienser på retter. Kør den eller de dele, din database ikke har endnu.
+madvarer og måltider, den fjerde daglige mål for protein/kulhydrat/fedt og
+ingredienser på retter, den femte det automatiske dagsmål (kg om ugen), og den
+sjette fibre på madvarer, måltider og mål, og den sidste tabellen til bevægelse
+pr. dag. Kør den eller de dele, din database
+ikke har endnu — og kør dem FØR du bruger den nye del i appen, ellers afviser
+databasen ændringen, og den går tabt ved næste hentning.
 
 ## Sådan virker offline-delen
 

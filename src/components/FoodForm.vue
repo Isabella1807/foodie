@@ -18,11 +18,12 @@ const kcal = ref('')
 const perUnit = ref(null)
 // Valgfri: hvad ét styk vejer/fylder (fx én kiks = 13 gram)
 const pieceSize = ref('')
-// Protein, kulhydrat og fedt i gram — samme grundlag som kalorierne. Valgfrit.
+// Protein, kulhydrat, fedt og fibre i gram — samme grundlag som kalorierne. Valgfrit.
 const protein = ref('')
 const carbs = ref('')
 const fat = ref('')
-const macroRefs = { protein, carbs, fat }
+const fiber = ref('')
+const macroRefs = { protein, carbs, fat, fiber }
 // Stregkoden gemmes på varen, så den genkendes næste gang den skannes
 const barcode = ref(null)
 
@@ -174,7 +175,7 @@ function submit() {
     <p v-if="preview" class="quickadd-new-label">{{ preview }}</p>
 
     <div class="unit-choice">
-      <span class="unit-choice-label">Protein, kulhydrat og fedt {{ basisLabel }} (gram, valgfrit)</span>
+      <span class="unit-choice-label">Protein, kulhydrat, fedt og fibre {{ basisLabel }} (gram, valgfrit)</span>
       <div class="macro-row">
         <label>
           Protein
@@ -187,6 +188,10 @@ function submit() {
         <label>
           Fedt
           <input v-model="fat" type="text" inputmode="decimal" placeholder="g" aria-label="Fedt i gram" />
+        </label>
+        <label>
+          Fibre
+          <input v-model="fiber" type="text" inputmode="decimal" placeholder="g" aria-label="Fibre i gram" />
         </label>
       </div>
     </div>

@@ -3,6 +3,8 @@ import { computed } from 'vue'
 import { useDataStore } from '../stores/data'
 import { formatFullDate, localToday } from '../lib/dates'
 import QuickAdd from '../components/QuickAdd.vue'
+import NutrientNudge from '../components/NutrientNudge.vue'
+import MovementCard from '../components/MovementCard.vue'
 import StarterBanner from '../components/StarterBanner.vue'
 import KcalGoal from '../components/KcalGoal.vue'
 import WeightCard from '../components/WeightCard.vue'
@@ -45,6 +47,8 @@ function remove(entry) {
   <div class="today-body">
     <div class="today-log">
       <QuickAdd />
+      <NutrientNudge />
+      <MovementCard />
       <section v-if="data.todayEntries.length" class="card list">
         <div v-for="entry in data.todayEntries" :key="entry.id" class="row">
           <span class="row-name">

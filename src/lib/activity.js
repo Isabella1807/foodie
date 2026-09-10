@@ -25,3 +25,12 @@ export function factorOf(value) {
 export function kcalPerKgOf(value) {
   return ACTIVITY_LEVELS.find((a) => a.value === value)?.kcalPerKg ?? 0
 }
+
+// Dit daglige forbrug anslået ud fra kroppen: den klassiske formel
+// (Mifflin-St Jeor) for hvile-forbruget ud fra vægt, højde, alder og køn,
+// ganget med livsstils-faktoren. null, hvis et af tallene mangler.
+export function bodyBurn({ kg, height_cm, age, sex, activity }) {
+  if (!kg || !height_cm || !age || !sex) return null
+  const s = sex === 'mand' ? 5 : -161
+  return Math.round((10 * kg + 6.25 * height_cm - 5 * age + s) * factorOf(activity))
+}

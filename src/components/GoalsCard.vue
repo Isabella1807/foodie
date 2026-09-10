@@ -3,10 +3,10 @@ import { ref, computed } from 'vue'
 import { useDataStore } from '../stores/data'
 import { askNotifyPermission } from '../lib/liveStatus'
 import { kgPerWeekAt, MIN_GOAL } from '../lib/burn'
-import { MACROS, MACRO_LABELS } from '../lib/nutrition'
+import { KCAL_MACROS, MACRO_LABELS, FIBER_FLOOR, FIBER_PER_MJ, KCAL_PER_MJ } from '../lib/nutrition'
 
 const data = useDataStore()
-const editing = ref(null) // null | 'kcal' | 'weight' | 'protein' | 'carbs' | 'fat'
+const editing = ref(null) // null | 'kcal' | 'weight' | 'protein' | 'carbs' | 'fat' | 'fiber'
 const input = ref('')
 // Dagsmålet er enten et fast tal, eller appen regner det ud fra dit målte
 // forbrug, så du taber et bestemt antal kg om ugen
@@ -47,9 +47,18 @@ const burn = computed(() => data.measuredBurn)
 const deficit = computed(() => (burn.value.ready ? burn.value.kcal - goal.value : null))
 const expectedRate = computed(() => (burn.value.ready ? kgPerWeekAt(burn.value.kcal, goal.value) : null))
 
-// Dagens mål for protein, kulhydrat og fedt (gram) — egne tal eller udgangspunktet
+// Dagens mål for protein, kulhydrat, fedt og fibre (gram) — egne tal eller udgangspunktet
 const macroGoals = computed(() => data.macroGoals)
-const anyCustom = computed(() => MACROS.some((k) => data.goals[`${k}_goal`] != null))
+const anyCustom = computed(() => KCAL_MACROS.some((k) => data.goals[`${k}_goal`] != null))
+
+// Fiber-målet: eget tal, eller regnet ud fra køn og kroppens forbrug (køn,
+// vægt, højde og alder) — kendes de ikke, gælder bundgrænsen for kvinder
+const fiberCustom = computed(() => data.goals.fiber_goal != null)
+const fiberBasis = computed(() => data.fiberBasis)
+const fiberFloor = computed(() => FIBER_FLOOR[fiberBasis.value.sex] ?? FIBER_FLOOR.kvinde)
+const fiberFromBurn = computed(() =>
+  fiberBasis.value.kcalNeed ? Math.round((FIBER_PER_MJ * fiberBasis.value.kcalNeed) / KCAL_PER_MJ) : null,
+)
 
 // "65,5" og "65.5" skal begge virke
 function toKg(value) {
@@ -172,7 +181,7 @@ function save() {
       Dit forbrug regnes ud, når du har vejet dig over et par uger og logget din mad imellem.
     </p>
 
-    <div v-for="(k, i) in MACROS" :key="k" class="goal-row" :class="{ 'has-note': i === MACROS.length - 1 }">
+    <div v-for="(k, i) in KCAL_MACROS" :key="k" class="goal-row" :class="{ 'has-note': i === KCAL_MACROS.length - 1 }">
       <span class="goal-key">{{ cap(MACRO_LABELS[k]) }} pr. dag</span>
       <form v-if="editing === k" class="goal-edit-form" @submit.prevent="save">
         <input v-model="input" type="number" min="1" inputmode="numeric" :aria-label="`${cap(MACRO_LABELS[k])} pr. dag i gram`" />
@@ -190,6 +199,33 @@ function save() {
       </template>
       <template v-else>
         Dine egne tal. Sletter du et tal, går det tilbage til udgangspunktet: 25 % af kalorierne fra protein, 45 % fra kulhydrat og 30 % fra fedt.
+      </template>
+    </p>
+
+    <div class="goal-row has-note">
+      <span class="goal-key">Fibre pr. dag</span>
+      <form v-if="editing === 'fiber'" class="goal-edit-form" @submit.prevent="save">
+        <input v-model="input" type="number" min="1" inputmode="numeric" aria-label="Fibre pr. dag i gram" />
+        <button class="btn-primary">Gem</button>
+      </form>
+      <template v-else>
+        <span class="goal-val">{{ fmt(macroGoals.fiber) }} g</span>
+        <button class="link" @click="edit('fiber')">ret</button>
+      </template>
+    </div>
+    <p class="goal-note">
+      <template v-if="fiberCustom">
+        Dit eget tal. Sletter du det, går det tilbage til udgangspunktet på {{ fmt(fiberBasis.kcalNeed ? Math.max(fiberFloor, fiberFromBurn) : fiberFloor) }} g.
+      </template>
+      <template v-else-if="fiberBasis.kcalNeed">
+        Regnet ud fra dine krops-tal ({{ fiberBasis.sex }}, {{ fmtKg(fiberBasis.kg) }} kg, {{ fiberBasis.height_cm }} cm, {{ fiberBasis.age }} år):
+        dit forbrug er ca. {{ fmt(fiberBasis.kcalNeed) }} kcal om dagen, og anbefalingen er {{ FIBER_PER_MJ }} g fibre for hver {{ KCAL_PER_MJ }} kcal
+        man forbrænder — det giver {{ fmt(fiberFromBurn) }} g.
+        <template v-if="fiberFromBurn < fiberFloor">Men mindst {{ fmt(fiberFloor) }} g om dagen for {{ fiberBasis.sex === 'mand' ? 'mænd' : 'kvinder' }}, så målet er {{ fmt(fiberFloor) }} g.</template>
+      </template>
+      <template v-else>
+        De nordiske anbefalinger: mindst 25 g om dagen for kvinder og 35 g for mænd. Udfyld dine krops-tal (køn, højde og alder)
+        under "forventet tid til målet" i kalenderen, så regnes tallet ud fra din krop og vægt.
       </template>
     </p>
 

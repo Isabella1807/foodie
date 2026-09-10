@@ -7,9 +7,11 @@ import WeightChart from '../components/WeightChart.vue'
 import WeightStats from '../components/WeightStats.vue'
 import GoalForecast from '../components/GoalForecast.vue'
 import DayActivity from '../components/DayActivity.vue'
+import MovementCard from '../components/MovementCard.vue'
 import QuickAdd from '../components/QuickAdd.vue'
 import MacroLine from '../components/MacroLine.vue'
 import { describeMacros } from '../lib/nutrition'
+import { isDone } from '../lib/movement'
 
 const data = useDataStore()
 
@@ -61,6 +63,7 @@ const weeks = computed(() =>
         total,
         status: statusOf(c.date, total),
         hygge: data.isCelebration(c.date),
+        moved: isDone(data.movement[c.date]), // mindst 30 min bevægelse den dag
         isToday: c.date === today,
       }
     })
@@ -155,6 +158,7 @@ function remove(entry) {
         @click="tapDay(cell)"
       >
         <span v-if="cell.hygge" class="cal-flag" aria-hidden="true">🎉</span>
+        <i v-if="cell.moved" class="cal-move" title="Bevægelse" aria-label="Bevægelse"></i>
         <span class="cal-num">{{ cell.day }}</span>
         <span v-if="cell.total" class="cal-kcal">{{ fmt(cell.total) }}</span>
       </button>
@@ -170,6 +174,7 @@ function remove(entry) {
       <span><i class="dot d-near"></i>op til {{ fmt(goal + NEAR) }}</span>
       <span><i class="dot d-some"></i>op til {{ fmt(goal + SOME) }}</span>
       <span><i class="dot d-over"></i>over {{ fmt(goal + SOME) }}</span>
+      <span><i class="cal-move legend"></i>mindst 30 min bevægelse</span>
       <span class="cal-legend-week">
         uge-tal: <b class="good-text">−</b> under · <b class="over-text">+</b> over ugens mål
       </span>
@@ -193,6 +198,7 @@ function remove(entry) {
     <p v-if="!openEntries.length" class="empty">Intet mad logget denne dag.</p>
     <p v-if="openMessage" class="status-coach cal-coach">{{ openMessage }}</p>
     <DayActivity :date="openDay" when="den dag" />
+    <MovementCard :date="openDay" when="den dag" />
     <button
       type="button"
       class="hygge-toggle"

@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useDataStore } from '../stores/data'
-import { ACTIVITY_LEVELS, factorOf } from '../lib/activity'
+import { ACTIVITY_LEVELS, bodyBurn } from '../lib/activity'
 import { KCAL_PER_KG, goalForRate } from '../lib/burn'
 
 const data = useDataStore()
@@ -72,9 +72,7 @@ const forecast = computed(() => {
     return { ...simulate((w) => measured - BURN_DROP_PER_KG * (startKg - w)), source: 'measured' }
   }
   if (!complete.value) return null
-  const factor = factorOf(p.value.activity)
-  const s = p.value.sex === 'mand' ? 5 : -161
-  return { ...simulate((w) => (10 * w + 6.25 * p.value.height_cm - 5 * p.value.age + s) * factor), source: 'formula' }
+  return { ...simulate((w) => bodyBurn({ ...p.value, kg: w })), source: 'formula' }
 })
 
 function openEdit() {

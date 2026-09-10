@@ -152,3 +152,32 @@ alter table public.foods add column ingredients jsonb;
 -- tabe — så regner appen selv dagsmålet ud fra dit målte forbrug.
 
 alter table public.goals add column loss_per_week numeric check (loss_per_week > 0);
+
+-- Kørte du en ældre udgave af dette skema, så kør kun alt herfra og ned.
+-- Det tilføjer fibre (gram) på madvarer og måltider — samme grundlag som
+-- protein, kulhydrat og fedt — og et dagligt fiber-mål (tomt = appen regner
+-- et udgangspunkt ud fra dine krops-tal).
+
+alter table public.foods   add column fiber      numeric check (fiber >= 0);
+alter table public.entries add column fiber      numeric check (fiber >= 0);
+alter table public.goals   add column fiber_goal integer check (fiber_goal > 0);
+
+-- Kørte du en ældre udgave af dette skema, så kør kun alt herfra og ned.
+-- Det tilføjer bevægelse pr. dag: et kryds med minutter og evt. hvad det var
+-- (gåtur, VR-spil, cykel …). Én række pr. dag. Bevægelsen ændrer ikke dagens
+-- kalorie-mål — den viser sig i det målte forbrug, når vægten følger med.
+
+create table public.movement (
+  user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  date    date not null,
+  minutes integer not null check (minutes > 0),
+  kind    text check (kind in ('gang', 'vr', 'cykel', 'andet')),
+  primary key (user_id, date)
+);
+
+alter table public.movement enable row level security;
+
+create policy "own movement" on public.movement
+  for all to authenticated
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid());

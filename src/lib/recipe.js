@@ -25,6 +25,7 @@ export function itemFromFood(food, amount = '') {
     protein: num(food.protein),
     carbs: num(food.carbs),
     fat: num(food.fat),
+    fiber: num(food.fiber),
     per_unit: food.per_unit ?? null,
     piece_size: num(food.piece_size),
     unit: itemUnit(food),
@@ -56,18 +57,26 @@ export function itemNutrition(item) {
 
 // Hele retten lagt sammen. weightKnown = alle ingredienser har en vægt.
 // macroItems = hvor mange af ingredienserne der har tal for protein m.m.
+// Et næringsstof, som INGEN ingrediens har tal for (fx fibre på ældre varer),
+// bliver null i stedet for 0, så retten ikke ser ud til at være fiberfri.
 export function recipeTotals(items) {
-  const t = { kcal: 0, protein: 0, carbs: 0, fat: 0, weight: 0, weightKnown: true, macroItems: 0 }
+  const t = { kcal: 0, weight: 0, weightKnown: true, macroItems: 0 }
+  const known = {}
+  for (const k of MACROS) t[k] = 0
   for (const it of items) {
     const n = itemNutrition(it)
     t.kcal += n.kcal
     if (MACROS.some((k) => n[k] != null)) t.macroItems += 1
-    for (const k of MACROS) t[k] += n[k] ?? 0
+    for (const k of MACROS) {
+      if (n[k] == null) continue
+      t[k] += n[k]
+      known[k] = true
+    }
     const w = itemWeight(it)
     if (w == null) t.weightKnown = false
     else t.weight += w
   }
-  for (const k of MACROS) t[k] = round1(t[k])
+  for (const k of MACROS) t[k] = known[k] ? round1(t[k]) : null
   t.weight = Math.round(t.weight)
   return t
 }
@@ -79,7 +88,6 @@ export function recipeToFood({ name, items, finishedWeight, portions }) {
   const t = recipeTotals(items)
   const totalWeight = parseGrams(finishedWeight) || (t.weightKnown ? t.weight : 0)
   const n = parseGrams(portions) || null
-  const hasMacros = t.macroItems > 0
   const ingredients = {
     items: items.map((it) => ({ ...it, amount: parseGrams(it.amount) })),
     total_weight: totalWeight || null,
@@ -87,7 +95,7 @@ export function recipeToFood({ name, items, finishedWeight, portions }) {
   }
   const macros = (div) => {
     const out = {}
-    for (const k of MACROS) out[k] = hasMacros ? round1(t[k] / div) : null
+    for (const k of MACROS) out[k] = t[k] == null ? null : round1(t[k] / div)
     return out
   }
   if (totalWeight > 0) {

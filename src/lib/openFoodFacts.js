@@ -41,7 +41,7 @@ function parseAmount(text) {
 }
 
 // Giver { found: false } hvis varen ikke findes, ellers et udkast til en
-// madvare: navn, kcal pr. 100, protein/kulhydrat/fedt pr. 100, enhed og evt.
+// madvare: navn, kcal pr. 100, protein/kulhydrat/fedt/fibre pr. 100, enhed og evt.
 // portionsstørrelse. Kaster en fejl ved netværksproblemer.
 export async function lookupBarcode(code) {
   const res = await fetch(`${API}${encodeURIComponent(code)}?fields=${FIELDS}`, {
@@ -66,6 +66,7 @@ export async function lookupBarcode(code) {
     protein: round1(num(n.proteins_100g)),
     carbs: round1(num(n.carbohydrates_100g)),
     fat: round1(num(n.fat_100g)),
+    fiber: round1(num(n.fiber_100g)),
     per_unit: isLiquid(p.quantity, p.serving_size) ? 'ml' : 'g',
     piece_size: piece && piece > 0 ? round1(piece) : null,
     barcode: String(json.code || code),

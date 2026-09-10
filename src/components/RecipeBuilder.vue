@@ -67,7 +67,7 @@ const weightHint = computed(() =>
 const macroHint = computed(() => {
   const missing = items.value.length - totals.value.macroItems
   if (!missing || !totals.value.macroItems) return ''
-  return `${missing} af ${items.value.length} varer mangler tal for protein, kulhydrat og fedt, så rettens tal for dem er i underkanten.`
+  return `${missing} af ${items.value.length} varer mangler tal for protein, kulhydrat, fedt og fibre, så rettens tal for dem er i underkanten.`
 })
 
 function unitWord(item) {

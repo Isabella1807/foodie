@@ -42,7 +42,7 @@ const pendingGlass = ref('') // glas (kun drikkevarer)
 const pendingGulps = ref('') // tår (kun drikkevarer)
 
 // Stregkode: kameraet er åbent / varen slås op / et udkast til en ny vare
-// venter i den fulde formular (med protein, kulhydrat og fedt)
+// venter i den fulde formular (med protein, kulhydrat, fedt og fibre)
 const scanning = ref(false)
 const lookingUp = ref(false)
 const draft = ref(null)
@@ -236,6 +236,7 @@ function logPortion(name, portion) {
     protein: portion.protein,
     carbs: portion.carbs,
     fat: portion.fat,
+    fiber: portion.fiber,
     foodId: pending.value.id,
     eaten_on: targetDate.value,
   })
@@ -581,7 +582,7 @@ function saveDraft(values) {
           <button type="button" class="btn-secondary" @click="saveOnly">Gem kun i listen</button>
         </div>
         <button type="button" class="link full-form-link" @click="openFullForm">
-          Tilføj med protein, kulhydrat og fedt i stedet
+          Tilføj med protein, kulhydrat, fedt og fibre i stedet
         </button>
         <button type="button" class="link full-form-link" @click="openBuilder">
           Byg "{{ query.trim() }}" som en ret af flere varer

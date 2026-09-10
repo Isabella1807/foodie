@@ -1,7 +1,14 @@
-// Protein, kulhydrat og fedt følger kalorierne: samme grundlag på varen
+// Protein, kulhydrat, fedt og fibre følger kalorierne: samme grundlag på varen
 // (pr. 100 g/ml eller pr. portion) og samme brøkdel, når en mængde logges.
-export const MACROS = ['protein', 'carbs', 'fat']
-export const MACRO_LABELS = { protein: 'protein', carbs: 'kulhydrat', fat: 'fedt' }
+export const MACROS = ['protein', 'carbs', 'fat', 'fiber']
+export const MACRO_LABELS = { protein: 'protein', carbs: 'kulhydrat', fat: 'fedt', fiber: 'fibre' }
+
+// De tre, der giver kalorier — deres mål regnes ud som en andel af kalorie-målet
+export const KCAL_MACROS = ['protein', 'carbs', 'fat']
+
+// Mål man skal NÅ (grøn når man er der), i modsætning til fedt og kulhydrat,
+// hvor målet er en øvre grænse
+export const REACH_GOALS = ['protein', 'fiber']
 
 // Tal fra databasen kan komme som tekst ("12.5") — og tomt felt betyder "ved ikke"
 function grams(value) {
@@ -27,13 +34,24 @@ export function scaleFood(food, factor) {
 }
 
 // Læg en dags næringsstoffer sammen. Tæller også hvor mange af måltiderne der
-// havde tal, så man kan se, om summen dækker hele dagen.
+// havde tal (counted), og pr. næringsstof hvor mange der havde et tal for lige
+// netop det (known) — fx har ældre varer protein m.m. men ingen fibre, og så
+// skal man kunne se, at fiber-tallet er i underkanten.
 export function sumMacros(entries) {
-  const sum = { protein: 0, carbs: 0, fat: 0, counted: 0, total: entries.length }
+  const sum = { counted: 0, total: entries.length, known: {} }
+  for (const k of MACROS) {
+    sum[k] = 0
+    sum.known[k] = 0
+  }
   for (const e of entries) {
     if (!hasMacros(e)) continue
     sum.counted += 1
-    for (const k of MACROS) sum[k] += grams(e[k]) ?? 0
+    for (const k of MACROS) {
+      const v = grams(e[k])
+      if (v == null) continue
+      sum[k] += v
+      sum.known[k] += 1
+    }
   }
   for (const k of MACROS) sum[k] = Math.round(sum[k])
   return sum
@@ -54,13 +72,30 @@ export const KCAL_PER_GRAM = { protein: 4, carbs: 4, fat: 9 }
 // Kan rettes under "mine mål".
 export const DEFAULT_SPLIT = { protein: 0.25, carbs: 0.45, fat: 0.3 }
 
-export function defaultMacroGoals(kcalGoal) {
+// Fibre giver (næsten) ingen kalorier, så målet er ikke en andel af kalorierne.
+// De nordiske anbefalinger (NNR 2023) siger 3 g fibre for hver MJ energi, man
+// forbrænder (1 MJ ≈ 239 kcal) — og mindst 25 g om dagen for kvinder, 35 g for
+// mænd. Kendes forbruget (regnet ud fra køn, vægt, højde og alder), bruges det;
+// ellers bare bundgrænsen.
+export const FIBER_PER_MJ = 3
+export const FIBER_FLOOR = { kvinde: 25, mand: 35 }
+export const KCAL_PER_MJ = 239
+
+export function defaultFiberGoal({ sex = null, kcalNeed = null } = {}) {
+  const floor = FIBER_FLOOR[sex] ?? FIBER_FLOOR.kvinde
+  if (!kcalNeed) return floor
+  return Math.max(floor, Math.round((FIBER_PER_MJ * kcalNeed) / KCAL_PER_MJ))
+}
+
+// body: { sex, kcalNeed } — bruges kun til fiber-målet
+export function defaultMacroGoals(kcalGoal, body = {}) {
   const out = {}
-  for (const k of MACROS) out[k] = Math.round((kcalGoal * DEFAULT_SPLIT[k]) / KCAL_PER_GRAM[k])
+  for (const k of KCAL_MACROS) out[k] = Math.round((kcalGoal * DEFAULT_SPLIT[k]) / KCAL_PER_GRAM[k])
+  out.fiber = defaultFiberGoal(body)
   return out
 }
 
-// Kort tekst til en liste: "12 g protein · 30 g kulhydrat · 5 g fedt"
+// Kort tekst til en liste: "12 g protein · 30 g kulhydrat · 5 g fedt · 3 g fibre"
 export function describeMacros(item) {
   const parts = []
   for (const k of MACROS) {
