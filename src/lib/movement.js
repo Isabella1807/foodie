@@ -2,7 +2,7 @@
 // Et kryds for dagen, ikke en kalorie-udregning: bevægelsen lægges IKKE oveni
 // dagens mål, for så spises den op igen. Den viser sig i stedet i dit målte
 // forbrug, når vægten følger med over et par uger.
-import { weekStart } from './dates'
+import { weekStart, addDays } from './dates'
 
 // Målet for én dag: mindst så mange minutter, så tæller dagen som "gjort"
 export const MOVE_GOAL_MIN = 30
@@ -12,24 +12,27 @@ export const MOVE_DAYS_PER_WEEK = 5
 
 export const MOVE_MINUTES = [15, 30, 45, 60]
 
-// label: på knappen. text: midt i en sætning ("30 min gåtur i dag")
+// De faste slags på knapperne. label: på knappen. text: midt i en sætning
+// ("30 min gåtur i dag"). Vælger man "Andet", kan man skrive selv, hvad det
+// var (fx svømning) — så gemmes den tekst som slags i stedet for "andet".
 export const MOVE_KINDS = [
   { value: 'gang', label: 'Gåtur', text: 'gåtur' },
   { value: 'vr', label: 'VR-spil', text: 'VR-spil' },
   { value: 'cykel', label: 'Cykel', text: 'cykel' },
+  { value: 'badminton', label: 'Badminton', text: 'badminton' },
   { value: 'andet', label: 'Andet', text: 'andet' },
 ]
 
-export function kindText(value) {
-  return MOVE_KINDS.find((k) => k.value === value)?.text ?? ''
+// Er det en af de faste slags (og ikke noget, hun selv har skrevet)?
+export function isKnownKind(value) {
+  return MOVE_KINDS.some((k) => k.value === value)
 }
 
-// Datoen n dage efter en dato-tekst (YYYY-MM-DD), som dato-tekst
-export function addDays(dateStr, n) {
-  const [y, m, d] = dateStr.split('-').map(Number)
-  const date = new Date(y, m - 1, d + n)
-  const pad = (v) => String(v).padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+// Teksten midt i en sætning: en fast slags oversættes ("gang" -> "gåtur"),
+// selvskrevet tekst vises som den er
+export function kindText(value) {
+  if (!value) return ''
+  return MOVE_KINDS.find((k) => k.value === value)?.text ?? value
 }
 
 // De syv datoer i ugen omkring en dato, mandag først

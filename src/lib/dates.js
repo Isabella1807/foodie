@@ -13,6 +13,13 @@ function toDate(dateStr) {
   return new Date(y, m - 1, d)
 }
 
+// Datoen n dage efter (eller før, med minus) en dato-tekst, som dato-tekst
+export function addDays(dateStr, n) {
+  const date = toDate(dateStr)
+  date.setDate(date.getDate() + n)
+  return date.toLocaleDateString('sv-SE')
+}
+
 // Mandagen i den uge datoen ligger i — ugen går fra mandag til søndag
 export function weekStart(dateStr) {
   const date = toDate(dateStr)

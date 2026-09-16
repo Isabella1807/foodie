@@ -17,6 +17,15 @@ function grams(value) {
   return Number.isFinite(n) ? n : null
 }
 
+// En "styk-vægt" over denne grænse er nok en hel pakke — en pose havregryn på
+// 1000 gram, en liter mælk, en kasse is — og ikke ét styk man spiser på én gang.
+// Retter (bygget af flere varer) er undtaget: der er tallet én portion.
+export const BIG_PACK = 350
+
+export function isBigPack(food) {
+  return !food?.ingredients && grams(food?.piece_size) > BIG_PACK
+}
+
 // Har varen/måltidet tal for mindst ét af næringsstofferne?
 export function hasMacros(item) {
   return MACROS.some((k) => grams(item?.[k]) != null)

@@ -1,6 +1,8 @@
 // Opslag i Open Food Facts: en åben, fælles database over fødevarer, som alle
 // kan bidrage til. Gratis og uden nøgle. Tallene er pr. 100 gram/milliliter,
 // så de passer direkte til appens "100 gram"-varer.
+import { BIG_PACK } from './nutrition'
+
 const API = 'https://world.openfoodfacts.org/api/v2/product/'
 const FIELDS = 'code,product_name,product_name_da,brands,quantity,serving_quantity,serving_size,nutriments'
 
@@ -57,7 +59,11 @@ export async function lookupBarcode(code) {
   // Kalorier direkte, ellers regnet om fra kilojoule
   let kcal = num(n['energy-kcal_100g'])
   if (kcal == null && num(n.energy_100g) != null) kcal = num(n.energy_100g) / 4.184
-  const piece = num(p.serving_quantity) ?? parseAmount(p.quantity)
+  // Portionsstørrelsen, hvis den er oplyst. Ellers pakkens størrelse — men kun
+  // når pakken er lille nok til at være ét styk (en yoghurt, en dåse). En pose
+  // havregryn på 1000 gram er ikke ét styk, så der vælges mængden i gram.
+  const pack = parseAmount(p.quantity)
+  const piece = num(p.serving_quantity) ?? (pack && pack <= BIG_PACK ? pack : null)
 
   return {
     found: true,

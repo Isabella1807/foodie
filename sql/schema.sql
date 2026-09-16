@@ -171,7 +171,7 @@ create table public.movement (
   user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
   date    date not null,
   minutes integer not null check (minutes > 0),
-  kind    text check (kind in ('gang', 'vr', 'cykel', 'andet')),
+  kind    text, -- en fast slags (gang, vr, cykel, badminton, andet) eller fri tekst (fx svømning)
   primary key (user_id, date)
 );
 
@@ -181,3 +181,10 @@ create policy "own movement" on public.movement
   for all to authenticated
   using (user_id = auth.uid())
   with check (user_id = auth.uid());
+
+-- Kørte du en ældre udgave af dette skema, så kør kun alt herfra og ned.
+-- Bevægelsen må være hvad som helst (badminton, svømning, dans …), ikke kun
+-- de fire faste slags — så den faste liste i databasen fjernes. Uden dette
+-- afviser databasen en selvskrevet slags, og den går tabt ved næste hentning.
+
+alter table public.movement drop constraint if exists movement_kind_check;

@@ -3,8 +3,9 @@ import { ref, computed, watch } from 'vue'
 import { useDataStore } from '../stores/data'
 import { unitName } from '../lib/units'
 import { localToday, formatDayLabel } from '../lib/dates'
-import { scaleFood } from '../lib/nutrition'
+import { scaleFood, parseGrams, isBigPack } from '../lib/nutrition'
 import { draftFromBarcode } from '../lib/openFoodFacts'
+import { loadFrida, searchFrida, fridaToFood } from '../lib/frida'
 import BarcodeScanner from './BarcodeScanner.vue'
 import FoodForm from './FoodForm.vue'
 import RecipeBuilder from './RecipeBuilder.vue'
@@ -37,6 +38,7 @@ const newPieceSize = ref('')
 // Varen der venter på "hvor meget?" + felterne til en præcis mængde
 const pending = ref(null)
 const pendingAmount = ref('') // gram/milliliter
+const pendingPortions = ref('') // portioner, fx 1,5 (kun portionsvarer)
 const pendingCount = ref('') // styk
 const pendingGlass = ref('') // glas (kun drikkevarer)
 const pendingGulps = ref('') // tår (kun drikkevarer)
@@ -93,6 +95,19 @@ const allMatches = computed(() => {
 const matches = computed(() => (showAll.value ? allMatches.value : allMatches.value.slice(0, SHOW_LIMIT)))
 const hiddenCount = computed(() => allMatches.value.length - matches.value.length)
 
+// Fødevaredatabasen (Frida, DTU): hentes første gang der skrives mindst to
+// bogstaver, og viser op til 5 almindelige fødevarer, der ikke allerede er på
+// hendes egen liste — så "gulerod" giver rigtige tal med ét tryk
+const frida = ref(null)
+watch(query, (q) => {
+  if (q.trim().length >= 2 && !frida.value) loadFrida().then((d) => (frida.value = d))
+})
+const fridaMatches = computed(() => {
+  if (!frida.value) return []
+  const own = new Set(data.foods.map((f) => f.name.toLowerCase()))
+  return searchFrida(frida.value.foods, query.value, 5).filter((f) => !own.has(f.name.toLowerCase()))
+})
+
 const exactMatch = computed(() => {
   const q = query.value.trim().toLowerCase()
   return q && data.foods.some((f) => f.name.toLowerCase() === q)
@@ -119,8 +134,20 @@ const newPreview = computed(() => {
   return 'Mængden vælger du, når du logger den — i gram, milliliter eller glas og tår.'
 })
 
-// Drikkevare = flydende vare uden en fast styk-vægt
-const isDrink = computed(() => !!pending.value && pending.value.per_unit === 'ml' && !pending.value.piece_size)
+// Størrelsen af én hel / ét styk, hvis varen har en — giver kvart, halv og hel
+const whole = computed(() => {
+  const size = Number(pending.value?.piece_size)
+  return pending.value && size > 0 ? size : null
+})
+
+// Drikkevare = flydende vare uden en hel — eller med en så stor (en liter
+// mælk), at det er en karton man skænker fra: så kan den OGSÅ logges i glas og
+// tår, oveni en kvart/halv/hel karton
+const isDrink = computed(() => !!pending.value && pending.value.per_unit === 'ml' && (!whole.value || isBigPack(pending.value)))
+
+// Kan den tælles i styk? Kun rigtige styk (en kiks, en tortilla) — en hel
+// pakke tælles ikke i "antal styk", den vælges i kvart/halv/hel eller gram
+const countable = computed(() => !!whole.value && !isBigPack(pending.value))
 
 // Et hurtigvalg: tekst + kalorier og næringsstoffer for brøkdelen "factor" af
 // varens grundlag (1 = én portion eller 100 gram/milliliter)
@@ -132,8 +159,12 @@ function option(food, label, name, factor) {
 // glas og tår i stedet — se nedenfor.
 const options = computed(() => {
   const food = pending.value
-  if (!food || isDrink.value) return []
-  return FRACTIONS.map((f) => buildOption(food, f))
+  if (!food) return []
+  // Drikkevare uden en hel: kun glas og tår
+  if (!whole.value && isDrink.value) return []
+  // En stor hel (en melon, en liter mælk) fås i kvart, halv og hel — ikke 2 og 3
+  const fractions = whole.value && isBigPack(food) ? FRACTIONS.filter((f) => f <= 1) : FRACTIONS
+  return fractions.map((f) => buildOption(food, f))
 })
 
 // Drikkevarer: hurtigvalg i glas
@@ -161,15 +192,16 @@ function buildOption(food, f) {
     const name = f < 1 ? `${fracWord(f)} ${food.name}` : f === 1 ? food.name : `${f} × ${food.name}`
     return option(food, label, name, f)
   }
-  // Stykvare (vægten pr. styk kendes): brøkdel af ét styk
-  if (food.piece_size) {
-    const amount = Math.round(food.piece_size * f * 10) / 10
+  // Vare med en hel/ét styk (vægten kendes): brøkdel af den
+  if (whole.value) {
+    const amount = Math.round(whole.value * f * 10) / 10
     const suffix = ` (${daNum(amount)} ${unitName(per)})`
     const base = f < 1 ? `${fracWord(f)} ${food.name}` : f === 1 ? food.name : `${f} × ${food.name}`
-    // En ret logges i portioner, andre stykvarer i styk
+    // En ret logges i portioner, en hel pakke som "en hel", andre stykvarer i styk
     const unit = food.ingredients ? 'portion' : 'styk'
-    const label = f < 1 ? fracWord(f) : f === 1 ? `1 ${unit}` : `${f} ${food.ingredients ? 'portioner' : 'styk'}`
-    return option(food, label, base + suffix, (food.piece_size * f) / 100)
+    const one = isBigPack(food) ? 'en hel' : `1 ${unit}`
+    const label = f < 1 ? fracWord(f) : f === 1 ? one : `${f} ${food.ingredients ? 'portioner' : 'styk'}`
+    return option(food, label, base + suffix, (whole.value * f) / 100)
   }
   // Pr.-100-vare uden styk-vægt: brøkdel af 100 gram/milliliter
   const amount = Math.round(100 * f)
@@ -180,8 +212,13 @@ function buildOption(food, f) {
 const pendingFactor = computed(() => {
   const food = pending.value
   if (!food) return 0
+  // Portionsvare: antal portioner, gerne med komma (1,5)
+  if (!food.per_unit) {
+    const n = parseGrams(pendingPortions.value)
+    return n > 0 ? n : 0
+  }
   const stk = Math.round(Number(pendingCount.value))
-  if (food.piece_size && stk > 0) return (food.piece_size * stk) / 100
+  if (countable.value && stk > 0) return (whole.value * stk) / 100
   if (isDrink.value) {
     const glass = Number(pendingGlass.value)
     if (glass > 0) return (glass * GLASS_ML) / 100
@@ -199,6 +236,7 @@ const pendingKcal = computed(() => pendingPortion.value?.kcal ?? 0)
 
 // Tøm de andre præcis-felter, så kun ét bruges ad gangen
 function clearExcept(keep) {
+  if (keep !== 'portions') pendingPortions.value = ''
   if (keep !== 'count') pendingCount.value = ''
   if (keep !== 'glass') pendingGlass.value = ''
   if (keep !== 'gulps') pendingGulps.value = ''
@@ -213,6 +251,7 @@ function reset() {
   newPieceSize.value = ''
   pending.value = null
   pendingAmount.value = ''
+  pendingPortions.value = ''
   pendingCount.value = ''
   pendingGlass.value = ''
   pendingGulps.value = ''
@@ -223,6 +262,7 @@ function logFood(food) {
   pending.value = food
   editingPending.value = false
   pendingAmount.value = ''
+  pendingPortions.value = ''
   pendingCount.value = ''
   pendingGlass.value = ''
   pendingGulps.value = ''
@@ -254,8 +294,11 @@ function logPending() {
   const glass = Number(pendingGlass.value)
   const gulps = Math.round(Number(pendingGulps.value))
   let name
-  if (food.piece_size && stk > 0) {
-    const amount = Math.round(food.piece_size * stk * 10) / 10
+  if (!food.per_unit) {
+    const n = parseGrams(pendingPortions.value)
+    name = n === 1 ? food.name : `${daNum(n)} × ${food.name}`
+  } else if (countable.value && stk > 0) {
+    const amount = Math.round(whole.value * stk * 10) / 10
     name = `${stk > 1 ? `${stk} × ` : ''}${food.name} (${daNum(amount)} ${unitName(food.per_unit)})`
   } else if (isDrink.value && glass > 0) {
     name = `${food.name} (${daNum(glass)} glas ≈ ${Math.round(glass * GLASS_ML)} milliliter)`
@@ -365,6 +408,12 @@ function saveDraft(values) {
   building.value = false
   logFood(food)
 }
+
+// En vare fra Fødevaredatabasen: læg den på listen (pr. 100 gram) og gå
+// direkte til "hvor meget?" — tallene kan rettes bagefter som på alle andre varer
+function pickFrida(item) {
+  logFood(data.addFood(fridaToFood(item)))
+}
 </script>
 
 <template>
@@ -444,54 +493,66 @@ function saveDraft(values) {
         </div>
       </template>
 
-      <template v-if="pending.per_unit">
-        <p class="count-hint">eller skriv en præcis mængde:</p>
-        <div class="amount-exact">
-          <input
-            v-if="pending.piece_size"
-            v-model="pendingCount"
-            type="number"
-            min="1"
-            inputmode="numeric"
-            placeholder="antal styk"
-            aria-label="Antal styk"
-            @input="clearExcept('count')"
-          />
-          <input
-            v-if="isDrink"
-            v-model="pendingGlass"
-            type="number"
-            min="0.25"
-            step="any"
-            inputmode="decimal"
-            placeholder="antal glas"
-            aria-label="Antal glas"
-            @input="clearExcept('glass')"
-          />
-          <input
-            v-if="isDrink"
-            v-model="pendingGulps"
-            type="number"
-            min="1"
-            inputmode="numeric"
-            placeholder="antal tår"
-            aria-label="Antal tår"
-            @input="clearExcept('gulps')"
-          />
-          <input
-            v-model="pendingAmount"
-            type="number"
-            min="1"
-            inputmode="numeric"
-            :placeholder="`antal ${unitName(pending.per_unit)}`"
-            aria-label="Mængde"
-            @input="clearExcept('amount')"
-          />
-          <button type="button" class="btn-primary" :disabled="!pendingKcal" @click="logPending">
-            Log{{ pendingKcal ? ` ${pendingKcal} kcal` : '' }}
-          </button>
-        </div>
-      </template>
+      <!-- Skriv mængden selv: gram/milliliter først (det man oftest vil), så
+           styk, glas og tår — og for portionsvarer antal portioner (fx 1,5) -->
+      <p class="amount-exact-hint">
+        eller skriv selv, hvor {{ pending.per_unit ? `mange ${unitName(pending.per_unit)}` : 'mange portioner' }}:
+      </p>
+      <div class="amount-exact">
+        <input
+          v-if="pending.per_unit"
+          v-model="pendingAmount"
+          type="number"
+          min="1"
+          inputmode="numeric"
+          :placeholder="`antal ${unitName(pending.per_unit)}`"
+          aria-label="Mængde"
+          @input="clearExcept('amount')"
+        />
+        <input
+          v-else
+          v-model="pendingPortions"
+          type="text"
+          inputmode="decimal"
+          placeholder="antal portioner, fx 1,5"
+          aria-label="Antal portioner"
+          @input="clearExcept('portions')"
+        />
+        <input
+          v-if="countable"
+          v-model="pendingCount"
+          type="number"
+          min="1"
+          inputmode="numeric"
+          :placeholder="`eller antal ${pending.ingredients ? 'portioner' : 'styk'}`"
+          aria-label="Antal styk"
+          @input="clearExcept('count')"
+        />
+        <input
+          v-if="isDrink"
+          v-model="pendingGlass"
+          type="number"
+          min="0.25"
+          step="any"
+          inputmode="decimal"
+          placeholder="eller antal glas"
+          aria-label="Antal glas"
+          @input="clearExcept('glass')"
+        />
+        <input
+          v-if="isDrink"
+          v-model="pendingGulps"
+          type="number"
+          min="1"
+          inputmode="numeric"
+          placeholder="eller antal tår"
+          aria-label="Antal tår"
+          @input="clearExcept('gulps')"
+        />
+        <button type="button" class="btn-primary" :disabled="!pendingKcal" @click="logPending">
+          Log{{ pendingKcal ? ` ${pendingKcal} kcal` : '' }}
+        </button>
+      </div>
 
       <div class="pending-actions">
         <button type="button" class="btn-ghost" @click="pending = null">Annullér</button>
@@ -511,7 +572,7 @@ function saveDraft(values) {
           {{ food.name }}
           <span class="chip-kcal">
             {{
-              food.per_unit && food.piece_size
+              food.per_unit && food.piece_size && !isBigPack(food)
                 ? `${Math.round((food.kcal * food.piece_size) / 100)} kcal/${food.ingredients ? 'portion' : 'styk'}`
                 : `${food.kcal} kcal${food.per_unit ? `/100 ${unitName(food.per_unit)}` : ''}`
             }}
@@ -521,6 +582,17 @@ function saveDraft(values) {
       <button v-if="hiddenCount > 0" type="button" class="link full-form-link" @click="showAll = true">
         vis alle {{ allMatches.length }} varer
       </button>
+
+      <!-- Almindelige fødevarer fra DTU's database, når navnet ikke er på hendes egen liste -->
+      <template v-if="fridaMatches.length && !exactMatch">
+        <p class="quickadd-new-label">Fra {{ frida.name }} — tal pr. 100 gram:</p>
+        <div class="quickadd-matches">
+          <button v-for="f in fridaMatches" :key="f.name" type="button" class="chip" @click="pickFrida(f)">
+            {{ f.name }}
+            <span class="chip-kcal">{{ f.kcal }} kcal</span>
+          </button>
+        </div>
+      </template>
 
       <button v-if="!query.trim()" type="button" class="link full-form-link" @click="openBuilder">
         Byg en ret af flere varer
@@ -562,7 +634,7 @@ function saveDraft(values) {
           {{
             newPerUnit === 'stk'
               ? 'Vejer ét styk? (valgfrit, i gram)'
-              : 'Hvor meget vejer én hel/portion?'
+              : 'Vejer én hel eller én portion? (valgfrit — ikke hele pakken)'
           }}
           <input
             v-model="newPieceSize"
@@ -570,9 +642,12 @@ function saveDraft(values) {
             min="0.1"
             step="any"
             inputmode="decimal"
-            :placeholder="newPerUnit === 'stk' ? 'fx ét kirsebær = 8 gram' : `${unitName(newPerUnit)} pr. hel — fx én ananas ≈ 900 gram`"
+            :placeholder="newPerUnit === 'stk' ? 'fx ét kirsebær = 8 gram' : newPerUnit === 'ml' ? 'fx én dåse ≈ 330 milliliter' : 'fx én banan ≈ 120 gram'"
             aria-label="Vægt pr. hel"
           />
+          <span v-if="newPerUnit !== 'stk'" class="field-hint">
+            Lad den stå tom for varer, du tager lidt af ad gangen (remoulade, havregryn) — så logger du i {{ unitName(newPerUnit) }}.
+          </span>
         </label>
         <p v-if="newPreview" class="quickadd-new-label">{{ newPreview }}</p>
         <div class="new-actions">

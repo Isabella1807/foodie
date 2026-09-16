@@ -2,11 +2,12 @@
 import { ref, computed } from 'vue'
 import { useDataStore } from '../stores/data'
 import { localToday } from '../lib/dates'
-import { MOVE_GOAL_MIN, MOVE_DAYS_PER_WEEK, MOVE_MINUTES, MOVE_KINDS, kindText, weekDates, isDone } from '../lib/movement'
+import { MOVE_GOAL_MIN, MOVE_DAYS_PER_WEEK, MOVE_MINUTES, MOVE_KINDS, kindText, isKnownKind, weekDates, isDone } from '../lib/movement'
 
-// Et kryds for dagens bevægelse: tryk på minutterne (og evt. hvad det var),
-// så er dagen sat. Ugen vises som syv prikker, så man kan se, om det bliver
-// til de fleste dage. Bevægelsen ændrer ikke dagens kalorie-mål — se lib/movement.js.
+// Et kryds for dagens bevægelse: tryk på minutterne — eller skriv dem selv —
+// og evt. hvad det var, så er dagen sat. Ugen vises som syv prikker, så man
+// kan se, om det bliver til de fleste dage. Bevægelsen ændrer ikke dagens
+// kalorie-mål — se lib/movement.js.
 // date: hvilken dag der sættes kryds for (i dag, eller en åben dag i kalenderen)
 const props = defineProps({
   date: { type: String, default: null },
@@ -18,8 +19,22 @@ const date = computed(() => props.date || localToday())
 const entry = computed(() => data.movement[date.value] || null)
 const done = computed(() => isDone(entry.value))
 
-const kind = ref(null) // valgt slags, inden minutterne trykkes
+const kind = ref(null) // valgt slags (knap), inden minutterne sættes
+const other = ref('') // fri tekst, når slags er "Andet" (fx svømning)
+const minutes = ref('') // selvskrevne minutter
 const editing = ref(false)
+
+// Det der gemmes som slags: teksten fra "Andet", hvis der er skrevet noget,
+// ellers den valgte knap
+const chosenKind = computed(() => {
+  if (kind.value === 'andet' && other.value.trim()) return other.value.trim().toLowerCase()
+  return kind.value
+})
+
+const customMinutes = computed(() => {
+  const n = Math.round(Number(minutes.value))
+  return n > 0 ? n : 0
+})
 
 const weekdays = ['Ma', 'Ti', 'On', 'To', 'Fr', 'Lø', 'Sø']
 const today = localToday()
@@ -41,10 +56,18 @@ const weekNote = computed(() => {
   return `${doneDays.value} af 7 dage — ${missing} ${missing === 1 ? 'dag' : 'dage'} mere, så er ugens ${MOVE_DAYS_PER_WEEK} nået.`
 })
 
-function set(minutes) {
-  data.setMovement(date.value, minutes, kind.value ?? entry.value?.kind ?? null)
+function set(m) {
+  const n = Math.round(Number(m))
+  if (!n || n <= 0) return
+  data.setMovement(date.value, n, chosenKind.value ?? entry.value?.kind ?? null)
   kind.value = null
+  other.value = ''
+  minutes.value = ''
   editing.value = false
+}
+
+function setCustom() {
+  set(minutes.value)
 }
 
 function clear() {
@@ -52,8 +75,17 @@ function clear() {
   editing.value = false
 }
 
+// Ret dagen: en selvskrevet slags lander i "Andet"-feltet igen
 function startEdit() {
-  kind.value = entry.value?.kind ?? null
+  const k = entry.value?.kind ?? null
+  if (k && !isKnownKind(k)) {
+    kind.value = 'andet'
+    other.value = k
+  } else {
+    kind.value = k
+    other.value = ''
+  }
+  minutes.value = entry.value?.minutes ?? ''
   editing.value = true
 }
 </script>
@@ -97,11 +129,30 @@ function startEdit() {
           {{ k.label }}
         </button>
       </div>
+      <input
+        v-if="kind === 'andet'"
+        v-model="other"
+        type="text"
+        class="movement-other"
+        placeholder="hvad lavede du? fx svømning"
+        aria-label="Hvad lavede du"
+      />
       <div class="movement-minutes">
         <span class="count-hint">Hvor længe {{ when }}?</span>
         <div class="unit-choice-options">
           <button v-for="m in MOVE_MINUTES" :key="m" type="button" class="chip movement-chip" @click="set(m)">{{ m }} min</button>
         </div>
+        <form class="movement-custom" @submit.prevent="setCustom">
+          <input
+            v-model="minutes"
+            type="number"
+            min="1"
+            inputmode="numeric"
+            placeholder="eller skriv antal minutter"
+            aria-label="Antal minutter"
+          />
+          <button class="btn-primary" :disabled="!customMinutes">Gem</button>
+        </form>
       </div>
       <button v-if="editing" type="button" class="link" @click="editing = false">annullér</button>
       <p v-else class="weight-note">

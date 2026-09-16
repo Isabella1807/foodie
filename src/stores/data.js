@@ -1,10 +1,11 @@
 import { defineStore } from 'pinia'
 import { supabase } from '../lib/supabase'
 import { load, save, remove } from '../lib/storage'
-import { localToday, weekStart } from '../lib/dates'
+import { localToday, weekStart, addDays } from '../lib/dates'
 import { kcalPerKgOf, bodyBurn } from '../lib/activity'
 import { estimateBurn, goalForRate } from '../lib/burn'
-import { sumMacros, defaultMacroGoals, MACROS } from '../lib/nutrition'
+import { sumMacros, defaultMacroGoals, MACROS, REACH_GOALS } from '../lib/nutrition'
+import { balance } from '../lib/balance'
 
 const now = () => new Date().toISOString()
 
@@ -216,6 +217,12 @@ export const useDataStore = defineStore('data', {
       return this.latestWeight?.measured_on === localToday()
     },
 
+    // Dage siden seneste vejning (0 = i dag) — null uden vejninger
+    daysSinceWeighIn() {
+      const latest = this.latestWeight
+      return latest ? daysBetween(parseDay(latest.measured_on), parseDay(localToday())) : null
+    },
+
     // Den vægt der vises og regnes med: den seneste vejning
     currentWeight() {
       const latest = this.latestWeight
@@ -289,6 +296,22 @@ export const useDataStore = defineStore('data', {
 
     todayMacros() {
       return this.macrosFor(localToday())
+    },
+
+    // Protein og fibre samlet over en periode (fra og med from, til og med to):
+    // fået mod det, hun skulle have haft på de dage, der er logget — se lib/balance.js
+    balanceBetween(state) {
+      return (from, to) => balance(state.entries.filter((e) => e.eaten_on >= from && e.eaten_on <= to), this.macroGoals)
+    },
+
+    // Gram protein/fibre hun er bagud over de sidste 7 dage (ikke i dag) — så
+    // forslaget kan blive stående dagen efter en dag, hvor det haltede
+    carryBehind() {
+      const today = localToday()
+      const b = this.balanceBetween(addDays(today, -7), addDays(today, -1))
+      const out = {}
+      for (const k of REACH_GOALS) out[k] = Math.max(0, b[k].behind)
+      return out
     },
 
     // Til hurtig logning: senest brugte øverst

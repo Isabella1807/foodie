@@ -243,7 +243,7 @@ function save() {
 
     <div class="goal-row">
       <span class="goal-key">Vejning</span>
-      <span class="goal-val">hver morgen</span>
+      <span class="goal-val">et par gange om ugen</span>
     </div>
 
     <div v-if="notifySupported" class="goal-row">

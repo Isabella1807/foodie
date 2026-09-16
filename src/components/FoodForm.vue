@@ -161,7 +161,7 @@ function submit() {
       {{
         perUnit === 'stk'
           ? 'Vejer ét styk? (valgfrit, i gram)'
-          : 'Hvor meget vejer én hel/portion?'
+          : 'Vejer én hel eller én portion? (valgfrit — ikke hele pakken)'
       }}
       <input
         v-model="pieceSize"
@@ -169,8 +169,9 @@ function submit() {
         min="0.1"
         step="any"
         inputmode="decimal"
-        :placeholder="perUnit === 'stk' ? 'fx ét kirsebær = 8 gram' : `${unitName(perUnit)} pr. hel — fx én ananas ≈ 900 gram`"
+        :placeholder="perUnit === 'stk' ? 'fx ét kirsebær = 8 gram' : perUnit === 'ml' ? 'fx én dåse ≈ 330 milliliter' : 'fx én banan ≈ 120 gram'"
       />
+      <span v-if="perUnit !== 'stk'" class="field-hint">Lad den stå tom for varer, du tager lidt af ad gangen (remoulade, havregryn) — så logger du i {{ unitName(perUnit) }}.</span>
     </label>
     <p v-if="preview" class="quickadd-new-label">{{ preview }}</p>
 

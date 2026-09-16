@@ -4,9 +4,10 @@ import { useDataStore } from '../stores/data'
 import { localToday } from '../lib/dates'
 import { nudges } from '../lib/suggest'
 
-// Forslag, når protein eller fibre halter bagefter dagens kalorier: konkrete
-// portioner fra hendes egen liste (og et par ideer udenfor den), der kan
-// logges med ét tryk. Gælder kun i dag og kan skjules for resten af dagen.
+// Forslag, når protein eller fibre halter bagefter dagens kalorier — eller
+// haltede de sidste dage, så det kan hentes lidt i dag: konkrete portioner
+// fra hendes egen liste (og et par ideer udenfor den), der kan logges med
+// ét tryk. Kan skjules for resten af dagen.
 const data = useDataStore()
 const fmt = (n) => n.toLocaleString('da-DK')
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1)
@@ -19,6 +20,7 @@ const list = computed(() =>
     kcalEaten: data.todayTotal,
     kcalBudget: data.todayBudget,
     foods: data.foods,
+    carry: data.carryBehind,
   }),
 )
 const hidden = computed(() => data.nudgeHiddenOn === localToday())
@@ -40,11 +42,16 @@ function addAndLog(s) {
   <section v-if="list.length && !hidden" class="card nudge">
     <p class="eyebrow">forslag</p>
     <div v-for="n in list" :key="n.key" class="nudge-block">
-      <p class="nudge-head">
+      <p v-if="n.behindToday" class="nudge-head">
         <b>{{ cap(n.label) }} halter bagefter.</b>
-        Du mangler {{ fmt(n.remaining) }} g og har
+        Du mangler {{ fmt(n.remaining) }} g i dag<template v-if="n.carried"> — og er {{ fmt(n.carried) }} g bagud fra de sidste dage</template> — og har
         <template v-if="n.kcalLeft > 0">{{ fmt(n.kcalLeft) }} kcal tilbage i dag.</template>
         <template v-else>ikke flere kalorier tilbage i dag — så det her er mest til i morgen.</template>
+      </p>
+      <p v-else class="nudge-head">
+        <b>{{ cap(n.label) }} haltede de sidste dage.</b>
+        Du er {{ fmt(n.carried) }} g bagud i alt — spis lidt ekstra i dag, så hentes noget af det.
+        <template v-if="n.kcalLeft > 0">Du har {{ fmt(n.kcalLeft) }} kcal tilbage i dag.</template>
       </p>
       <p v-if="n.known < n.total" class="macro-partial">
         Regnet på de {{ n.known }} af {{ n.total }} måltider, der har tal for {{ n.label }}.

@@ -3,8 +3,10 @@ import { ref, computed } from 'vue'
 import { useDataStore } from '../stores/data'
 import { formatDayLabel, localToday } from '../lib/dates'
 
-// Daglig vejning. Det store tal er den seneste vejning. Ændringen måles mod
-// vejningen for en uge siden, så en enkelt dags udsving ikke fylder for meget.
+// Vejning et par gange om ugen — hver dag er ikke nødvendigt, og tallet
+// svinger alligevel fra dag til dag (mest vand). Det store tal er den seneste
+// vejning. Ændringen måles mod vejningen for en uge siden, så en enkelt dags
+// udsving ikke fylder for meget. Appen minder først om vejning efter to dage.
 const data = useDataStore()
 const weightInput = ref('')
 const today = localToday()
@@ -72,7 +74,7 @@ function savePast() {
       <p v-else class="weight-note">Efter et par ugers vejninger sammenligner jeg med ugen før.</p>
     </template>
     <p v-else class="weight-note">
-      Vej dig hver morgen, så kan du følge dit vægttab her.
+      Vej dig et par gange om ugen — gerne om morgenen — så kan du følge dit vægttab her.
     </p>
 
     <template v-if="data.weightProgress !== null">
@@ -93,8 +95,10 @@ function savePast() {
     <p v-else-if="goal && latest" class="weight-note">Målvægt: {{ fmtKg(goal) }} kg</p>
     <p v-else-if="!goal && latest" class="weight-note">Sæt en målvægt under "Mine mål" for at følge fremgangen.</p>
 
-    <p v-if="latest && !weighedToday" class="weight-prompt">Du har ikke vejet dig i dag endnu ⚖️</p>
-    <p v-else-if="weighedToday" class="weight-note">Vejet i dag ✓ Næste vejning: i morgen tidlig</p>
+    <p v-if="latest && data.daysSinceWeighIn >= 2" class="weight-prompt">
+      Du har ikke vejet dig siden {{ formatDayLabel(latest.measured_on) }} ⚖️
+    </p>
+    <p v-else-if="weighedToday" class="weight-note">Vejet i dag ✓</p>
 
     <form v-if="mode === 'now'" class="weight-log weight-entry" @submit.prevent="saveWeight">
       <input

@@ -4,6 +4,7 @@ import { useDataStore } from '../stores/data'
 import { formatFullDate, localToday } from '../lib/dates'
 import QuickAdd from '../components/QuickAdd.vue'
 import NutrientNudge from '../components/NutrientNudge.vue'
+import NutrientBalance from '../components/NutrientBalance.vue'
 import MovementCard from '../components/MovementCard.vue'
 import StarterBanner from '../components/StarterBanner.vue'
 import KcalGoal from '../components/KcalGoal.vue'
@@ -64,6 +65,7 @@ function remove(entry) {
 
     <div class="today-side">
       <DailyStatus />
+      <NutrientBalance />
       <WeightCard />
       <GoalsCard />
     </div>

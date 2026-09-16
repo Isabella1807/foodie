@@ -22,7 +22,8 @@ const MIN_SPAN_DAYS = 14 // under to uger er tallet for tilfældigt
 
 // Skønnet er først SOLIDT nok til at styre dagsmålet af sig selv, når der er
 // mange vejninger over en længere periode — med få vejninger kan én skæv
-// vejning flytte tallet flere hundrede kcal. Daglige vejninger i ca. 3 uger.
+// vejning flytte tallet flere hundrede kcal. Vejninger hver eller hver anden
+// dag i ca. 3 uger er rigeligt — man behøver ikke veje sig hver dag.
 const SOLID_WEIGH_INS = 8
 const SOLID_SPAN_DAYS = 21
 

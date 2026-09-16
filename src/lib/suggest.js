@@ -1,7 +1,7 @@
 // Forslag, når protein eller fibre halter bagefter kalorierne: hvad kan hun
 // spise af det, hun allerede har på listen (og et par ideer udenfor listen),
 // som giver meget af det manglende for få kalorier?
-import { REACH_GOALS, MACRO_LABELS, scaleFood } from './nutrition'
+import { REACH_GOALS, MACRO_LABELS, scaleFood, isBigPack } from './nutrition'
 import { unitName } from './units'
 import { suggestFoods } from '../data/suggestFoods'
 
@@ -61,7 +61,9 @@ function portionsOf(food) {
       amountText: n === 1 ? '1 portion' : `${n} portioner`,
     }))
   }
-  if (food.piece_size) {
+  // Styk-varer foreslås i styk — men en hel pakke (en pose havregryn) er ikke
+  // ét styk, så den foreslås i gram som en vare uden styk-vægt
+  if (food.piece_size && !isBigPack(food)) {
     const one = food.ingredients ? 'portion' : 'styk'
     const many = food.ingredients ? 'portioner' : 'styk'
     return COUNTS.map((n) => {
@@ -121,23 +123,34 @@ function ideasNotOnList(foods) {
   return suggestFoods.filter((s) => !names.some((n) => n.includes(s.match)))
 }
 
-// Alle dagens forslag: én blok pr. næringsstof, der halter (protein, fibre).
+// Bagud fra de sidste dage tæller først, når det er mindst så stor en del af
+// ét dagsmål — små udsving skal ikke give et forslag hver dag
+const CARRY_SHARE = 0.2
+
+// Alle dagens forslag: én blok pr. næringsstof, der halter (protein, fibre) —
+// enten i dag, eller samlet over de sidste dage (carry: gram bagud pr.
+// næringsstof), så forslaget bliver stående dagen efter, og lidt kan hentes.
 // own = fra hendes egen liste, ideas = indbyggede varer, hun ikke har endnu.
-export function nudges({ entries, macros, goals, kcalEaten, kcalBudget, foods }) {
+export function nudges({ entries, macros, goals, kcalEaten, kcalBudget, foods, carry = {} }) {
   const out = []
   // Har hun næsten ingen kalorier tilbage, skal en portion stadig kunne vælges —
   // så en lille portion får altid plads, og teksten siger ærligt, hvad der er tilbage
   const kcalLeft = kcalBudget - kcalEaten
   const kcalCap = Math.max(kcalLeft, 150)
   for (const k of REACH_GOALS) {
-    if (!isBehind(k, entries, goals[k], kcalBudget)) continue
+    const behindToday = isBehind(k, entries, goals[k], kcalBudget)
+    const carried = Math.max(0, Math.round(carry[k] ?? 0))
+    const behindBefore = !!goals[k] && carried >= goals[k] * CARRY_SHARE
+    if (!behindToday && !behindBefore) continue
     const remaining = Math.max(0, goals[k] - macros[k])
     // Ét forslag skal være ét måltids værd, ikke hele dagens rest: sigt efter
     // højst en tredjedel af dagens mål, så 300 g tun ikke foreslås som én portion
-    const target = Math.min(remaining, Math.round(goals[k] / 3))
+    const target = Math.min(remaining + (behindBefore ? carried : 0), Math.round(goals[k] / 3))
     out.push({
       key: k,
       label: MACRO_LABELS[k],
+      behindToday,
+      carried: behindBefore ? carried : 0,
       remaining,
       kcalLeft,
       known: macros.known?.[k] ?? 0,

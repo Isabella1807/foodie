@@ -1,10 +1,11 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useDataStore } from '../stores/data'
 import { unitName } from '../lib/units'
 import { describeMacros, parseGrams } from '../lib/nutrition'
 import { itemFromFood, itemNutrition, itemsFromFood, recipeTotals, recipeToFood } from '../lib/recipe'
 import { draftFromBarcode } from '../lib/openFoodFacts'
+import { loadFrida, searchFrida, fridaToFood } from '../lib/frida'
 import BarcodeScanner from './BarcodeScanner.vue'
 import FoodForm from './FoodForm.vue'
 
@@ -36,6 +37,23 @@ const matches = computed(() => {
   if (!q) return []
   return data.foodsByName.filter((f) => f.name.toLowerCase().includes(q) && f.id !== props.recipe?.id).slice(0, 8)
 })
+
+// Fødevaredatabasen (Frida, DTU): almindelige råvarer (løg, gulerod, hakket
+// oksekød …) med tal pr. 100 gram, når de ikke er på hendes egen liste
+const frida = ref(null)
+watch(search, (q) => {
+  if (q.trim().length >= 2 && !frida.value) loadFrida().then((d) => (frida.value = d))
+})
+const fridaMatches = computed(() => {
+  if (!frida.value) return []
+  const own = new Set(data.foods.map((f) => f.name.toLowerCase()))
+  return searchFrida(frida.value.foods, search.value, 5).filter((f) => !own.has(f.name.toLowerCase()))
+})
+
+// Læg varen på listen (så retten kan rettes senere) og ind i retten
+function addFrida(item) {
+  addFood(data.addFood(fridaToFood(item)))
+}
 
 const totals = computed(() => recipeTotals(items.value))
 const result = computed(() =>
@@ -181,6 +199,15 @@ function submit() {
           <span class="chip-kcal">{{ chipKcal(f) }}</span>
         </button>
       </div>
+      <template v-if="fridaMatches.length">
+        <p class="quickadd-new-label">Fra {{ frida.name }} — tal pr. 100 gram:</p>
+        <div class="quickadd-matches">
+          <button v-for="f in fridaMatches" :key="f.name" type="button" class="chip" @click="addFrida(f)">
+            {{ f.name }}
+            <span class="chip-kcal">{{ f.kcal }} kcal</span>
+          </button>
+        </div>
+      </template>
       <button v-if="search.trim() && !matches.length" type="button" class="link full-form-link" @click="newFromSearch">
         Opret "{{ search.trim() }}" med tal fra etiketten
       </button>

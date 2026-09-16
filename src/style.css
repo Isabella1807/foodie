@@ -654,6 +654,23 @@ button {
   padding: 9px 11px;
 }
 
+/* "Andet": skriv selv hvad det var */
+.movement-other {
+  margin-top: 8px;
+}
+
+/* eller skriv minutterne selv: felt og knap på én række */
+.movement-custom {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.movement-custom input {
+  flex: 1;
+  min-width: 0;
+}
+
 /* ---- dagens status og støttende tekster ---- */
 
 .status {
@@ -1105,6 +1122,20 @@ button {
   margin-left: 0;
 }
 
+/* "eller skriv mængden selv" — tydelig, ikke småt gråt */
+.amount-exact-hint {
+  margin: 2px 0 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* lille forklaring under et felt i en formular */
+.field-hint {
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-weight: 400;
+}
+
 /* præcis mængde: felterne under hinanden, så de ikke ligner ét felt */
 .amount-exact {
   display: flex;
@@ -1301,6 +1332,35 @@ button {
 .nudge-head {
   margin: 8px 0 0;
   font-size: 0.95rem;
+}
+
+/* protein og fibre over ugen og måneden: en lille tabel med to kolonner */
+.balance-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.balance-table th {
+  font-weight: 500;
+  color: var(--muted);
+  text-align: left;
+  padding: 4px 0;
+  font-size: 0.8rem;
+}
+
+.balance-table td {
+  padding: 4px 0;
+  vertical-align: top;
+}
+
+.balance-table td b {
+  display: block;
+}
+
+.balance-table td small {
+  color: var(--muted);
+  font-size: 0.8rem;
 }
 
 .nudge-sub {
