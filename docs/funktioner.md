@@ -38,6 +38,11 @@ Tre faner i bunden: **I dag**, **Kalender**, **Mad**.
 ### Start-hjælp
 - Er madlisten tom, tilbydes en startliste med almindelige madvarer, der kan hentes med ét tryk.
 
+### Til dig (vises kun når der er noget at sige)
+- Ét lille kort med én sand, opmuntrende besked ud fra ens egne tal, mest relevante først. Eksempler: "Vægten har stået stille i to uger (94,2 → 94,3 kg). Det ser jeg godt. Men tallene siger, at du taber dig: de sidste to uger har du i snit spist 1.480 kcal om dagen, og dit forbrug er målt til ca. 1.700. Underskuddet er der. Hold fast." Andre: en høj dag i går flytter ikke ugen, −0,4 kg siden sidste uge, 5 dage i træk under målet, bevægelse 4 af ugens dage, protein foran i ugen, X kg tabt i alt, logget hver dag i 12 dage.
+- Et "tak"-tryk gemmer den besked væk i tre dage, så den næste kommer frem.
+- Den korte udgave af beskeden står også i den faste notifikation, hvis den er slået til.
+
 ### Log et måltid ("Hvad har du spist?")
 - Et søgefelt. Uden søgning vises de 6 senest brugte varer som knapper. Med søgning vises varer, hvor et ord begynder med det skrevne, først; højst 8 ad gangen med et link "vis alle N varer".
 - En knap til at skanne stregkode (kameraet åbner i fuld skærm og leder efter EAN/UPC). Kendes koden, hopper man direkte til "hvor meget?". Kendes den ikke, slås den op i Open Food Facts (gratis, åben database) og lander som udkast i den fulde formular med navn, kalorier, protein/kulhydrat/fedt/fibre pr. 100 g og evt. portionsstørrelse. Kan kameraet ikke bruges, kan tallene under stregkoden tastes manuelt.
@@ -54,6 +59,7 @@ Tre faner i bunden: **I dag**, **Kalender**, **Mad**.
 - Hurtigvalg som knapper med kalorietal på hver:
   - Portionsvare: en kvart, en halv, en hel, 2, 3.
   - Vare med kendt styk-vægt (fx en kiks på 13 g): en kvart, en halv, 1 styk, 2 styk, 3 styk (med gram i navnet).
+  - Varer fra Fødevaredatabasen, som man tæller i stedet for at veje, får deres husmål med: rugbrød og pålæg i skiver, remoulade og mayonnaise i spiseskefulde, smør i teskefulde, æg og gulerødder i styk. Knapperne siger så "2 skiver" i stedet for "2 styk", og protein og fibre regnes med uden at man skal veje noget. Vægtene ligger i `src/lib/portions.js` (en skive rugbrød = 45 g, en spiseskefuld remoulade = 15 g osv.).
   - Vare i gram/ml uden styk-vægt: 25, 50, 100, 200, 300 gram (eller ml).
   - Stor pakke (over 350 g/ml, fx en liter mælk, en pose havregryn, en hel melon): en kvart, en halv, en hel — ikke 2 og 3.
   - Drikkevarer (ml uden styk-vægt, eller en stor karton): ekstra hurtigvalg i glas (ca. 200 ml: et halvt, 1, 2 glas) og i tår (ca. 30 ml: 1, 3, 5, 10 tår).
@@ -97,6 +103,8 @@ Tre faner i bunden: **I dag**, **Kalender**, **Mad**.
 - Fremskridt: "Du har tabt X kg, Y % af vejen til Z kg", en bjælke fra startvægt til målvægt.
 - Påmindelse kun efter to dage uden vejning: "Du har ikke vejet dig siden mandag d. 14. september ⚖️". Efter en vejning i dag: "Vejet i dag ✓".
 - Knapper: "Vej nu" (et felt til kg, komma virker; kan også rette dagens vægt) og "Tidligere vejning" (dato + kg, til at efterregistrere).
+- Under "Vej nu" står linket "Vej tre gange", fordi de fleste badevægte viser forskellige tal alt efter hvor man står på pladen. Det åbner to ekstra felter, og appen gemmer midtertallet: ét tal er tallet selv, to giver gennemsnittet, tre giver det midterste. Udregningen ligger i `src/lib/weighing.js`.
+- Står der allerede en vejning på den valgte dato under "Tidligere vejning", vises tallet med et "Slet vejningen"-link. Det fjerner vejningen både lokalt og på serveren. Bruges fx når en vejning er taget på en fremmed vægt og derfor ikke kan sammenlignes med de andre.
 
 ### Mine mål
 - Dagligt mål i kcal med "ret". Ved rettelse vælger man "Fast tal" eller "Regn det ud for mig" (hvor mange kg om ugen man vil tabe). Med det automatiske valg regner appen dagsmålet ud fra det målte forbrug hver mandag, gældende ugen ud, aldrig under 1200 kcal. Er forbruget ikke sikkert nok endnu (for få vejninger), gælder det faste tal, og en note forklarer det. Noter forklarer regnestykket ("dit forbrug mandag 1.700 minus 300").

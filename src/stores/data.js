@@ -6,6 +6,7 @@ import { kcalPerKgOf, bodyBurn } from '../lib/activity'
 import { estimateBurn, goalForRate } from '../lib/burn'
 import { sumMacros, defaultMacroGoals, MACROS, REACH_GOALS } from '../lib/nutrition'
 import { balance } from '../lib/balance'
+import { encouragements } from '../lib/encourage'
 
 const now = () => new Date().toISOString()
 
@@ -52,6 +53,7 @@ export const useDataStore = defineStore('data', {
       movement: cache.movement || {},
       notify: cache.notify || false, // fast notifikation med dagens kalorier (pr. enhed)
       nudgeHiddenOn: cache.nudgeHiddenOn || null, // dagen hun trykkede "ikke i dag" på forslagene (pr. enhed)
+      noteHidden: cache.noteHidden || {}, // "tak" på en besked "til dig": nøgle → dagen, så den holder pause et par dage (pr. enhed)
       dismissedStarters: cache.dismissedStarters || [], // slettede varenavne — foreslås ikke igen
       outbox: load('outbox', []),
       flushing: false,
@@ -314,6 +316,29 @@ export const useDataStore = defineStore('data', {
       return out
     },
 
+    // Små sande beskeder "til dig" ud fra hendes egne tal, mest relevante
+    // først — se lib/encourage.js. Beskeder hun har sagt "tak" til, holder pause
+    notes(state) {
+      const today = localToday()
+      return encouragements({
+        today,
+        weighIns: [...this.weighIns].reverse(),
+        entries: state.entries,
+        dayBudget: this.dayBudget,
+        goal: this.dailyGoal,
+        burn: this.measuredBurn,
+        movement: state.movement,
+        weekBalance: this.balanceBetween(weekStart(today), today),
+        lost: this.weightLost,
+        hidden: state.noteHidden,
+      })
+    },
+
+    // Den ene besked, der vises lige nu (null = ingen)
+    currentNote() {
+      return this.notes[0] ?? null
+    },
+
     // Til hurtig logning: senest brugte øverst
     recentFoods(state) {
       return [...state.foods].sort((a, b) => {
@@ -343,6 +368,7 @@ export const useDataStore = defineStore('data', {
         movement: this.movement,
         notify: this.notify,
         nudgeHiddenOn: this.nudgeHiddenOn,
+        noteHidden: this.noteHidden,
         dismissedStarters: this.dismissedStarters,
       })
     },
@@ -441,6 +467,12 @@ export const useDataStore = defineStore('data', {
     },
 
     // Skjul forslagene (protein/fibre halter bagefter) for resten af dagen
+    // "Tak" på en besked "til dig": den holder pause et par dage, så den næste kommer frem
+    hideNote(key) {
+      this.noteHidden = { ...this.noteHidden, [key]: localToday() }
+      this.persist()
+    },
+
     hideNudgeToday() {
       this.nudgeHiddenOn = localToday()
       this.persist()
@@ -464,6 +496,17 @@ export const useDataStore = defineStore('data', {
       }
       this.persist()
       this.queue('upsert_weight', { ...weight })
+    },
+
+    // Fjern en vejning helt, fx hvis den er taget på en anden vægt end den
+    // normale. Et forkert tal er værre end intet tal: det trækker i både
+    // ugeforskellen og i det målte forbrug.
+    removeWeight(date) {
+      const weight = this.weights.find((w) => w.measured_on === date)
+      if (!weight) return
+      this.weights = this.weights.filter((w) => w.measured_on !== date)
+      this.persist()
+      this.queue('delete_weight', { id: weight.id, date })
     },
 
     setGoals(changes) {
@@ -551,6 +594,7 @@ export const useDataStore = defineStore('data', {
       this.movement = {}
       this.notify = false
       this.nudgeHiddenOn = null
+      this.noteHidden = {}
       this.dismissedStarters = []
       this.outbox = []
       remove('cache')
@@ -603,6 +647,10 @@ export const useDataStore = defineStore('data', {
           return supabase.from('entries').delete().eq('id', op.payload.id)
         case 'upsert_weight':
           return supabase.from('weights').upsert(op.payload)
+        case 'delete_weight':
+          // Slet på dato, ikke på id — en vejning tastet på to enheder kan
+          // have fået hvert sit id, og der må kun være én pr. dag
+          return supabase.from('weights').delete().eq('measured_on', op.payload.date)
         case 'upsert_goals':
           // Én række pr. bruger — databasen sætter selv user_id ud fra login
           return supabase.from('goals').upsert(op.payload, { onConflict: 'user_id' })

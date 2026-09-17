@@ -346,11 +346,23 @@ button {
   gap: 10px;
 }
 
+/* 2. og 3. vejning, når vægten svinger fra gang til gang */
+.weight-extra {
+  margin-top: 8px;
+}
+
 .weight-prompt {
   margin: 2px 0 -2px;
   font-size: 0.85rem;
   color: var(--amber-dark);
   font-weight: 600;
+}
+
+/* Vises under "tidligere vejning", når datoen allerede har et tal */
+.weight-existing {
+  margin: -2px 0 0;
+  font-size: 0.85rem;
+  color: var(--muted);
 }
 
 /* ---- kalender ---- */
@@ -1332,6 +1344,25 @@ button {
 .nudge-head {
   margin: 8px 0 0;
   font-size: 0.95rem;
+}
+
+/* "til dig": én kort, sand besked ud fra hendes tal */
+.note {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.note-text {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.note-hide {
+  align-self: flex-start;
+  padding: 4px 0;
+  min-height: 0;
+  font-size: 0.85rem;
 }
 
 /* protein og fibre over ugen og måneden: en lille tabel med to kolonner */

@@ -8,6 +8,8 @@
 // Filen src/data/frida.json laves med scripts/frida_to_json.py og hentes
 // først, når der bliver søgt, så appen ikke bliver tungere at åbne.
 
+import { portionFor } from './portions'
+
 let loading = null
 
 // Hele basen: { name, credit, version, foods: [{ name, kcal, protein, carbs, fat, fiber, group }] }
@@ -44,13 +46,16 @@ export function searchFrida(foods, query, limit = 5) {
   return [...starts, ...rest].slice(0, limit)
 }
 
-// En vare fra basen som madvare til listen: tal pr. 100 gram, uden styk-vægt
+// En vare fra basen som madvare til listen: tal pr. 100 gram. Kan varen tælles
+// i skiver, styk eller skefulde, følger vægten af ét stykke med, så man kan
+// logge "2 skiver rugbrød" uden at skulle veje noget
 export function fridaToFood(item) {
+  const portion = portionFor(item.name)
   return {
     name: item.name,
     kcal: item.kcal,
     per_unit: 'g',
-    piece_size: null,
+    piece_size: portion ? portion.g : null,
     protein: item.protein,
     carbs: item.carbs,
     fat: item.fat,

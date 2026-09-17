@@ -5,6 +5,7 @@ import { formatFullDate, localToday } from '../lib/dates'
 import QuickAdd from '../components/QuickAdd.vue'
 import NutrientNudge from '../components/NutrientNudge.vue'
 import NutrientBalance from '../components/NutrientBalance.vue'
+import NoteCard from '../components/NoteCard.vue'
 import MovementCard from '../components/MovementCard.vue'
 import StarterBanner from '../components/StarterBanner.vue'
 import KcalGoal from '../components/KcalGoal.vue'
@@ -47,6 +48,7 @@ function remove(entry) {
 
   <div class="today-body">
     <div class="today-log">
+      <NoteCard />
       <QuickAdd />
       <NutrientNudge />
       <MovementCard />

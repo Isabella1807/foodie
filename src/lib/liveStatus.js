@@ -29,8 +29,9 @@ export async function askNotifyPermission() {
   }
 }
 
-// Vis/opdatér (eller fjern) den faste notifikation med dagens tal
-export async function updateNotification(enabled, eaten, goal) {
+// Vis/opdatér (eller fjern) den faste notifikation med dagens tal — og en kort
+// besked "til dig" (note), når der er en, fx "vægten står stille, men du er i underskud"
+export async function updateNotification(enabled, eaten, goal, note = '') {
   if (typeof Notification === 'undefined' || !('serviceWorker' in navigator)) return
   let reg
   try {
@@ -49,9 +50,10 @@ export async function updateNotification(enabled, eaten, goal) {
     return
   }
   const left = goal - eaten
-  const body = left >= 0
+  const line = left >= 0
     ? `${fmt(eaten)} / ${fmt(goal)} kcal — ${fmt(left)} tilbage i dag`
     : `${fmt(eaten)} / ${fmt(goal)} kcal — ${fmt(-left)} over dagens mål`
+  const body = note ? `${line}\n${note}` : line
   try {
     await reg.showNotification('foodie', {
       tag: TAG,

@@ -6,6 +6,7 @@ import { localToday, formatDayLabel } from '../lib/dates'
 import { scaleFood, parseGrams, isBigPack } from '../lib/nutrition'
 import { draftFromBarcode } from '../lib/openFoodFacts'
 import { loadFrida, searchFrida, fridaToFood } from '../lib/frida'
+import { pieceWord } from '../lib/portions'
 import BarcodeScanner from './BarcodeScanner.vue'
 import FoodForm from './FoodForm.vue'
 import RecipeBuilder from './RecipeBuilder.vue'
@@ -197,10 +198,12 @@ function buildOption(food, f) {
     const amount = Math.round(whole.value * f * 10) / 10
     const suffix = ` (${daNum(amount)} ${unitName(per)})`
     const base = f < 1 ? `${fracWord(f)} ${food.name}` : f === 1 ? food.name : `${f} × ${food.name}`
-    // En ret logges i portioner, en hel pakke som "en hel", andre stykvarer i styk
-    const unit = food.ingredients ? 'portion' : 'styk'
+    // En ret logges i portioner, en hel pakke som "en hel", andre stykvarer i
+    // det man faktisk tæller dem i: skiver rugbrød, skefulde remoulade, styk æg
+    const unit = food.ingredients ? 'portion' : pieceWord(food.name, 1)
+    const many = food.ingredients ? 'portioner' : pieceWord(food.name, f)
     const one = isBigPack(food) ? 'en hel' : `1 ${unit}`
-    const label = f < 1 ? fracWord(f) : f === 1 ? one : `${f} ${food.ingredients ? 'portioner' : 'styk'}`
+    const label = f < 1 ? fracWord(f) : f === 1 ? one : `${f} ${many}`
     return option(food, label, base + suffix, (whole.value * f) / 100)
   }
   // Pr.-100-vare uden styk-vægt: brøkdel af 100 gram/milliliter
@@ -524,8 +527,8 @@ function pickFrida(item) {
           type="number"
           min="1"
           inputmode="numeric"
-          :placeholder="`eller antal ${pending.ingredients ? 'portioner' : 'styk'}`"
-          aria-label="Antal styk"
+          :placeholder="`eller antal ${pending.ingredients ? 'portioner' : pieceWord(pending.name, 2)}`"
+          :aria-label="`Antal ${pending.ingredients ? 'portioner' : pieceWord(pending.name, 2)}`"
           @input="clearExcept('count')"
         />
         <input
@@ -573,7 +576,7 @@ function pickFrida(item) {
           <span class="chip-kcal">
             {{
               food.per_unit && food.piece_size && !isBigPack(food)
-                ? `${Math.round((food.kcal * food.piece_size) / 100)} kcal/${food.ingredients ? 'portion' : 'styk'}`
+                ? `${Math.round((food.kcal * food.piece_size) / 100)} kcal/${food.ingredients ? 'portion' : pieceWord(food.name, 1)}`
                 : `${food.kcal} kcal${food.per_unit ? `/100 ${unitName(food.per_unit)}` : ''}`
             }}
           </span>

@@ -3,9 +3,20 @@
 Lille privat kalorie- og vægt-tracker (PWA) med fokus på et bæredygtigt vægttab.
 Log hvad du spiser, se dagens total og en støttende "dagens status", følg ugens
 gennemsnit, og se en farvekalender der viser hver dag som under/omkring/over dit
-mål. Vej dig hver morgen og følg vægten som 7-dages gennemsnit med graf, milepæle og fremskridt mod
+mål. Vej dig et par gange om ugen og følg vægten med graf, milepæle og fremskridt mod
 målvægten — og marker hygge-/festdage, så en planlagt dag ikke ligner en fejl.
 Man behøver ikke veje sig hver dag; appen minder først om det efter to dage uden.
+De fleste badevægte viser forskellige tal alt efter hvor man står på pladen, så
+under "Vej nu" kan man taste tre vejninger og lade appen gemme midtertallet. En
+vejning taget på en fremmed vægt kan slettes igen under "Tidligere vejning".
+Et lille kort "til dig" på forsiden siger én sand, opmuntrende ting ud fra dine
+egne tal — fx at vægten har stået stille i to uger, men at dit snit ligger under
+dit målte forbrug, så underskuddet er der. Det er faste regler (se
+`src/lib/encourage.js`), ikke en AI, så det koster ikke noget og virker uden net.
+Beskeden står også i den faste notifikation, hvis den er slået til.
+Varer fra Den Danske Fødevaredatabase kan logges i husmål i stedet for gram —
+rugbrød og pålæg i skiver, remoulade i spiseskefulde, smør i teskefulde, æg og
+gulerødder i styk — så protein og fibre kommer med uden at man skal veje noget.
 Skan stregkoden på en vare, så slår appen den op i Open Food Facts og henter
 kalorier, protein, kulhydrat, fedt og fibre; dagens protein, kulhydrat, fedt og
 fibre vises under dagens tal, mod et dagligt mål du kan rette (fiber-målet
