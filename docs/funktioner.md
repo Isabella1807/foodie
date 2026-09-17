@@ -29,6 +29,7 @@ Tre faner i bunden: **I dag**, **Kalender**, **Mad**.
 ---
 
 ## Fane 1: I dag
+Forsiden handler KUN om i dag. Planen, vægten, målene og protein/fibre-oversigten ligger på fane 2, så man ikke skal scrolle forbi dem hver morgen. Forsiden har: dagens tal øverst, "til dig"-kortet, én rolig plan-linje, log et måltid, forslag, bevægelse, dagens måltider og dagens status.
 
 ### Øverst: dagens tal
 - Dagens dato med ugedag.
@@ -138,7 +139,10 @@ Tre faner i bunden: **I dag**, **Kalender**, **Mad**.
 
 ---
 
-## Fane 2: Kalender
+## Fane 2: Plan
+Alt om hvor det bærer hen, samlet ét sted. Øverst det store tal: hvor mange kg der er tabt indtil nu. Derunder plan-kortet, vægt-kortet (vej dig), vægtudviklingen med graf og tabel, statistik, forventet tid til målet, protein og fibre over tid, og mine mål.
+
+## Fane 3: Kalender
 
 ### Månedskalender
 - Pile til forrige/næste måned (ikke frem i fremtiden), månedens navn.
@@ -177,7 +181,7 @@ Tre faner i bunden: **I dag**, **Kalender**, **Mad**.
 
 ---
 
-## Fane 3: Mad (madlisten)
+## Fane 4: Mad (madlisten)
 
 - Knapper øverst: "Tilføj" (ny vare) og "Byg en ret".
 - Søgefelt og filtre: Alle, Retter, Portioner, Stk, Gram, Milliliter.

@@ -4,15 +4,12 @@ import { useDataStore } from '../stores/data'
 import { formatFullDate, localToday } from '../lib/dates'
 import QuickAdd from '../components/QuickAdd.vue'
 import NutrientNudge from '../components/NutrientNudge.vue'
-import NutrientBalance from '../components/NutrientBalance.vue'
 import NoteCard from '../components/NoteCard.vue'
-import PlanCard from '../components/PlanCard.vue'
+import PlanLine from '../components/PlanLine.vue'
 import MovementCard from '../components/MovementCard.vue'
 import StarterBanner from '../components/StarterBanner.vue'
 import KcalGoal from '../components/KcalGoal.vue'
-import WeightCard from '../components/WeightCard.vue'
 import DailyStatus from '../components/DailyStatus.vue'
-import GoalsCard from '../components/GoalsCard.vue'
 import MacroLine from '../components/MacroLine.vue'
 import { describeMacros } from '../lib/nutrition'
 
@@ -50,7 +47,7 @@ function remove(entry) {
   <div class="today-body">
     <div class="today-log">
       <NoteCard />
-      <PlanCard />
+      <PlanLine />
       <QuickAdd />
       <NutrientNudge />
       <MovementCard />
@@ -69,9 +66,6 @@ function remove(entry) {
 
     <div class="today-side">
       <DailyStatus />
-      <NutrientBalance />
-      <WeightCard />
-      <GoalsCard />
     </div>
   </div>
 </template>

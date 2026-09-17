@@ -4,6 +4,7 @@ defineEmits(['update:modelValue'])
 
 const tabs = [
   { id: 'today', label: 'I dag', icon: '🍽️' },
+  { id: 'plan', label: 'Plan', icon: '🎯' },
   { id: 'calendar', label: 'Kalender', icon: '📅' },
   { id: 'foods', label: 'Mad', icon: '🍎' },
 ]

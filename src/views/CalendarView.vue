@@ -3,9 +3,6 @@ import { ref, computed } from 'vue'
 import { useDataStore } from '../stores/data'
 import { monthGrid, monthLabel, localToday, formatDayLabel } from '../lib/dates'
 import { highDayMessage, celebrationMessage } from '../lib/coach'
-import WeightChart from '../components/WeightChart.vue'
-import WeightStats from '../components/WeightStats.vue'
-import GoalForecast from '../components/GoalForecast.vue'
 import DayActivity from '../components/DayActivity.vue'
 import MovementCard from '../components/MovementCard.vue'
 import QuickAdd from '../components/QuickAdd.vue'
@@ -211,7 +208,4 @@ function remove(entry) {
 
   <QuickAdd v-if="openDay" :key="openDay" :date="openDay" />
 
-  <WeightChart />
-  <WeightStats />
-  <GoalForecast />
 </template>

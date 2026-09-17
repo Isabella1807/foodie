@@ -2099,3 +2099,40 @@ label {
   font-size: 0.82rem;
   color: var(--muted);
 }
+
+/* Plan-linjen på forsiden: lav og stille, det hele står på Plan-fanen */
+.planline {
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+.planline-text {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.planline-sep {
+  margin: 0 7px;
+  opacity: 0.5;
+}
+
+/* Det store tal på Plan-fanen */
+.plan-hero {
+  margin: 4px 0 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(2.6rem, 14vw, 3.4rem);
+  line-height: 1;
+  color: var(--green-dark);
+}
+
+.plan-hero-unit {
+  display: block;
+  margin-top: 6px;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
