@@ -90,8 +90,8 @@ export function encouragements({ today, weighIns = [], entries = [], dayBudget, 
     } else if (deficit !== null) {
       add(
         'stuck-flat',
-        `Vægten har stået stille i ${weeks} (${span}), og dit snit har været ${fmt(avg14)} kcal om dagen. Lige nu ligger dit forbrug nok omkring det samme, så der mangler et lille underskud. Det er hverken en fejl eller din skyld: kroppen bruger mindre, når den er blevet lettere. 100–150 kcal mindre om dagen eller en gåtur mere de fleste dage plejer at få tallet i gang igen.`,
-        'vægten står stille · et lille skridt ned får den i gang',
+        `Vægten har stået stille i ${weeks} (${span}), og dit snit har været ${fmt(avg14)} kcal om dagen. Lige nu ligger dit forbrug nok omkring det samme, så der mangler et lille underskud. Det er hverken en fejl eller din skyld: kroppen bruger mindre, når den er blevet lettere. Et pas mere om ugen, eller en gåtur i frokostpausen, plejer at få tallet i gang igen — og det er den vej, der ikke koster mad.`,
+        'vægten står stille · lidt mere bevægelse får den i gang',
       )
     } else if (!flat4) {
       add(

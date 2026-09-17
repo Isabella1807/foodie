@@ -8,9 +8,15 @@ import MovementCard from '../components/MovementCard.vue'
 import QuickAdd from '../components/QuickAdd.vue'
 import MacroLine from '../components/MacroLine.vue'
 import { describeMacros } from '../lib/nutrition'
-import { isDone } from '../lib/movement'
 
 const data = useDataStore()
+
+// Teksten i signaturen skal sige den regel, der faktisk bruges
+const moveLegend = computed(() =>
+  data.movementGoal.fromPlan
+    ? `mindst ${data.movementGoal.enoughKcal} kcal bevægelse`
+    : `mindst ${data.movementGoal.minMinutes} min bevægelse`,
+)
 
 const nowDate = new Date()
 const curYear = nowDate.getFullYear()
@@ -60,7 +66,8 @@ const weeks = computed(() =>
         total,
         status: statusOf(c.date, total),
         hygge: data.isCelebration(c.date),
-        moved: isDone(data.movement[c.date]), // mindst 30 min bevægelse den dag
+        // Samme regel som resten af appen: planens, hvis der er lagt en
+        moved: data.movementGoal.done(data.movement[c.date]),
         isToday: c.date === today,
       }
     })
@@ -171,7 +178,7 @@ function remove(entry) {
       <span><i class="dot d-near"></i>op til {{ fmt(goal + NEAR) }}</span>
       <span><i class="dot d-some"></i>op til {{ fmt(goal + SOME) }}</span>
       <span><i class="dot d-over"></i>over {{ fmt(goal + SOME) }}</span>
-      <span><i class="cal-move legend"></i>mindst 30 min bevægelse</span>
+      <span><i class="cal-move legend"></i>{{ moveLegend }}</span>
       <span class="cal-legend-week">
         uge-tal: <b class="good-text">−</b> under · <b class="over-text">+</b> over ugens mål
       </span>

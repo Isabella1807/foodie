@@ -125,7 +125,7 @@ function startPlan() {
 
       <div v-show="why.open" class="plan-explain">
         <p>
-          <strong>Så hårdt skal timen være.</strong> Du skal kunne sige en kort sætning, men ikke synge, og
+          <strong>Så hårdt skal passet være.</strong> Du skal kunne sige en kort sætning, men ikke synge, og
           du skal kunne høre din egen vejrtrækning.
           <template v-if="pulse"> Det svarer til en puls omkring {{ pulse.low }} til {{ pulse.high }}.</template>
           <template v-else> Skriv din alder ind under "Mine mål", så regner jeg pulsen ud for dig.</template>
@@ -133,10 +133,12 @@ function startPlan() {
           En almindelig gåtur er cirka det halve værd. Derfor tæller kortet kalorier og ikke bare minutter.
         </p>
         <p>
-          <strong>Din plads i planen.</strong> Én fridag fra træningen om ugen, og en hyggedag på op til
-          {{ TREAT_KCAL }} kcal hver {{ TREAT_EVERY_DAYS }}. dag, hvor der heller ikke trænes. Begge dele er
-          betalt på forhånd. Bruger du dem ikke, lægger de sig på hygge-kontoen, og du kan bruge dem en
-          anden dag uden at måldatoen skrider.
+          <strong>Din plads i planen.</strong>
+          <template v-if="days < 7">{{ 7 - days }} fri{{ 7 - days === 1 ? 'dag' : 'dage' }} fra træningen om ugen, og en</template>
+          <template v-else>Du har sat planen til alle ugens dage, så der er ingen fast fridag. Til gengæld har du en</template>
+          hyggedag på op til {{ TREAT_KCAL }} kcal hver {{ TREAT_EVERY_DAYS }}. dag, hvor der heller ikke
+          trænes. Det er betalt på forhånd. Bruger du den ikke, lægger den sig på hygge-kontoen, og du kan
+          bruge den en anden dag uden at måldatoen skrider.
         </p>
         <p v-if="showBoost">
           <strong>Hvorfor datoen flytter sig.</strong> Målt på de sidste ugers tal alene ville målet være

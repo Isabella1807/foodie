@@ -179,7 +179,7 @@ function save() {
 
     <p v-show="help.open" v-if="auto.auto && editing !== 'kcal'" class="goal-note">
       <template v-if="!auto.ready">
-        Appen skal regne målet ud, så du taber ca. {{ fmtRate(rate) }} kg om ugen. Det kræver daglige vejninger i cirka tre uger,
+        Appen skal regne målet ud, så du taber ca. {{ fmtRate(rate) }} kg om ugen. Det kræver vejninger hver anden dag i cirka tre uger,
         før dit forbrug er sikkert nok — indtil da gælder dit faste tal på {{ fmt(fixedGoal) }} kcal.
       </template>
       <template v-else-if="auto.floored">

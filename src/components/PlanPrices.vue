@@ -74,7 +74,8 @@ function say(days) {
             {{ p.kcal > 0 ? '+' : '−' }}{{ Math.abs(p.kcal).toLocaleString('da-DK') }}
           </td>
           <td class="price-num" :class="p.bad ? 'over-text' : 'good-text'">
-            {{ p.days > 0 ? '+' : '−' }}{{ say(p.days) }}
+            <template v-if="p.days == null">når aldrig målet</template>
+            <template v-else>{{ p.days > 0 ? '+' : '−' }}{{ say(p.days) }}</template>
           </td>
         </tr>
       </tbody>

@@ -131,7 +131,8 @@ function save() {
       </p>
       <p v-else-if="forecast && forecast.reached" class="stat-forecast">Du har allerede nået din målvægt 🎉</p>
       <p v-else-if="forecast && forecast.impossible" class="weight-note">
-        Med {{ fmt(intake) }} kcal/dag taber du stort set ikke ud fra dine tal — prøv et lavere dagligt mål.
+        Med {{ fmt(intake) }} kcal/dag taber du stort set ikke ud fra dine tal. Mere bevægelse flytter det;
+        mindre mad er ikke vejen, når indtaget allerede er lavt.
       </p>
       <p v-else-if="!currentKg" class="weight-note">Vej dig først, så kan jeg regne tiden ud.</p>
       <p v-else-if="!goalKg" class="weight-note">Sæt en målvægt under "Mine mål", så kan jeg regne tiden ud.</p>

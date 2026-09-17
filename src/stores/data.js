@@ -524,8 +524,13 @@ export const useDataStore = defineStore('data', {
         daily: [
           { text: '100 kcal mere om dagen', kcal: -700, days: shifted(-100), bad: true },
           { text: '100 kcal mindre om dagen', kcal: 700, days: shifted(100), bad: false },
-          { text: `${this.planDays + 1} pas om ugen i stedet for ${this.planDays}`, kcal: Math.round(one), days: shifted(one / 7), bad: false },
-          { text: `Kun ${this.planDays - 1} pas om ugen`, kcal: -Math.round(one), days: shifted(-one / 7), bad: true },
+          // Et pas mere giver kun mening, hvis der er en dag tilbage i ugen
+          ...(this.planDays < 7
+            ? [{ text: `${this.planDays + 1} pas om ugen i stedet for ${this.planDays}`, kcal: Math.round(one), days: shifted(one / 7), bad: false }]
+            : []),
+          ...(this.planDays > 1
+            ? [{ text: `Kun ${this.planDays - 1} pas om ugen`, kcal: -Math.round(one), days: shifted(-one / 7), bad: true }]
+            : []),
         ],
       }
     },
