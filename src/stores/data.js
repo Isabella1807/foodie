@@ -5,7 +5,8 @@ import { localToday, weekStart, addDays } from '../lib/dates'
 import { kcalPerKgOf, bodyBurn } from '../lib/activity'
 import { estimateBurn, goalForRate } from '../lib/burn'
 import { planCurve, planStatus, treatPerDay } from '../lib/plan'
-import { movementPerDay, planMovementPerDay, kcalForMovement, oneSessionKcal, PLAN_PER_KG } from '../lib/activityKcal'
+import { movementPerDay, planMovementPerDay, kcalForMovement, oneSessionKcal, enoughKcal, isHardEnough, minutesToGo, PLAN_PER_KG, PLAN_DAYS_PER_WEEK } from '../lib/activityKcal'
+import { MOVE_GOAL_MIN, MOVE_DAYS_PER_WEEK, isDone } from '../lib/movement'
 import { sumMacros, defaultMacroGoals, MACROS, REACH_GOALS } from '../lib/nutrition'
 import { balance } from '../lib/balance'
 import { encouragements } from '../lib/encourage'
@@ -402,6 +403,30 @@ export const useDataStore = defineStore('data', {
       const total = burn.kcal + (boost?.extra ?? 0)
       const goal = this.dailyGoal
       return Math.round(total - goal - treatPerDay(goal, oneSessionKcal(kg)))
+    },
+
+    // Ugens bevægelses-mål. Er der lagt en plan, er det PLANENS mål, der gælder,
+    // så appen ikke står og siger to forskellige ting. Uden en plan gælder det
+    // gamle, lempeligere kryds på 30 minutter.
+    movementGoal(state) {
+      const kg = this.currentWeight
+      if (this.plan && kg) {
+        return {
+          fromPlan: true,
+          daysPerWeek: PLAN_DAYS_PER_WEEK,
+          sessionKcal: Math.round(oneSessionKcal(kg)),
+          enoughKcal: Math.round(enoughKcal(kg)),
+          done: (entry) => isHardEnough(entry, kg),
+          toGo: (entry) => minutesToGo(entry, kg),
+        }
+      }
+      return {
+        fromPlan: false,
+        daysPerWeek: MOVE_DAYS_PER_WEEK,
+        minMinutes: MOVE_GOAL_MIN,
+        done: (entry) => isDone(entry),
+        toGo: (entry) => Math.max(0, MOVE_GOAL_MIN - (Number(entry?.minutes) || 0)),
+      }
     },
 
     // Foran eller bagud i forhold til planen i dag

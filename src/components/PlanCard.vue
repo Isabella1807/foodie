@@ -126,24 +126,32 @@ function startPlan() {
         </li>
       </ul>
 
-      <div v-if="balance && balance.loggedDays" class="plan-bank">
+      <div v-if="balance" class="plan-bank">
+        <p class="plan-bank-label">hygge-konto</p>
         <p class="plan-bank-top">
           <span class="plan-bank-num" :class="balance.total >= 0 ? 'good-text' : 'over-text'">
             {{ balance.total >= 0 ? '+' : '−' }}{{ fmtKcal(balance.total) }}
           </span>
           <span class="plan-bank-unit">kcal {{ balance.total >= 0 ? 'vundet' : 'brugt forud' }}</span>
         </p>
-        <p v-if="balance.daysWon" class="plan-sub">
-          <template v-if="balance.daysWon > 0">
-            Det er <strong>{{ balance.daysWon }} dage</strong> hurtigere mod målet, end planen regnede med.
-          </template>
-          <template v-else>
-            Det svarer til <strong>{{ Math.abs(balance.daysWon) }} dage</strong> længere til målet.
-          </template>
+        <p v-if="!balance.loggedDays" class="plan-sub">
+          Kontoen begynder i morgen. Hver dag du spiser under dit mål, eller træner mere end planen venter,
+          lægger forskellen sig her.
         </p>
+        <p v-else-if="balance.daysWon > 0" class="plan-sub">
+          Det er <strong>{{ balance.daysWon }} dage</strong> hurtigere mod målet, end planen regnede med.
+        </p>
+        <p v-else-if="balance.daysWon < 0" class="plan-sub">
+          Det svarer til <strong>{{ Math.abs(balance.daysWon) }} dage</strong> længere til målet.
+        </p>
+        <p v-else class="plan-sub">Du ligger præcis på planen.</p>
         <p class="plan-bank-split">
-          <span>mad {{ balance.food >= 0 ? '+' : '−' }}{{ fmtKcal(balance.food) }}</span>
-          <span>bevægelse {{ balance.move >= 0 ? '+' : '−' }}{{ fmtKcal(balance.move) }}</span>
+          <span>mad {{ balance.food >= 0 ? '+' : '−' }}{{ fmtKcal(balance.food) }} kcal</span>
+          <span>træning {{ balance.move >= 0 ? '+' : '−' }}{{ fmtKcal(balance.move) }} kcal</span>
+        </p>
+        <p v-if="balance.loggedDays" class="plan-bank-split">
+          <span>{{ balance.loggedDays }} af {{ balance.days }} dage logget</span>
+          <span>{{ balance.movedDays }} dage med træning</span>
         </p>
       </div>
 
@@ -159,9 +167,10 @@ function startPlan() {
         kalorier og ikke bare minutter.
       </p>
       <p class="plan-sub">
-        Planen giver dig én fridag om ugen og en hyggedag på op til {{ TREAT_KCAL }} kcal hver
-        {{ TREAT_EVERY_DAYS }}. dag, hvor der heller ikke trænes. Bruger du dem ikke, lægger de sig
-        på kontoen ovenfor, og du kan bruge dem en anden dag uden at måldatoen skrider.
+        <strong>Din plads i planen:</strong> én fridag fra træningen om ugen, og en hyggedag på op til
+        {{ TREAT_KCAL }} kcal hver {{ TREAT_EVERY_DAYS }}. dag, hvor der heller ikke trænes. Begge dele er
+        betalt på forhånd. Bruger du dem ikke, lægger de sig på kontoen ovenfor, og du kan bruge dem en
+        anden dag uden at måldatoen skrider.
       </p>
     </template>
 

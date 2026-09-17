@@ -76,6 +76,29 @@ export function oneSessionKcal(kg) {
   return kg > 0 ? PLAN_PER_KG * kg : 0
 }
 
+// Hvor stor en del af en hård time, der skal til, før dagen tæller. 80 % er
+// valgt, så en time delt op i en halv time VR og en halv times gåtur også når
+// over stregen — men en hel time slentretur gør ikke.
+export const ENOUGH_SHARE = 0.8
+
+export function enoughKcal(kg) {
+  return oneSessionKcal(kg) * ENOUGH_SHARE
+}
+
+// Tæller dagen med i planen?
+export function isHardEnough(entry, kg) {
+  return kg > 0 && kcalForMovement(entry, kg) >= enoughKcal(kg)
+}
+
+// Hvor mange minutter mere der skal til i samme tempo, før dagen tæller
+export function minutesToGo(entry, kg) {
+  if (!(kg > 0)) return 0
+  const missing = enoughKcal(kg) - kcalForMovement(entry, kg)
+  if (missing <= 0) return 0
+  const rate = ratePerMinute(entry?.kind) * kg
+  return rate > 0 ? Math.ceil(missing / rate) : 0
+}
+
 // Hvad planen forventer pr. dag i snit — seks timer om ugen fordelt på syv dage
 export function planMovementPerDay(kg) {
   return kg > 0 ? (PLAN_PER_KG * kg * PLAN_DAYS_PER_WEEK) / 7 : 0

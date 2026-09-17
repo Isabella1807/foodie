@@ -2015,6 +2015,14 @@ label {
   gap: 4px;
 }
 
+.plan-bank-label {
+  margin: 0;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  color: var(--green-dark);
+  opacity: 0.8;
+}
+
 .plan-bank-top {
   margin: 0;
   display: flex;

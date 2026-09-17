@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import { useDataStore } from '../stores/data'
 import { useCollapse } from '../lib/useCollapse'
 import { localToday } from '../lib/dates'
-import { MOVE_GOAL_MIN, MOVE_DAYS_PER_WEEK, MOVE_MINUTES, MOVE_KINDS, kindText, isKnownKind, weekDates, isDone } from '../lib/movement'
+import { MOVE_MINUTES, MOVE_KINDS, kindText, isKnownKind, weekDates } from '../lib/movement'
 
 // Et kryds for dagens bevægelse: tryk på minutterne — eller skriv dem selv —
 // og evt. hvad det var, så er dagen sat. Ugen vises som syv prikker, så man
@@ -19,7 +19,12 @@ const data = useDataStore()
 const box = useCollapse('movement')
 const date = computed(() => props.date || localToday())
 const entry = computed(() => data.movement[date.value] || null)
-const done = computed(() => isDone(entry.value))
+
+// Målet kommer fra planen, hvis der er lagt en — ellers det gamle 30-minutters
+// kryds. Så står kortet aldrig og siger noget andet end plan-kortet.
+const goal = computed(() => data.movementGoal)
+const done = computed(() => goal.value.done(entry.value))
+const toGo = computed(() => goal.value.toGo(entry.value))
 
 const kind = ref(null) // valgt slags (knap), inden minutterne sættes
 const other = ref('') // fri tekst, når slags er "Andet" (fx svømning)
@@ -44,7 +49,7 @@ const today = localToday()
 const week = computed(() =>
   weekDates(date.value).map((d, i) => {
     const e = data.movement[d] || null
-    return { date: d, label: weekdays[i], minutes: e ? Number(e.minutes) : 0, done: isDone(e), isDay: d === date.value, future: d > today }
+    return { date: d, label: weekdays[i], minutes: e ? Number(e.minutes) : 0, done: goal.value.done(e), isDay: d === date.value, future: d > today }
   }),
 )
 const doneDays = computed(() => week.value.filter((d) => d.done).length)
@@ -52,11 +57,12 @@ const weekMinutes = computed(() => week.value.reduce((sum, d) => sum + d.minutes
 
 // Tekst om ugen: hvor mange dage er nået, og hvor mange der er tilbage at nå målet med
 const weekNote = computed(() => {
+  const target = goal.value.daysPerWeek
   const left = week.value.filter((d) => !d.done && d.date >= today).length
-  if (doneDays.value >= MOVE_DAYS_PER_WEEK) return `${doneDays.value} af 7 dage — ugens mål er nået.`
-  const missing = MOVE_DAYS_PER_WEEK - doneDays.value
+  if (doneDays.value >= target) return `${doneDays.value} af 7 dage — ugens mål er nået.`
+  const missing = target - doneDays.value
   if (left === 0) return `${doneDays.value} af 7 dage denne uge.`
-  return `${doneDays.value} af 7 dage — ${missing} ${missing === 1 ? 'dag' : 'dage'} mere, så er ugens ${MOVE_DAYS_PER_WEEK} nået.`
+  return `${doneDays.value} af 7 dage — ${missing} ${missing === 1 ? 'dag' : 'dage'} mere, så er ugens ${target} nået.`
 })
 
 function set(m) {
@@ -112,7 +118,7 @@ function startEdit() {
       <span class="movement-week-note">{{ weekNote }}</span>
     </div>
 
-    <div class="movement-week" role="img" :aria-label="`${doneDays} af 7 dage med mindst ${MOVE_GOAL_MIN} minutter`">
+    <div class="movement-week" role="img" :aria-label="`${doneDays} af 7 dage nået`">
       <span v-for="d in week" :key="d.date" class="movement-day" :class="{ done: d.done, some: !d.done && d.minutes > 0, current: d.isDay, future: d.future }">
         <i class="movement-dot"></i>
         <small>{{ d.label }}</small>
@@ -123,7 +129,7 @@ function startEdit() {
       <p class="movement-status" :class="{ 'good-text': done }">
         {{ entry.minutes }} min{{ entry.kind ? ` ${kindText(entry.kind)}` : '' }} {{ when }}
         <template v-if="done">✓</template>
-        <template v-else> — {{ MOVE_GOAL_MIN - entry.minutes }} min mere, så tæller dagen</template>
+        <template v-else-if="toGo"> — {{ toGo }} min mere i samme tempo, så tæller dagen</template>
       </p>
       <div class="movement-actions">
         <button type="button" class="link" @click="startAdd">en tur mere</button>
@@ -176,9 +182,14 @@ function startEdit() {
       </p>
       <button v-if="editing" type="button" class="link" @click="editing = false; adding = false">annullér</button>
       <p v-else class="weight-note">
-        Mindst {{ MOVE_GOAL_MIN }} minutter tæller som en dag. Målet er {{ MOVE_DAYS_PER_WEEK }} dage om ugen —
-        <template v-if="weekMinutes">{{ weekMinutes }} minutter i alt indtil nu.</template>
-        <template v-else>ugen er ikke begyndt endnu.</template>
+        <template v-if="goal.fromPlan">
+          En dag tæller, når du har lavet mindst {{ goal.enoughKcal }} kcal — det er en time, hvor du er
+          forpustet, eller længere tid i roligere tempo. Målet er {{ goal.daysPerWeek }} dage om ugen.
+        </template>
+        <template v-else>
+          Mindst {{ goal.minMinutes }} minutter tæller som en dag. Målet er {{ goal.daysPerWeek }} dage om ugen.
+        </template>
+        <template v-if="weekMinutes"> {{ weekMinutes }} minutter i alt indtil nu.</template>
       </p>
     </template>
   </section>
