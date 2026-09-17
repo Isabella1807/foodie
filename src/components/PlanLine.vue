@@ -26,7 +26,7 @@ const fmtNum = (n) => n.toLocaleString('da-DK', { maximumFractionDigits: 1 })
       </span>
       <template v-if="week">
         <span class="planline-sep">·</span>
-        <span>{{ fmtNum(week.hours) }} af {{ week.target }} timer denne uge</span>
+        <span>{{ fmtNum(week.hours) }} af {{ week.target }} pas denne uge</span>
       </template>
     </p>
   </section>

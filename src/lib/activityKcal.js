@@ -17,12 +17,13 @@ const PER_MIN_PER_KG = {
 }
 const DEFAULT_RATE = PER_MIN_PER_KG.gang // ukendt slags regnes som en gåtur, det forsigtige valg
 
-// Den slags, planen går ud fra: en time, hvor man er forpustet
+// Den slags, planen går ud fra: et pas, hvor man er forpustet
 export const PLAN_RATE = PER_MIN_PER_KG.vr
-export const PLAN_MINUTES = 60
 
-// Planen regner med én fast fridag om ugen. En plan uden fridag knækker, og
-// seks dage er dem, der rent faktisk bliver til noget.
+// Standard, hvis man ikke selv har sat noget: en time, seks dage om ugen.
+// Begge dele kan ændres under "Mine mål", så planen passer til det, man
+// faktisk gør, i stedet for til et tal appen har fundet på.
+export const PLAN_MINUTES = 60
 export const PLAN_DAYS_PER_WEEK = 6
 
 // Satsen for en dags bevægelse. En dag kan være blandet ("vr og gang", fordi
@@ -67,13 +68,15 @@ export function movementPerDay(movement, from, to, kg) {
   return total / days
 }
 
-// Planens time udtrykt pr. kilo kropsvægt, så kurven selv kan skalere den ned,
+// Ét pas udtrykt pr. kilo kropsvægt, så kurven selv kan skalere det ned,
 // efterhånden som vægten falder
-export const PLAN_PER_KG = PLAN_MINUTES * PLAN_RATE
+export function planPerKg(minutes = PLAN_MINUTES) {
+  return (Math.round(Number(minutes)) || PLAN_MINUTES) * PLAN_RATE
+}
 
-// Hvad ÉN times pas giver
-export function oneSessionKcal(kg) {
-  return kg > 0 ? PLAN_PER_KG * kg : 0
+// Hvad ÉT pas giver
+export function oneSessionKcal(kg, minutes = PLAN_MINUTES) {
+  return kg > 0 ? planPerKg(minutes) * kg : 0
 }
 
 // Hvor stor en del af en hård time, der skal til, før dagen tæller. 80 % er
@@ -81,27 +84,28 @@ export function oneSessionKcal(kg) {
 // over stregen — men en hel time slentretur gør ikke.
 export const ENOUGH_SHARE = 0.8
 
-export function enoughKcal(kg) {
-  return oneSessionKcal(kg) * ENOUGH_SHARE
+export function enoughKcal(kg, minutes = PLAN_MINUTES) {
+  return oneSessionKcal(kg, minutes) * ENOUGH_SHARE
 }
 
 // Tæller dagen med i planen?
-export function isHardEnough(entry, kg) {
-  return kg > 0 && kcalForMovement(entry, kg) >= enoughKcal(kg)
+export function isHardEnough(entry, kg, minutes = PLAN_MINUTES) {
+  return kg > 0 && kcalForMovement(entry, kg) >= enoughKcal(kg, minutes)
 }
 
 // Hvor mange minutter mere der skal til i samme tempo, før dagen tæller
-export function minutesToGo(entry, kg) {
+export function minutesToGo(entry, kg, minutes = PLAN_MINUTES) {
   if (!(kg > 0)) return 0
-  const missing = enoughKcal(kg) - kcalForMovement(entry, kg)
+  const missing = enoughKcal(kg, minutes) - kcalForMovement(entry, kg)
   if (missing <= 0) return 0
   const rate = ratePerMinute(entry?.kind) * kg
   return rate > 0 ? Math.ceil(missing / rate) : 0
 }
 
-// Hvad planen forventer pr. dag i snit — seks timer om ugen fordelt på syv dage
-export function planMovementPerDay(kg) {
-  return kg > 0 ? (PLAN_PER_KG * kg * PLAN_DAYS_PER_WEEK) / 7 : 0
+// Hvad planen forventer pr. dag i snit — ugens pas fordelt på syv dage
+export function planMovementPerDay(kg, minutes = PLAN_MINUTES, days = PLAN_DAYS_PER_WEEK) {
+  const d = Math.round(Number(days)) || PLAN_DAYS_PER_WEEK
+  return kg > 0 ? (planPerKg(minutes) * kg * d) / 7 : 0
 }
 
 // Hvor hårdt planens time skal være, sagt som puls.

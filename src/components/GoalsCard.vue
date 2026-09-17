@@ -85,6 +85,9 @@ function edit(which) {
     input.value = goalKg.value || ''
   } else if (which === 'min') {
     input.value = data.goals.min_kcal || ''
+  } else if (which === 'session') {
+    input.value = data.planMinutes
+    rateInput.value = String(data.planDays)
   } else {
     input.value = macroGoals.value[which]
   }
@@ -105,6 +108,13 @@ function save() {
   } else if (editing.value === 'min') {
     const n = Math.round(Number(input.value))
     data.setGoals({ min_kcal: n > 0 ? n : null })
+  } else if (editing.value === 'session') {
+    const m = Math.round(Number(input.value))
+    const d = Math.round(Number(rateInput.value))
+    data.setGoals({
+      plan_minutes: m > 0 ? m : null,
+      plan_days: d >= 1 && d <= 7 ? d : null,
+    })
   } else {
     const n = Math.round(Number(input.value))
     data.setGoals({ [`${editing.value}_goal`]: n > 0 ? n : null })
@@ -238,6 +248,23 @@ function save() {
         De nordiske anbefalinger: mindst 25 g om dagen for kvinder og 35 g for mænd. Udfyld dine krops-tal (køn, højde og alder)
         under "dine krops-tal" på Plan-fanen, så regnes tallet ud fra din krop og vægt.
       </template>
+    </p>
+
+    <div class="goal-row">
+      <span class="goal-key">Træning i planen</span>
+      <form v-if="editing === 'session'" class="goal-edit-form" @submit.prevent="save">
+        <input v-model="input" type="number" min="10" max="240" inputmode="numeric" placeholder="min" aria-label="Minutter pr. gang" />
+        <input v-model="rateInput" type="number" min="1" max="7" inputmode="numeric" placeholder="dage" aria-label="Dage om ugen" />
+        <button class="btn-primary">Gem</button>
+      </form>
+      <template v-else>
+        <span class="goal-val">{{ data.planDays }} × {{ data.planMinutes }} min</span>
+        <button class="link" @click="edit('session')">ret</button>
+      </template>
+    </div>
+    <p v-show="help.open" class="goal-note">
+      Hvad planen regner med, at du laver: hvor mange minutter pr. gang, og hvor mange dage om ugen. Sæt
+      det til det, du faktisk gør, så passer måldatoen. Det første felt er minutter, det andet er dage.
     </p>
 
     <div class="goal-row">

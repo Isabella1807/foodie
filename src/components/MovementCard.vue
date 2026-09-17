@@ -63,8 +63,8 @@ const weekNote = computed(() => {
   // Med en plan tælles ugen i timer, ikke i dage der lige akkurat tæller
   if (goal.value.fromPlan && week2.value) {
     const h = week2.value.hours.toLocaleString('da-DK', { maximumFractionDigits: 1 })
-    if (week2.value.done) return `${h} af ${week2.value.target} timer — ugens mål er nået.`
-    return `${h} af ${week2.value.target} timer denne uge.`
+    if (week2.value.done) return `${h} af ${week2.value.target} pas — ugens mål er nået.`
+    return `${h} af ${week2.value.target} pas denne uge.`
   }
   if (doneDays.value >= target) return `${doneDays.value} af ${target} dage — ugens mål er nået.`
   const missing = target - doneDays.value
@@ -190,8 +190,8 @@ function startEdit() {
       <button v-if="editing" type="button" class="link" @click="editing = false; adding = false">annullér</button>
       <p v-else class="weight-note">
         <template v-if="goal.fromPlan">
-          En dag tæller, når du har lavet mindst {{ goal.enoughKcal }} kcal — det er en time, hvor du er
-          forpustet, eller længere tid i roligere tempo. Målet er {{ goal.daysPerWeek }} dage om ugen.
+          En dag tæller, når du har lavet mindst {{ goal.enoughKcal }} kcal — det er {{ goal.minutes }} minutter,
+          hvor du er forpustet, eller længere tid i roligere tempo. Målet er {{ goal.daysPerWeek }} dage om ugen.
         </template>
         <template v-else>
           Mindst {{ goal.minMinutes }} minutter tæller som en dag. Målet er {{ goal.daysPerWeek }} dage om ugen.

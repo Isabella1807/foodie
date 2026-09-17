@@ -209,3 +209,13 @@ alter table public.goals add column if not exists plan_start_kg numeric check (p
 -- bund her rykker måldatoen i stedet, og maden bliver stående.
 
 alter table public.goals add column if not exists min_kcal integer check (min_kcal >= 1200);
+
+-- ---------------------------------------------------------------------------
+-- Hvad planen regner med, at du træner (kør kun dette, hvis du har kørt alt ovenfor)
+--
+-- Før stod der fast "en time, seks dage om ugen" i koden. Laver man i
+-- virkeligheden 45 minutter, passer måldatoen ikke. Nu sættes begge dele under
+-- "Mine mål", så planen regner på det, der faktisk sker.
+
+alter table public.goals add column if not exists plan_minutes integer check (plan_minutes between 10 and 240);
+alter table public.goals add column if not exists plan_days    integer check (plan_days between 1 and 7);

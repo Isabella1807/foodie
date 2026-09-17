@@ -4,7 +4,7 @@ import { useDataStore } from '../stores/data'
 import { useCollapse } from '../lib/useCollapse'
 import { localToday } from '../lib/dates'
 import { TREAT_KCAL, TREAT_EVERY_DAYS } from '../lib/plan'
-import { PLAN_MINUTES, PLAN_DAYS_PER_WEEK, oneSessionKcal, kcalForMovement, pulseZone } from '../lib/activityKcal'
+import { kcalForMovement, pulseZone } from '../lib/activityKcal'
 
 // Planen mod målvægten, samlet ét sted: hvad du skal gøre i dag, og om du
 // ligger foran eller bagud. Kurven bag tallene ligger i lib/plan.js.
@@ -39,7 +39,10 @@ const showBoost = computed(() => boost.value && arrivalMeasured.value && arrival
 // planen er regnet på den hårde slags. 80 % er nok til at sige god for dagen,
 // så en time delt op i en halv time VR og en halv times gåtur også tæller.
 const kg = computed(() => data.currentWeight)
-const sessionKcal = computed(() => Math.round(oneSessionKcal(kg.value)))
+// Passets længde og antal dage kommer fra hendes egne indstillinger
+const minutes = computed(() => data.planMinutes)
+const days = computed(() => data.planDays)
+const sessionKcal = computed(() => Math.round(data.sessionKcal))
 const ENOUGH = 0.8
 const kcalOn = (date) => Math.round(kcalForMovement(data.movement[date], kg.value))
 const todayKcal = computed(() => kcalOn(today))
@@ -92,12 +95,12 @@ function startPlan() {
       <ul class="plan-steps">
         <li v-if="week" :class="{ done: week.done }">
           <span class="plan-mark">{{ week.done ? '✓' : '○' }}</span>
-          {{ PLAN_DAYS_PER_WEEK }} hårde timer om ugen, én fridag
-          <span class="plan-note">{{ fmtNum(week.hours) }} af {{ week.target }} denne uge</span>
+          {{ days }} × {{ minutes }} min om ugen, hvor du er forpustet
+          <span class="plan-note">{{ fmtNum(week.hours) }} af {{ week.target }} pas denne uge</span>
         </li>
         <li :class="{ done: movedToday }">
           <span class="plan-mark">{{ movedToday ? '✓' : '○' }}</span>
-          Din time i dag
+          Dagens pas
           <span class="plan-note">
             <template v-if="minutesToday">{{ minutesToday }} min, {{ todayKcal }} af {{ sessionKcal }} kcal</template>
             <template v-else>ikke endnu</template>
@@ -126,7 +129,7 @@ function startPlan() {
           du skal kunne høre din egen vejrtrækning.
           <template v-if="pulse"> Det svarer til en puls omkring {{ pulse.low }} til {{ pulse.high }}.</template>
           <template v-else> Skriv din alder ind under "Mine mål", så regner jeg pulsen ud for dig.</template>
-          {{ PLAN_MINUTES }} minutters Beat Saber på expert rammer det, og det samme gør gang i 5,5 km i timen.
+          {{ minutes }} minutters Beat Saber på expert rammer det, og det samme gør gang i 5,5 km i timen.
           En almindelig gåtur er cirka det halve værd. Derfor tæller kortet kalorier og ikke bare minutter.
         </p>
         <p>
