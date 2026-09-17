@@ -182,6 +182,7 @@ function save() {
           <template v-else-if="previewKcal.stuckKg">Med {{ rateInput }} kg om ugen går det i stå omkring <strong>{{ fmtKg(previewKcal.stuckKg) }} kg</strong>.</template>
         </p>
         <p class="goal-note goal-note-plain">
+          Vælger du i stedet "Fast tal", står dit mål helt stille, og appen ændrer det aldrig.
           Appen regner dagsmålet ud fra dit målte forbrug, så du står til at tabe det her om ugen.
           Målet sættes hver mandag og gælder ugen ud, så det ikke hopper fra dag til dag. Det går aldrig under {{ fmt(MIN_GOAL) }} kcal.
         </p>
@@ -310,7 +311,10 @@ function save() {
       det til det, du faktisk gør, så passer måldatoen. Det første felt er minutter, det andet er dage.
     </p>
 
-    <div class="goal-row" :class="{ 'goal-row-edit': editing === 'min' }">
+    <!-- Bunden findes KUN for det automatiske mål. Har man valgt et fast tal,
+         ændrer appen ingenting, og så er der ikke noget at sætte en bund under.
+         At vise feltet der er ren forvirring. -->
+    <div v-if="rate" class="goal-row" :class="{ 'goal-row-edit': editing === 'min' }">
       <span class="goal-key">Appen må ikke gå under</span>
       <form v-if="editing === 'min'" class="goal-stack" @submit.prevent="save">
         <label class="goal-field">
@@ -335,7 +339,7 @@ function save() {
         <button class="link" @click="edit('min')">ret</button>
       </template>
     </div>
-    <p v-show="help.open" class="goal-note">
+    <p v-if="rate" v-show="help.open" class="goal-note">
       En grænse for APPEN, ikke for dig. Den siger, hvor langt ned appen må sætte dit dagsmål, når den
       regner. Som standard er det dit eget daglige mål, så appen aldrig beder dig om at spise mindre, end
       du selv har valgt — den må kun give dig mere. Falder din forbrænding, fordi en træning blev sprunget
