@@ -2163,3 +2163,32 @@ label {
   text-transform: none;
   letter-spacing: 0;
 }
+
+/* ---- prislisten: hvad koster hvad ---- */
+
+.price-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.price-list li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.9rem;
+}
+
+.price-num {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.price-gap {
+  margin-top: 6px;
+}

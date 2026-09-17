@@ -405,6 +405,63 @@ export const useDataStore = defineStore('data', {
       return Math.round(total - goal - treatPerDay(goal, oneSessionKcal(kg)))
     },
 
+    // Det forbrug, planen regner med: det målte plus den del af rutinen, målingen
+    // endnu ikke kender. Ét sted, så prislisten og kurven bruger samme tal.
+    planBurn(state) {
+      const burn = this.measuredBurn
+      if (!burn.ready) return null
+      return burn.kcal + (this.planBoost?.extra ?? 0)
+    },
+
+    // Prisliste: hvad hver ting koster eller vinder på måldatoen.
+    //
+    // Skelnen, der betyder alt: noget sker ÉN gang (en sprunget træning), og
+    // noget sker HVER dag (man spiser 100 mere fremover). Det sidste er mange
+    // gange dyrere, og det er svært at mærke, før man ser det.
+    planPrices(state) {
+      const g = state.goals
+      const kg = this.currentWeight
+      const burn = this.planBurn
+      const curve = this.plan
+      const perDay = this.planDeficitPerDay
+      if (!curve?.arriveOn || !burn || !kg || !(perDay > 0)) return null
+
+      const one = oneSessionKcal(kg)
+      const treat = treatPerDay(this.dailyGoal, one)
+      const base = Date.parse(curve.arriveOn)
+
+      // Varige ændringer: kør kurven igen med et andet dagligt regnskab
+      const shifted = (delta) => {
+        const c = planCurve({
+          start: { on: g.plan_start_on, kg: Number(g.plan_start_kg) },
+          targetKg: Number(g.goal_kg),
+          rate: Number(g.loss_per_week),
+          burn: { kcal: burn + delta, kg },
+          movementPerKg: PLAN_PER_KG,
+        })
+        if (!c.arriveOn) return null
+        return Math.round((Date.parse(c.arriveOn) - base) / 86400000)
+      }
+
+      // Engangs-ting: kalorierne delt med dagens underskud
+      const once = (kcal) => Math.round((kcal / perDay) * 10) / 10
+
+      return {
+        once: [
+          { text: 'Du springer én træning over', days: once(one), bad: true },
+          { text: 'Du tager en ekstra time', days: -once(one), bad: false },
+          { text: 'Én dag 500 kcal over målet', days: once(500), bad: true },
+          { text: 'Du springer en hel hyggedag over', days: -once(treat * 14), bad: false },
+        ],
+        daily: [
+          { text: 'Du spiser 100 kcal mere hver dag', days: shifted(-100), bad: true },
+          { text: 'Du spiser 100 kcal mindre hver dag', days: shifted(100), bad: false },
+          { text: 'Syv timer om ugen i stedet for seks', days: shifted(one / 7), bad: false },
+          { text: 'Fem timer om ugen i stedet for seks', days: shifted(-one / 7), bad: true },
+        ],
+      }
+    },
+
     // Ugens bevægelse målt i TIMER, ikke i dage der tæller.
     //
     // Planen regner i kalorier pr. uge, ikke i hele dage, så det er også sådan

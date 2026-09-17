@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useDataStore } from '../stores/data'
 import PlanCard from '../components/PlanCard.vue'
 import NoteCard from '../components/NoteCard.vue'
+import PlanPrices from '../components/PlanPrices.vue'
 import WeightCard from '../components/WeightCard.vue'
 import WeightChart from '../components/WeightChart.vue'
 import WeightStats from '../components/WeightStats.vue'
@@ -31,6 +32,7 @@ const lost = computed(() => data.weightLost)
 
   <PlanCard />
   <NoteCard />
+  <PlanPrices />
   <WeightCard />
   <WeightChart />
   <WeightStats />
