@@ -199,3 +199,13 @@ alter table public.movement drop constraint if exists movement_kind_check;
 
 alter table public.goals add column if not exists plan_start_on date;
 alter table public.goals add column if not exists plan_start_kg numeric check (plan_start_kg > 0);
+
+-- ---------------------------------------------------------------------------
+-- Din egen bund under dagsmålet (kør kun dette, hvis du har kørt alt ovenfor)
+--
+-- Det automatiske dagsmål er forbruget minus underskuddet. Falder forbruget,
+-- falder målet — også når det falder, fordi der blev sprunget en træning over.
+-- Så ville mindre motion betyde mindre mad, og det er en dårlig handel. Med en
+-- bund her rykker måldatoen i stedet, og maden bliver stående.
+
+alter table public.goals add column if not exists min_kcal integer check (min_kcal >= 1200);

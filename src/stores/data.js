@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import { load, save, remove } from '../lib/storage'
 import { localToday, weekStart, addDays } from '../lib/dates'
 import { kcalPerKgOf, bodyBurn } from '../lib/activity'
-import { estimateBurn, goalForRate } from '../lib/burn'
+import { estimateBurn, goalForRate, MIN_GOAL } from '../lib/burn'
 import { planCurve, planStatus, treatPerDay } from '../lib/plan'
 import { movementPerDay, planMovementPerDay, kcalForMovement, oneSessionKcal, enoughKcal, isHardEnough, minutesToGo, PLAN_PER_KG, PLAN_DAYS_PER_WEEK } from '../lib/activityKcal'
 import { MOVE_GOAL_MIN, MOVE_DAYS_PER_WEEK, isDone } from '../lib/movement'
@@ -43,7 +43,7 @@ export const useDataStore = defineStore('data', {
       // (tomt = appen regner et udgangspunkt ud fra kalorie-målet og kroppen).
       // loss_per_week: sat = appen regner selv dagsmålet ud fra dit målte
       // forbrug, så du taber så mange kg om ugen; kcal_goal er så kun reserven
-      goals: { kcal_goal: 1500, goal_kg: null, protein_goal: null, carbs_goal: null, fat_goal: null, fiber_goal: null, loss_per_week: null, plan_start_on: null, plan_start_kg: null, ...(cache.goals || {}) },
+      goals: { kcal_goal: 1500, goal_kg: null, protein_goal: null, carbs_goal: null, fat_goal: null, fiber_goal: null, loss_per_week: null, plan_start_on: null, plan_start_kg: null, min_kcal: null, ...(cache.goals || {}) },
       celebrations: cache.celebrations || [], // dage markeret som hygge-/festdag: { id, date }
       // Krops-tal til at anslå tid til målet og ekstra plads på aktive dage.
       // Synces nu, så de samme tal gælder på alle enheder
@@ -132,6 +132,12 @@ export const useDataStore = defineStore('data', {
       return state.goals.kcal_goal ?? 1500
     },
 
+    // Din egen bund under dagsmålet. Uden en bund sætter appen maden ned, hver
+    // gang forbrændingen falder — også når det skyldes en sprunget træning.
+    minGoal(state) {
+      return Math.max(MIN_GOAL, Math.round(Number(state.goals.min_kcal)) || MIN_GOAL)
+    },
+
     // Dit forbrug, som det så ud på en bestemt dato: kun vejninger til og med
     // den dag tæller med. Bruges til ugens automatiske mål
     burnAsOf(state) {
@@ -150,7 +156,7 @@ export const useDataStore = defineStore('data', {
         const monday = weekStart(date)
         const burn = this.burnAsOf(monday)
         if (!burn.ready || !burn.solid) return { auto: true, ready: false, goal: this.fixedGoal, burn, floored: false, weekStart: monday }
-        const { goal, floored } = goalForRate(burn.kcal, rate)
+        const { goal, floored } = goalForRate(burn.kcal, rate, this.minGoal)
         return { auto: true, ready: true, goal, burn, floored, weekStart: monday }
       }
     },
@@ -291,6 +297,7 @@ export const useDataStore = defineStore('data', {
         rate: Number(g.loss_per_week),
         burn: { kcal: burn.kcal, kg: atKg },
         movementPerKg: PLAN_PER_KG,
+        floor: this.minGoal,
       })
       return curve.ready ? curve : null
     },
@@ -328,6 +335,7 @@ export const useDataStore = defineStore('data', {
         rate: Number(g.loss_per_week),
         burn: { kcal: burn.kcal + boost.extra, kg },
         movementPerKg: PLAN_PER_KG,
+        floor: this.minGoal,
       })
       return curve.ready ? curve : null
     },
@@ -438,6 +446,7 @@ export const useDataStore = defineStore('data', {
           rate: Number(g.loss_per_week),
           burn: { kcal: burn + delta, kg },
           movementPerKg: PLAN_PER_KG,
+        floor: this.minGoal,
         })
         if (!c.arriveOn) return null
         return Math.round((Date.parse(c.arriveOn) - base) / 86400000)
@@ -865,7 +874,7 @@ export const useDataStore = defineStore('data', {
       this.foods = []
       this.entries = []
       this.weights = []
-      this.goals = { kcal_goal: 1500, goal_kg: null, protein_goal: null, carbs_goal: null, fat_goal: null, fiber_goal: null, loss_per_week: null, plan_start_on: null, plan_start_kg: null }
+      this.goals = { kcal_goal: 1500, goal_kg: null, protein_goal: null, carbs_goal: null, fat_goal: null, fiber_goal: null, loss_per_week: null, plan_start_on: null, plan_start_kg: null, min_kcal: null }
       this.celebrations = []
       this.profile = { height_cm: null, age: null, sex: null, activity: null }
       this.dayActivity = {}
@@ -987,6 +996,7 @@ export const useDataStore = defineStore('data', {
             loss_per_week: g.loss_per_week ?? null,
             plan_start_on: g.plan_start_on ?? null,
             plan_start_kg: g.plan_start_kg ?? null,
+            min_kcal: g.min_kcal ?? null,
           }
         }
         // Krops-tal: behold et lokalt tal, hvor serveren ikke har nogen — så et

@@ -38,7 +38,7 @@ const MAX_DAYS = 2200 // godt 6 år — derefter giver det ikke mening at tegne 
 // dagsmålets bund betyder, at underskuddet når nul først.
 // movementPerKg: hvad planens daglige time giver pr. kilo kropsvægt. Bruges til
 // at regne den time med, der ryger på en hyggedag.
-export function planCurve({ start, targetKg, rate, burn, movementPerKg = 0 }) {
+export function planCurve({ start, targetKg, rate, burn, movementPerKg = 0, floor = MIN_GOAL }) {
   if (!start?.on || !(start.kg > 0) || !(targetKg > 0) || !(rate > 0) || !(burn?.kcal > 0)) {
     return { ready: false, days: [] }
   }
@@ -50,7 +50,7 @@ export function planCurve({ start, targetKg, rate, burn, movementPerKg = 0 }) {
 
   for (let i = 0; i < MAX_DAYS; i++) {
     const burnNow = burn.kcal - BURN_PER_KG * (burn.kg - kg)
-    const { goal } = goalForRate(burnNow, rate)
+    const { goal } = goalForRate(burnNow, rate, floor)
     // Hyggedagen fordelt ud over de dage, der er mellem to af dem — både maden
     // og den time, der ikke bliver lavet den dag
     const treat = treatPerDay(goal, movementPerKg * kg)

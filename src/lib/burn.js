@@ -115,13 +115,19 @@ export function kgPerWeekAt(burn, dailyGoal) {
   return Math.round((((burn - dailyGoal) * 7) / KCAL_PER_KG) * 100) / 100
 }
 
-// Det laveste dagsmål appen selv vil foreslå — lavere bør man ikke gå uden en læge
+// Den absolutte bund: lavere går appen aldrig, uanset hvad man selv sætter
 export const MIN_GOAL = 1200
 
 // Dagsmålet, der giver et bestemt vægttab om ugen, når forbruget er kendt:
-// forbruget minus det daglige underskud, rundet til nærmeste 50. Går det
-// under MIN_GOAL, sættes det til MIN_GOAL, og floored fortæller, at det skete.
-export function goalForRate(burn, kgPerWeek) {
+// forbruget minus det daglige underskud, rundet til nærmeste 50.
+//
+// `floor` er ens EGEN bund. Den findes, fordi det automatiske mål ellers falder,
+// hver gang forbrændingen falder — også når den falder, fordi man trænede
+// mindre. Så ville en sprunget træning betyde mindre mad, og det er en dårlig
+// handel for den, der i forvejen ikke spiser meget. Med en bund rykker
+// måldatoen i stedet, og maden bliver stående.
+export function goalForRate(burn, kgPerWeek, floor = MIN_GOAL) {
+  const low = Math.max(MIN_GOAL, Math.round(floor) || MIN_GOAL)
   const raw = Math.round((burn - (kgPerWeek * KCAL_PER_KG) / 7) / 50) * 50
-  return { goal: Math.max(MIN_GOAL, raw), floored: raw < MIN_GOAL }
+  return { goal: Math.max(low, raw), floored: raw < low }
 }
