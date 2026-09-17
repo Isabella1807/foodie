@@ -23,6 +23,7 @@ const entry = computed(() => data.movement[date.value] || null)
 // Målet kommer fra planen, hvis der er lagt en — ellers det gamle 30-minutters
 // kryds. Så står kortet aldrig og siger noget andet end plan-kortet.
 const goal = computed(() => data.movementGoal)
+const week2 = computed(() => data.planWeek)
 const done = computed(() => goal.value.done(entry.value))
 const toGo = computed(() => goal.value.toGo(entry.value))
 
@@ -59,11 +60,16 @@ const weekMinutes = computed(() => week.value.reduce((sum, d) => sum + d.minutes
 const weekNote = computed(() => {
   const target = goal.value.daysPerWeek
   const left = week.value.filter((d) => !d.done && d.date >= today).length
-  const unit = goal.value.fromPlan ? 'timer' : 'dage'
-  if (doneDays.value >= target) return `${doneDays.value} af ${target} ${unit} — ugens mål er nået.`
+  // Med en plan tælles ugen i timer, ikke i dage der lige akkurat tæller
+  if (goal.value.fromPlan && week2.value) {
+    const h = week2.value.hours.toLocaleString('da-DK', { maximumFractionDigits: 1 })
+    if (week2.value.done) return `${h} af ${week2.value.target} timer — ugens mål er nået.`
+    return `${h} af ${week2.value.target} timer denne uge.`
+  }
+  if (doneDays.value >= target) return `${doneDays.value} af ${target} dage — ugens mål er nået.`
   const missing = target - doneDays.value
-  if (left === 0) return `${doneDays.value} af ${target} ${unit} denne uge.`
-  return `${doneDays.value} af ${target} ${unit} — ${missing} mere denne uge.`
+  if (left === 0) return `${doneDays.value} af ${target} dage denne uge.`
+  return `${doneDays.value} af ${target} dage — ${missing} mere denne uge.`
 })
 
 function set(m) {

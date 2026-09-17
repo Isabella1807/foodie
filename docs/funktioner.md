@@ -103,7 +103,7 @@ Forsiden handler KUN om i dag. Planen, vægten, målene og protein/fibre-oversig
 
 ### Bevægelse
 - **Målet kommer fra planen, hvis der er lagt en.** Så er det 6 dage om ugen, og en dag tæller, når bevægelsen er mindst 80 % af en hård time (ca. 253 kcal ved 94 kg) — ikke bare 30 minutter. Uden en plan gælder det gamle, lempeligere kryds: 30 minutter, 5 dage om ugen. Ét sted i koden afgør det, `movementGoal` i `src/stores/data.js`, så bevægelses-kortet og plan-kortet aldrig siger to forskellige ting.
-- En linje om ugen: "3 af 7 dage, 2 dage mere, så er ugens 6 nået" / "ugens mål er nået".
+- **Ugen tælles i TIMER, ikke i dage der tæller** ("1,8 af 6 timer denne uge"). Planen regner i kalorier pr. uge, så det er også sådan det skal vises. Med dage-tælling faldt 45 minutters VR (238 kcal) under dagsgrænsen (253) og blev til nul, selvom den er 3/4 af en time — både forkert og nedslående. Se `planWeek` i `src/stores/data.js`. Uden en plan tælles der stadig dage.
 - Ugen som syv prikker (Ma–Sø): fyldt = mindst 30 min den dag, halv = noget men under 30, tom = intet, markering af i dag, fremtidige dage svage.
 - Er dagen ikke sat: knapper for slags (Gåtur, VR-spil, Cykel, Badminton, Andet). Vælges "Andet", kommer et tekstfelt "hvad lavede du? fx svømning". Knapper for minutter (15, 30, 45, 60) og et felt "eller skriv antal minutter" med Gem. Under: "Mindst 30 minutter tæller som en dag. Målet er 5 dage om ugen, X minutter i alt indtil nu."
 - Er dagen sat: "45 min badminton i dag ✓" (eller "30 min VR-spil i dag — 18 min mere i samme tempo, så tæller dagen") med links "en tur mere", "ret" og "fjern". Minutterne, der mangler, regnes i dagens eget tempo, så en gåtur kræver flere end en omgang Beat Saber.

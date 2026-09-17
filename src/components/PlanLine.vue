@@ -1,8 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useDataStore } from '../stores/data'
-import { localToday, weekStart } from '../lib/dates'
-import { PLAN_DAYS_PER_WEEK } from '../lib/activityKcal'
+import { localToday } from '../lib/dates'
 
 // Én rolig linje på forsiden om, hvordan planen går. Det hele står på
 // Plan-fanen; her skal man bare kunne se, om det er på skinner.
@@ -10,18 +9,11 @@ const data = useDataStore()
 const today = localToday()
 
 const status = computed(() => data.planToday)
-const goal = computed(() => data.movementGoal)
 
-const weekSessions = computed(() => {
-  const start = weekStart(today)
-  let n = 0
-  for (const [date, e] of Object.entries(data.movement)) {
-    if (date >= start && date <= today && goal.value.done(e)) n++
-  }
-  return n
-})
+const week = computed(() => data.planWeek)
 
 const fmtKg = (n) => Math.abs(n).toLocaleString('da-DK', { maximumFractionDigits: 1 })
+const fmtNum = (n) => n.toLocaleString('da-DK', { maximumFractionDigits: 1 })
 </script>
 
 <template>
@@ -32,8 +24,10 @@ const fmtKg = (n) => Math.abs(n).toLocaleString('da-DK', { maximumFractionDigits
         <template v-else-if="status.ahead">{{ fmtKg(status.diff) }} kg foran planen</template>
         <template v-else>{{ fmtKg(status.diff) }} kg bagud</template>
       </span>
-      <span class="planline-sep">·</span>
-      <span>{{ weekSessions }} af {{ goal.daysPerWeek ?? PLAN_DAYS_PER_WEEK }} timer denne uge</span>
+      <template v-if="week">
+        <span class="planline-sep">·</span>
+        <span>{{ fmtNum(week.hours) }} af {{ week.target }} timer denne uge</span>
+      </template>
     </p>
   </section>
 </template>

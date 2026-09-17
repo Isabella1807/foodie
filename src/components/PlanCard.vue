@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { useDataStore } from '../stores/data'
 import { useCollapse } from '../lib/useCollapse'
-import { localToday, weekStart } from '../lib/dates'
+import { localToday } from '../lib/dates'
 import { TREAT_KCAL, TREAT_EVERY_DAYS } from '../lib/plan'
 import { PLAN_MINUTES, PLAN_DAYS_PER_WEEK, oneSessionKcal, kcalForMovement, pulseZone } from '../lib/activityKcal'
 
@@ -47,15 +47,10 @@ const todayKcal = computed(() => kcalOn(today))
 // Pulsen, timen skal ligge i — kræver en alder under "Mine mål"
 const pulse = computed(() => pulseZone(data.profile.age))
 
-// Ugens timer: planen regner med seks om ugen, så der er én fast fridag
-const weekSessions = computed(() => {
-  const start = weekStart(today)
-  let n = 0
-  for (const date of Object.keys(data.movement)) {
-    if (date >= start && date <= today && kcalOn(date) >= sessionKcal.value * ENOUGH) n++
-  }
-  return n
-})
+// Ugens bevægelse i timer — se planWeek i stores/data.js for hvorfor timer og
+// ikke "dage der tæller"
+const week = computed(() => data.planWeek)
+const fmtNum = (n) => n.toLocaleString('da-DK', { maximumFractionDigits: 1 })
 
 // Hygge-kontoen
 const balance = computed(() => data.planBalance)
@@ -98,10 +93,10 @@ function startPlan() {
       </p>
 
       <ul class="plan-steps">
-        <li :class="{ done: weekSessions >= PLAN_DAYS_PER_WEEK }">
-          <span class="plan-mark">{{ weekSessions >= PLAN_DAYS_PER_WEEK ? '✓' : '○' }}</span>
+        <li v-if="week" :class="{ done: week.done }">
+          <span class="plan-mark">{{ week.done ? '✓' : '○' }}</span>
           {{ PLAN_DAYS_PER_WEEK }} hårde timer om ugen, én fridag
-          <span class="plan-note">{{ weekSessions }} af {{ PLAN_DAYS_PER_WEEK }} denne uge</span>
+          <span class="plan-note">{{ fmtNum(week.hours) }} af {{ week.target }} denne uge</span>
         </li>
         <li :class="{ done: movedToday }">
           <span class="plan-mark">{{ movedToday ? '✓' : '○' }}</span>

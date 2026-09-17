@@ -405,6 +405,38 @@ export const useDataStore = defineStore('data', {
       return Math.round(total - goal - treatPerDay(goal, oneSessionKcal(kg)))
     },
 
+    // Ugens bevægelse målt i TIMER, ikke i dage der tæller.
+    //
+    // Planen regner i kalorier pr. uge, ikke i hele dage, så det er også sådan
+    // det skal vises. Tælles der dage, falder 45 minutters VR (238 kcal) under
+    // dagsgrænsen (253) og bliver til nul — selvom den er 3/4 af en time. Det
+    // er både forkert og nedslående. Ugen vises derfor som "2,8 af 6 timer".
+    planWeek(state) {
+      const kg = this.currentWeight
+      const one = oneSessionKcal(kg)
+      if (!kg || !(one > 0)) return null
+      const start = weekStart(localToday())
+      const today = localToday()
+      let kcal = 0
+      let days = 0
+      for (const [date, entry] of Object.entries(state.movement)) {
+        if (date < start || date > today) continue
+        const v = kcalForMovement(entry, kg)
+        if (v > 0) {
+          kcal += v
+          days++
+        }
+      }
+      return {
+        hours: Math.round((kcal / one) * 10) / 10,
+        target: PLAN_DAYS_PER_WEEK,
+        kcal: Math.round(kcal),
+        targetKcal: Math.round(one * PLAN_DAYS_PER_WEEK),
+        days,
+        done: kcal >= one * PLAN_DAYS_PER_WEEK,
+      }
+    },
+
     // Ugens bevægelses-mål. Er der lagt en plan, er det PLANENS mål, der gælder,
     // så appen ikke står og siger to forskellige ting. Uden en plan gælder det
     // gamle, lempeligere kryds på 30 minutter.
