@@ -17,7 +17,30 @@ const props = defineProps({
 
 const data = useDataStore()
 const box = useCollapse('movement')
-const date = computed(() => props.date || localToday())
+// Trykker man på en af ugens prikker, viser kortet DEN dag i stedet, så man kan
+// se og rette, hvad man lavede. null = den dag kortet ellers hører til.
+const picked = ref(null)
+const date = computed(() => picked.value || props.date || localToday())
+
+// Ordet midt i sætningen: "i dag", "den dag" — eller ugedagen, når man har
+// trykket sig frem til en anden dag
+const WEEKDAYS = ['mandag', 'tirsdag', 'onsdag', 'torsdag', 'fredag', 'lørdag', 'søndag']
+const whenText = computed(() => {
+  if (!picked.value) return props.when
+  if (picked.value === localToday()) return 'i dag'
+  const i = (new Date(picked.value + 'T00:00:00').getDay() + 6) % 7
+  return WEEKDAYS[i]
+})
+
+function pick(d) {
+  if (d > localToday()) return // fremtiden kan man ikke logge
+  picked.value = picked.value === d ? null : d
+  editing.value = false
+  adding.value = false
+  kind.value = null
+  other.value = ''
+  minutes.value = ''
+}
 const entry = computed(() => data.movement[date.value] || null)
 
 // Målet kommer fra planen, hvis der er lagt en — ellers det gamle 30-minutters
@@ -126,15 +149,34 @@ function startEdit() {
     </div>
 
     <div class="movement-week" role="img" :aria-label="`${doneDays} af ${goal.daysPerWeek} nået denne uge`">
-      <span v-for="d in week" :key="d.date" class="movement-day" :class="{ done: d.done, some: !d.done && d.minutes > 0, current: d.isDay, future: d.future }">
+      <button
+        v-for="d in week"
+        :key="d.date"
+        type="button"
+        class="movement-day"
+        :class="{ done: d.done, some: !d.done && d.minutes > 0, current: d.isDay, future: d.future }"
+        :disabled="d.future"
+        :aria-label="`${d.label}: ${d.minutes ? d.minutes + ' minutter' : 'ingen bevægelse'}`"
+        @click="pick(d.date)"
+      >
         <i class="movement-dot"></i>
         <small>{{ d.label }}</small>
-      </span>
+      </button>
     </div>
+
+    <p v-if="picked && picked !== localToday()" class="movement-picked">
+      Du ser på {{ whenText }}.
+      <button type="button" class="link" @click="picked = null">tilbage til i dag</button>
+    </p>
+
+    <p v-else-if="picked === localToday() ? false : !entry && picked" class="movement-picked">
+      Ingen bevægelse noteret {{ whenText }}.
+      <button type="button" class="link" @click="picked = null">tilbage til i dag</button>
+    </p>
 
     <template v-if="entry && !editing">
       <p class="movement-status" :class="{ 'good-text': done }">
-        {{ entry.minutes }} min{{ entry.kind ? ` ${kindText(entry.kind)}` : '' }} {{ when }}
+        {{ entry.minutes }} min{{ entry.kind ? ` ${kindText(entry.kind)}` : '' }} {{ whenText }}
         <template v-if="done">✓</template>
         <template v-else-if="toGo"> — {{ toGo }} min mere i samme tempo, så tæller dagen</template>
       </p>
@@ -167,7 +209,7 @@ function startEdit() {
         aria-label="Hvad lavede du"
       />
       <div class="movement-minutes">
-        <span class="count-hint">{{ adding ? 'Hvor længe varede turen mere?' : `Hvor længe ${when}?` }}</span>
+        <span class="count-hint">{{ adding ? 'Hvor længe varede turen mere?' : `Hvor længe ${whenText}?` }}</span>
         <div class="unit-choice-options">
           <button v-for="m in MOVE_MINUTES" :key="m" type="button" class="chip movement-chip" @click="set(m)">{{ m }} min</button>
         </div>

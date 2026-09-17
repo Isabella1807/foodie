@@ -2302,3 +2302,22 @@ label {
   padding-top: 4px;
   border-top: 1px solid var(--line);
 }
+
+/* Ugens prikker er knapper: man kan trykke sig tilbage til en tidligere dag */
+.movement-day {
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 2px 0;
+}
+
+.movement-day:disabled {
+  cursor: default;
+}
+
+.movement-picked {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--amber-dark);
+  font-weight: 600;
+}
