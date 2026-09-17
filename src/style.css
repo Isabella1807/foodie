@@ -2152,3 +2152,14 @@ label {
   font-size: 0.85rem;
   margin-top: -4px;
 }
+
+/* Pointen fra et sammenfoldet kort, vist i overskriften */
+.card-head-note {
+  margin-left: auto;
+  padding-right: 8px;
+  font-size: 0.82rem;
+  color: var(--amber-dark);
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+}

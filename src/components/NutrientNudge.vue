@@ -10,7 +10,9 @@ import { nudges } from '../lib/suggest'
 // fra hendes egen liste (og et par ideer udenfor den), der kan logges med
 // ét tryk. Kan skjules for resten af dagen.
 const data = useDataStore()
-const box = useCollapse('nudge')
+// Starter foldet sammen: forslagene er en hjælp, man henter frem, ikke noget
+// der skal fylde forsiden hver dag. Overskriften bærer selv pointen.
+const box = useCollapse('nudge', false)
 const fmt = (n) => n.toLocaleString('da-DK')
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1)
 
@@ -27,6 +29,14 @@ const list = computed(() =>
 )
 const hidden = computed(() => data.nudgeHiddenOn === localToday())
 
+// Kort opsummering til overskriften, så man kan se hvad der halter uden at
+// folde kortet ud: "20 g fibre · 15 g protein"
+const summary = computed(() =>
+  list.value
+    .map((n) => `${fmt(n.remaining + (n.carried || 0))} g ${n.label}`)
+    .join(' · '),
+)
+
 function log(s, foodId) {
   data.logEntry({ name: s.name, kcal: s.kcal, protein: s.protein, carbs: s.carbs, fat: s.fat, fiber: s.fiber, foodId })
 }
@@ -42,7 +52,10 @@ function addAndLog(s) {
 
 <template>
   <section v-if="list.length && !hidden" class="card nudge" :class="{ collapsed: !box.open }">
-    <p class="eyebrow card-head" v-bind="box.head">forslag</p>
+    <p class="eyebrow card-head" v-bind="box.head">
+      forslag
+      <span v-if="!box.open && summary" class="card-head-note">{{ summary }} bagud</span>
+    </p>
     <div v-for="n in list" :key="n.key" class="nudge-block">
       <p v-if="n.behindToday" class="nudge-head">
         <b>{{ cap(n.label) }} halter bagefter.</b>

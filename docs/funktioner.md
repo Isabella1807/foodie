@@ -93,7 +93,8 @@ Forsiden handler KUN om i dag. Planen, vægten, målene og protein/fibre-oversig
 - **To datoer, når rutinen lige er lagt om.** Måldatoen ØVERST er planens: den går ud fra, at rutinen holdes. Det målte forbrug kender kun den bevægelse, der allerede er logget, og er derfor for pessimistisk lige efter en omlægning. Er forskellen over 50 kcal om dagen, vises en grøn linje med, hvad målingen alene ville sige, og hvorfor. De to datoer nærmer sig hinanden af sig selv i løbet af et par uger. Getterne hedder `plan` (planens) og `planMeasured` (målingens). Satserne pr. slags bevægelse ligger i `src/lib/activityKcal.js` og er NETTO, altså ud over hvad man ville brænde siddende.
 - Kræver to kolonner i databasen, `plan_start_on` og `plan_start_kg` — se bunden af `sql/schema.sql`.
 
-### Forslag (vises kun når det er relevant)
+### Forslag (vises kun når det er relevant — starter foldet sammen)
+Kortet starter lukket, og overskriften bærer selv pointen: "forslag — 21 g fibre bagud". Så fylder det én linje, indtil man trykker. Et sammenfoldet korts nøgletal vises med klassen `card-head-note` inde i overskriften.
 - Når protein eller fibre halter bagefter dagens kalorier (dagen er godt i gang, og andelen af målet ligger klart under andelen af kalorierne), ELLER når man samlet er bagud fra de sidste 7 dage, vises et kort med:
   - En forklaring: "Protein halter bagefter. Du mangler X g i dag (og er Y g bagud fra de sidste dage) og har Z kcal tilbage i dag." Eller: "Protein haltede de sidste dage. Du er Y g bagud i alt, spis lidt ekstra i dag, så hentes noget af det."
   - Op til 3 konkrete portioner fra ens egen madliste med meget af det manglende for få kalorier, hver med mængde, "+X g protein", kalorier og en "Log"-knap (logges med ét tryk).
