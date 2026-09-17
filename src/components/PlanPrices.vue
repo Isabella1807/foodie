@@ -12,6 +12,14 @@ const box = useCollapse('prices', false)
 
 const prices = computed(() => data.planPrices)
 
+const MONTHS = ['januar', 'februar', 'marts', 'april', 'maj', 'juni', 'juli', 'august', 'september', 'oktober', 'november', 'december']
+const until = computed(() => {
+  const d = prices.value?.until
+  if (!d) return 'målet'
+  const [y, m] = d.split('-')
+  return `${MONTHS[Number(m) - 1]} ${y}`
+})
+
 // "0,7 dage" siger ikke ret meget. Under en dag skrives derfor i timer.
 function say(days) {
   if (days == null) return ''
@@ -36,7 +44,7 @@ function say(days) {
       <span v-if="!box.open" class="card-head-note">i dage på måldatoen</span>
     </p>
 
-    <p class="plan-sub">Sker det én gang</p>
+    <p class="price-head">Én enkelt gang</p>
     <ul class="price-list">
       <li v-for="p in prices.once" :key="p.text">
         <span>{{ p.text }}</span>
@@ -46,7 +54,7 @@ function say(days) {
       </li>
     </ul>
 
-    <p class="plan-sub price-gap">Sker det hver dag fremover</p>
+    <p class="price-head price-gap">Hver uge, hele vejen til {{ until }}</p>
     <ul class="price-list">
       <li v-for="p in prices.daily" :key="p.text">
         <span>{{ p.text }}</span>
@@ -57,8 +65,9 @@ function say(days) {
     </ul>
 
     <p class="plan-sub">
-      Plus betyder længere tid til målet, minus betyder hurtigere. Læg mærke til forskellen mellem de to
-      lister: én sprunget træning er småting, men den samme vane hver dag flytter måneder.
+      Plus betyder længere tid til målet, minus betyder hurtigere. Den nederste liste gælder KUN, hvis det
+      bliver sådan hver eneste uge herfra og til {{ until }}. Sker det bare en uge eller to, hører det
+      hjemme i den øverste liste.
     </p>
   </section>
 </template>

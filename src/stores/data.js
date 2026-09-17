@@ -447,17 +447,20 @@ export const useDataStore = defineStore('data', {
       const once = (kcal) => Math.round((kcal / perDay) * 10) / 10
 
       return {
+        // Måneden måldatoen falder i — så overskriften kan sige, hvor lang
+        // "resten af vejen" faktisk er
+        until: curve.arriveOn,
         once: [
           { text: 'Du springer én træning over', days: once(one), bad: true },
-          { text: 'Du tager en ekstra time', days: -once(one), bad: false },
-          { text: 'Én dag 500 kcal over målet', days: once(500), bad: true },
-          { text: 'Du springer en hel hyggedag over', days: -once(treat * 14), bad: false },
+          { text: 'Du tager én ekstra time', days: -once(one), bad: false },
+          { text: 'Du spiser 500 kcal over målet én dag', days: once(500), bad: true },
+          { text: 'Du springer én hyggedag over', days: -once(treat * 14), bad: false },
         ],
         daily: [
-          { text: 'Du spiser 100 kcal mere hver dag', days: shifted(-100), bad: true },
-          { text: 'Du spiser 100 kcal mindre hver dag', days: shifted(100), bad: false },
-          { text: 'Syv timer om ugen i stedet for seks', days: shifted(one / 7), bad: false },
-          { text: 'Fem timer om ugen i stedet for seks', days: shifted(-one / 7), bad: true },
+          { text: 'Du spiser 100 kcal mere om dagen', days: shifted(-100), bad: true },
+          { text: 'Du spiser 100 kcal mindre om dagen', days: shifted(100), bad: false },
+          { text: 'Du tager syv timer om ugen i stedet for seks', days: shifted(one / 7), bad: false },
+          { text: 'Du nøjes med fem timer om ugen', days: shifted(-one / 7), bad: true },
         ],
       }
     },

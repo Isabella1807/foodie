@@ -2192,3 +2192,10 @@ label {
 .price-gap {
   margin-top: 6px;
 }
+
+.price-head {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--ink);
+}
