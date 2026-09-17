@@ -1,10 +1,12 @@
 <script setup>
 import { computed } from 'vue'
 import { useDataStore } from '../stores/data'
+import { useCollapse } from '../lib/useCollapse'
 import { localToday } from '../lib/dates'
 import DayActivity from './DayActivity.vue'
 
 const data = useDataStore()
+const box = useCollapse('status')
 const today = localToday()
 const fmt = (n) => n.toLocaleString('da-DK')
 const fmtKg = (n) => n.toLocaleString('da-DK', { maximumFractionDigits: 1 })
@@ -16,8 +18,8 @@ const avgOver = computed(() => data.weekOver !== null && data.weekOver > 0)
 </script>
 
 <template>
-  <section class="card status">
-    <p class="eyebrow">dagens status</p>
+  <section class="card status" :class="{ collapsed: !box.open }">
+    <p class="eyebrow card-head" v-bind="box.head">dagens status</p>
 
     <div class="stat-row">
       <div class="stat">

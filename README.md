@@ -11,7 +11,8 @@ med hvor du bør ligge i dag, om du er foran eller bagud, og hvornår du rammer
 målet. Kurven regner med, at forbrændingen falder, efterhånden som du bliver
 lettere, og der er en hyggedag hver 14. dag lagt ind i den med vilje.
 Vægtgrafen kan vises som en tabel med dato, vægt og ændring pr. vejning, og
-kopieres direkte over i et regneark.
+kopieres direkte over i et regneark. Kortene kan foldes sammen ved at trykke på
+deres overskrift, så forsiden kan skæres ned til det, man kigger på hver dag.
 De fleste badevægte viser forskellige tal alt efter hvor man står på pladen, så
 under "Vej nu" kan man taste tre vejninger og lade appen gemme midtertallet. En
 vejning taget på en fremmed vægt kan slettes igen under "Tidligere vejning".

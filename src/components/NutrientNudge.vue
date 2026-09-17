@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useDataStore } from '../stores/data'
+import { useCollapse } from '../lib/useCollapse'
 import { localToday } from '../lib/dates'
 import { nudges } from '../lib/suggest'
 
@@ -9,6 +10,7 @@ import { nudges } from '../lib/suggest'
 // fra hendes egen liste (og et par ideer udenfor den), der kan logges med
 // ét tryk. Kan skjules for resten af dagen.
 const data = useDataStore()
+const box = useCollapse('nudge')
 const fmt = (n) => n.toLocaleString('da-DK')
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1)
 
@@ -39,8 +41,8 @@ function addAndLog(s) {
 </script>
 
 <template>
-  <section v-if="list.length && !hidden" class="card nudge">
-    <p class="eyebrow">forslag</p>
+  <section v-if="list.length && !hidden" class="card nudge" :class="{ collapsed: !box.open }">
+    <p class="eyebrow card-head" v-bind="box.head">forslag</p>
     <div v-for="n in list" :key="n.key" class="nudge-block">
       <p v-if="n.behindToday" class="nudge-head">
         <b>{{ cap(n.label) }} halter bagefter.</b>

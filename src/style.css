@@ -2041,3 +2041,32 @@ label {
   font-size: 0.8rem;
   color: var(--muted);
 }
+
+/* ---- kort, der kan foldes sammen ---- */
+
+.card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.card-head::after {
+  content: '⌄';
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1;
+  flex: none;
+}
+
+/* Alt andet end overskriften skjules, når kortet er lukket — så rører vi ikke
+   ved kortenes egne layouts */
+.card.collapsed > *:not(.card-head) {
+  display: none;
+}
+
+.card.collapsed > .card-head::after {
+  content: '›';
+}

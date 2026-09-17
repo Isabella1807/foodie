@@ -1,13 +1,15 @@
 <script setup>
 import { computed } from 'vue'
 import { useDataStore } from '../stores/data'
+import { useCollapse } from '../lib/useCollapse'
 import { localToday, weekStart } from '../lib/dates'
 import { TREAT_KCAL, TREAT_EVERY_DAYS } from '../lib/plan'
-import { PLAN_MINUTES, PLAN_DAYS_PER_WEEK } from '../lib/activityKcal'
+import { PLAN_MINUTES, PLAN_DAYS_PER_WEEK, oneSessionKcal, kcalForMovement, pulseZone } from '../lib/activityKcal'
 
 // Planen mod målvægten, samlet ét sted: hvad du skal gøre i dag, og om du
 // ligger foran eller bagud. Kurven bag tallene ligger i lib/plan.js.
 const data = useDataStore()
+const box = useCollapse('plan')
 const today = localToday()
 
 const plan = computed(() => data.plan)
@@ -31,12 +33,25 @@ const boost = computed(() => data.planBoost)
 const arrivalMeasured = computed(() => asMonth(data.planMeasured?.arriveOn))
 const showBoost = computed(() => boost.value && arrivalMeasured.value && arrivalMeasured.value !== arrival.value)
 
+// En time tæller efter, hvad den er VÆRD, ikke efter hvor længe den varede.
+// En time slentretur er cirka det halve af en time, hvor man er forpustet, og
+// planen er regnet på den hårde slags. 80 % er nok til at sige god for dagen,
+// så en time delt op i en halv time VR og en halv times gåtur også tæller.
+const kg = computed(() => data.currentWeight)
+const sessionKcal = computed(() => Math.round(oneSessionKcal(kg.value)))
+const ENOUGH = 0.8
+const kcalOn = (date) => Math.round(kcalForMovement(data.movement[date], kg.value))
+const todayKcal = computed(() => kcalOn(today))
+
+// Pulsen, timen skal ligge i — kræver en alder under "Mine mål"
+const pulse = computed(() => pulseZone(data.profile.age))
+
 // Ugens timer: planen regner med seks om ugen, så der er én fast fridag
 const weekSessions = computed(() => {
   const start = weekStart(today)
   let n = 0
-  for (const [date, e] of Object.entries(data.movement)) {
-    if (date >= start && date <= today && Number(e?.minutes) >= PLAN_MINUTES) n++
+  for (const date of Object.keys(data.movement)) {
+    if (date >= start && date <= today && kcalOn(date) >= sessionKcal.value * ENOUGH) n++
   }
   return n
 })
@@ -46,7 +61,7 @@ const balance = computed(() => data.planBalance)
 const fmtKcal = (n) => Math.abs(n).toLocaleString('da-DK')
 
 // Dagens ting, der kan krydses af
-const movedToday = computed(() => Number(data.movement[today]?.minutes) >= PLAN_MINUTES)
+const movedToday = computed(() => todayKcal.value >= sessionKcal.value * ENOUGH)
 const minutesToday = computed(() => Number(data.movement[today]?.minutes) || 0)
 const ateToday = computed(() => data.todayTotal)
 const goalToday = computed(() => data.dailyGoal)
@@ -61,8 +76,8 @@ function startPlan() {
 </script>
 
 <template>
-  <section v-if="data.goals.goal_kg" class="card plan">
-    <p class="eyebrow">min plan</p>
+  <section v-if="data.goals.goal_kg" class="card plan" :class="{ collapsed: !box.open }">
+    <p class="eyebrow card-head" v-bind="box.head">min plan</p>
 
     <template v-if="plan && status">
       <p class="plan-line" :class="status.ahead ? 'good-text' : 'over-text'">
@@ -88,13 +103,16 @@ function startPlan() {
       <ul class="plan-steps">
         <li :class="{ done: weekSessions >= PLAN_DAYS_PER_WEEK }">
           <span class="plan-mark">{{ weekSessions >= PLAN_DAYS_PER_WEEK ? '✓' : '○' }}</span>
-          {{ PLAN_DAYS_PER_WEEK }} timer om ugen, én fridag
+          {{ PLAN_DAYS_PER_WEEK }} hårde timer om ugen, én fridag
           <span class="plan-note">{{ weekSessions }} af {{ PLAN_DAYS_PER_WEEK }} denne uge</span>
         </li>
         <li :class="{ done: movedToday }">
           <span class="plan-mark">{{ movedToday ? '✓' : '○' }}</span>
           Din time i dag
-          <span class="plan-note">{{ minutesToday ? `${minutesToday} min` : 'ikke endnu' }}</span>
+          <span class="plan-note">
+            <template v-if="minutesToday">{{ minutesToday }} min, {{ todayKcal }} af {{ sessionKcal }} kcal</template>
+            <template v-else>ikke endnu</template>
+          </span>
         </li>
         <li :class="{ done: withinGoal }">
           <span class="plan-mark">{{ withinGoal ? '✓' : '○' }}</span>
@@ -130,6 +148,17 @@ function startPlan() {
       </div>
 
       <p class="plan-sub plan-treat">
+        <strong>Så hårdt skal timen være:</strong> du skal kunne sige en kort sætning, men ikke synge, og
+        du skal kunne høre din egen vejrtrækning.
+        <template v-if="pulse"> Det svarer til en puls omkring {{ pulse.low }} til {{ pulse.high }}.</template>
+        <template v-else> Skriv din alder ind under "Mine mål", så regner jeg pulsen ud for dig.</template>
+      </p>
+      <p class="plan-sub">
+        {{ PLAN_MINUTES }} minutters Beat Saber på expert rammer det, og det samme gør gang i 5,5 km i timen.
+        En almindelig gåtur er cirka det halve værd, og så skal der halvanden time til. Derfor tæller kortet
+        kalorier og ikke bare minutter.
+      </p>
+      <p class="plan-sub">
         Planen giver dig én fridag om ugen og en hyggedag på op til {{ TREAT_KCAL }} kcal hver
         {{ TREAT_EVERY_DAYS }}. dag, hvor der heller ikke trænes. Bruger du dem ikke, lægger de sig
         på kontoen ovenfor, og du kan bruge dem en anden dag uden at måldatoen skrider.

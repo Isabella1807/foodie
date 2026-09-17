@@ -1,9 +1,11 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { useDataStore } from '../stores/data'
+import { useCollapse } from '../lib/useCollapse'
 import { expectedKgOn } from '../lib/plan'
 
 const data = useDataStore()
+const box = useCollapse('weightchart')
 const fmtKg = (n) => n.toLocaleString('da-DK', { maximumFractionDigits: 1 })
 
 // Graf eller tabel. Grafen viser formen, tabellen viser de præcise tal på hver
@@ -118,8 +120,8 @@ async function copyTable() {
 </script>
 
 <template>
-  <section class="card weight-dash">
-    <div class="weight-top">
+  <section class="card weight-dash" :class="{ collapsed: !box.open }">
+    <div class="weight-top card-head" v-bind="box.head">
       <p class="eyebrow">vægtudvikling</p>
       <p v-if="data.currentWeight != null" class="weight-when">{{ fmtKg(data.currentWeight) }} kg nu</p>
     </div>

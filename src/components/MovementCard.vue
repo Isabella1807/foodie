@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useDataStore } from '../stores/data'
+import { useCollapse } from '../lib/useCollapse'
 import { localToday } from '../lib/dates'
 import { MOVE_GOAL_MIN, MOVE_DAYS_PER_WEEK, MOVE_MINUTES, MOVE_KINDS, kindText, isKnownKind, weekDates, isDone } from '../lib/movement'
 
@@ -15,6 +16,7 @@ const props = defineProps({
 })
 
 const data = useDataStore()
+const box = useCollapse('movement')
 const date = computed(() => props.date || localToday())
 const entry = computed(() => data.movement[date.value] || null)
 const done = computed(() => isDone(entry.value))
@@ -23,6 +25,7 @@ const kind = ref(null) // valgt slags (knap), inden minutterne sættes
 const other = ref('') // fri tekst, når slags er "Andet" (fx svømning)
 const minutes = ref('') // selvskrevne minutter
 const editing = ref(false)
+const adding = ref(false) // en tur mere samme dag: minutterne lægges til
 
 // Det der gemmes som slags: teksten fra "Andet", hvis der er skrevet noget,
 // ellers den valgte knap
@@ -59,11 +62,22 @@ const weekNote = computed(() => {
 function set(m) {
   const n = Math.round(Number(m))
   if (!n || n <= 0) return
-  data.setMovement(date.value, n, chosenKind.value ?? entry.value?.kind ?? null)
+  if (adding.value) data.addMovement(date.value, n, chosenKind.value)
+  else data.setMovement(date.value, n, chosenKind.value ?? entry.value?.kind ?? null)
   kind.value = null
   other.value = ''
   minutes.value = ''
   editing.value = false
+  adding.value = false
+}
+
+// En tur mere samme dag: samme felter, men minutterne lægges oveni
+function startAdd() {
+  kind.value = null
+  other.value = ''
+  minutes.value = ''
+  adding.value = true
+  editing.value = true
 }
 
 function setCustom() {
@@ -86,13 +100,14 @@ function startEdit() {
     other.value = ''
   }
   minutes.value = entry.value?.minutes ?? ''
+  adding.value = false
   editing.value = true
 }
 </script>
 
 <template>
-  <section class="card movement">
-    <div class="movement-head">
+  <section class="card movement" :class="{ collapsed: !box.open }">
+    <div class="movement-head card-head" v-bind="box.head">
       <p class="eyebrow">bevægelse</p>
       <span class="movement-week-note">{{ weekNote }}</span>
     </div>
@@ -111,6 +126,7 @@ function startEdit() {
         <template v-else> — {{ MOVE_GOAL_MIN - entry.minutes }} min mere, så tæller dagen</template>
       </p>
       <div class="movement-actions">
+        <button type="button" class="link" @click="startAdd">en tur mere</button>
         <button type="button" class="link" @click="startEdit">ret</button>
         <button type="button" class="link" @click="clear">fjern</button>
       </div>
@@ -138,7 +154,7 @@ function startEdit() {
         aria-label="Hvad lavede du"
       />
       <div class="movement-minutes">
-        <span class="count-hint">Hvor længe {{ when }}?</span>
+        <span class="count-hint">{{ adding ? 'Hvor længe varede turen mere?' : `Hvor længe ${when}?` }}</span>
         <div class="unit-choice-options">
           <button v-for="m in MOVE_MINUTES" :key="m" type="button" class="chip movement-chip" @click="set(m)">{{ m }} min</button>
         </div>
@@ -154,7 +170,11 @@ function startEdit() {
           <button class="btn-primary" :disabled="!customMinutes">Gem</button>
         </form>
       </div>
-      <button v-if="editing" type="button" class="link" @click="editing = false">annullér</button>
+      <p v-if="adding && entry" class="weight-note">
+        Der står {{ entry.minutes }} minutter i forvejen. De nye lægges oveni, så det bliver til
+        {{ entry.minutes + (customMinutes || 0) }} minutter i alt.
+      </p>
+      <button v-if="editing" type="button" class="link" @click="editing = false; adding = false">annullér</button>
       <p v-else class="weight-note">
         Mindst {{ MOVE_GOAL_MIN }} minutter tæller som en dag. Målet er {{ MOVE_DAYS_PER_WEEK }} dage om ugen —
         <template v-if="weekMinutes">{{ weekMinutes }} minutter i alt indtil nu.</template>

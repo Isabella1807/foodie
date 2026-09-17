@@ -682,6 +682,25 @@ export const useDataStore = defineStore('data', {
       }
     },
 
+    // Læg minutter TIL dagens bevægelse i stedet for at erstatte dem. To gange
+    // 30 minutter er også en time, og man logger den anden tur senere på dagen.
+    // Er slagsen en anden end den, der står, gemmes begge, fx "vr og gåtur".
+    addMovement(date, minutes, kind = null) {
+      const n = Math.round(Number(minutes))
+      if (!(n > 0)) return
+      const had = this.movement[date]
+      if (!had) return this.setMovement(date, n, kind)
+      const total = (Math.round(Number(had.minutes)) || 0) + n
+      // Slagsene samles uden gentagelser: to gåture samme dag er stadig "gang"
+      const parts = String(had.kind || '')
+        .split(' og ')
+        .map((k) => k.trim())
+        .filter(Boolean)
+      const next = String(kind || '').trim()
+      if (next && !parts.includes(next)) parts.push(next)
+      this.setMovement(date, total, parts.join(' og ') || null)
+    },
+
     // Sæt (eller ryd, med minutes = null) dagens bevægelse: minutter og evt. slags
     setMovement(date, minutes, kind = null) {
       const next = { ...this.movement }

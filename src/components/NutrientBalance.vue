@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useDataStore } from '../stores/data'
+import { useCollapse } from '../lib/useCollapse'
 import { localToday, weekStart } from '../lib/dates'
 import { REACH_GOALS, MACRO_LABELS } from '../lib/nutrition'
 
@@ -8,6 +9,7 @@ import { REACH_GOALS, MACRO_LABELS } from '../lib/nutrition'
 // er samlet, så lidt af det kan hentes de næste dage. Regnet på de dage, hun
 // har logget mad, og kun på de måltider, der har tal — se lib/balance.js.
 const data = useDataStore()
+const box = useCollapse('balance')
 const fmt = (n) => n.toLocaleString('da-DK')
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1)
 
@@ -32,8 +34,8 @@ function diff(b) {
 </script>
 
 <template>
-  <section v-if="show" class="card balance">
-    <p class="eyebrow">protein og fibre over tid</p>
+  <section v-if="show" class="card balance" :class="{ collapsed: !box.open }">
+    <p class="eyebrow card-head" v-bind="box.head">protein og fibre over tid</p>
     <table class="balance-table">
       <thead>
         <tr>

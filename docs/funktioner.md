@@ -19,6 +19,9 @@ hvordan det hele kan sættes op mere overskueligt.
 - Et par gange om ugen: kigge i kalenderen (ugen og måneden), se vægtgrafen og tempoet.
 - Sjældent: rette mål, udfylde krops-tal, rydde op i madlisten, slå notifikation til.
 
+## Kort, der kan foldes sammen
+Tryk på overskriften på et kort for at folde det sammen; tryk igen for at åbne det. Det gælder min plan, bevægelse, forslag, dagens status, protein og fibre over tid, vægt, vægtudvikling og mine mål. Hvert kort husker sin egen tilstand i browseren (`localStorage`, nøgler med `foodie.card.`), så det følger ikke med til en anden telefon — det er en visnings-indstilling, ikke data. Er lageret blokeret, åbner kortene bare som normalt. Teknisk: `src/lib/useCollapse.js` giver `box.open` og `box.head`, som spredes ud på overskriften; kortets section får klassen `collapsed`, og CSS skjuler alt andet end overskriften, så kortenes egne layouts ikke røres.
+
 ## Navigation
 
 Tre faner i bunden: **I dag**, **Kalender**, **Mad**.
@@ -70,7 +73,9 @@ Tre faner i bunden: **I dag**, **Kalender**, **Mad**.
 
 ### Min plan (vises kun når der er sat en målvægt)
 - Ét kort med hele planen mod målvægten: "Du er 0,4 kg foran planen", hvad planen siger man bør veje i dag, og hvornår målvægten nås, skrevet som måned og år ("juni 2028").
-- Under det fire ting, der kan krydses af: ugens timer (6 om ugen, så der er én fast fridag), dagens time, dagens kalorier, og om der er vejet inden for et døgn.
+- Under det fire ting, der kan krydses af: ugens hårde timer (6 om ugen, så der er én fast fridag), dagens time, dagens kalorier, og om der er vejet inden for et døgn.
+- **En time tæller efter, hvad den er værd, ikke efter hvor længe den varede.** Planen er regnet på en time, hvor man er forpustet (Beat Saber på expert eller gang i 5,5 km/t = ca. 317 kcal ved 94 kg). En dag tæller, når bevægelsen er mindst 80 % af det. En almindelig gåtur på en time er cirka 218 og tæller altså ikke; 75 minutter gør. De 80 % er valgt, så en time delt op i en halv time VR og en halv times gåtur også tæller. Derfor står der kalorier i kortet og ikke bare minutter.
+- **Hvor hårdt.** Kortet siger det som en prøve, man kan lave uden udstyr: man skal kunne sige en kort sætning, men ikke synge. Er alderen skrevet ind under "Mine mål", står der også en puls: 70 til 85 procent af 220 minus alderen, afrundet til nærmeste 5 (fx 135 til 165 for en på 27). Se `pulseZone()` i `src/lib/activityKcal.js`.
 - **Hygge-kontoen.** Planen giver hver dag dagsmålet plus hyggedagens tillæg, og forventer seks timers bevægelse om ugen. Spises der mindre, eller bevæges der mere, lægger forskellen sig på kontoen: "+1.240 kcal vundet" og "det er 3,6 dage hurtigere mod målet". Delt op i mad og bevægelse. Er tallet negativt, er der brugt af fremtiden. Mad-siden springer dage uden logning over, for en dag uden tal er ukendt, ikke en dag uden mad; bevægelse tælles på alle dage, for en dag uden kryds er en dag uden træning.
 - Nederst en linje om, at fridagen og hyggedagen ER regnet med i planen. Det er med vilje: en kurve, der kun holder på perfekte uger, ville sige "du er bagud" hver eneste uge.
 - Hyggedagen koster to ting i kurven: maden op til 2500, OG den time bevægelse, man realistisk ikke får lavet til et bryllup. Begge dele er betalt på forhånd.
@@ -91,7 +96,8 @@ Tre faner i bunden: **I dag**, **Kalender**, **Mad**.
 - En linje om ugen: "3 af 7 dage, 2 dage mere, så er ugens 5 nået" / "ugens mål er nået".
 - Ugen som syv prikker (Ma–Sø): fyldt = mindst 30 min den dag, halv = noget men under 30, tom = intet, markering af i dag, fremtidige dage svage.
 - Er dagen ikke sat: knapper for slags (Gåtur, VR-spil, Cykel, Badminton, Andet). Vælges "Andet", kommer et tekstfelt "hvad lavede du? fx svømning". Knapper for minutter (15, 30, 45, 60) og et felt "eller skriv antal minutter" med Gem. Under: "Mindst 30 minutter tæller som en dag. Målet er 5 dage om ugen, X minutter i alt indtil nu."
-- Er dagen sat: "45 min badminton i dag ✓" (eller "20 min i dag, 10 min mere, så tæller dagen") med links "ret" og "fjern".
+- Er dagen sat: "45 min badminton i dag ✓" (eller "20 min i dag, 10 min mere, så tæller dagen") med links "en tur mere", "ret" og "fjern".
+- **"en tur mere" lægger minutter TIL dagen i stedet for at erstatte dem**, så en time delt op i to gange 30 minutter bliver til 60 og ikke 30. Er slagsen en anden, gemmes begge ("vr og gang"), og satsen bliver gennemsnittet af dem. Samme slags to gange giver ikke "gang og gang".
 - Slagsen er kun en tekst. Bevægelsen lægger IKKE kalorier oveni dagens mål (med vilje).
 
 ### Dagens måltider

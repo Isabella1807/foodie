@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useDataStore } from '../stores/data'
+import { useCollapse } from '../lib/useCollapse'
 import { formatDayLabel, localToday } from '../lib/dates'
 import { middleWeight } from '../lib/weighing'
 
@@ -9,6 +10,7 @@ import { middleWeight } from '../lib/weighing'
 // vejning. Ændringen måles mod vejningen for en uge siden, så en enkelt dags
 // udsving ikke fylder for meget. Appen minder først om vejning efter to dage.
 const data = useDataStore()
+const box = useCollapse('weight')
 const weightInput = ref('')
 const today = localToday()
 const mode = ref(null) // null | 'now' (vej i dag) | 'past' (tidligere vejning)
@@ -90,8 +92,8 @@ function removePast() {
 </script>
 
 <template>
-  <section class="card weight">
-    <div class="weight-top">
+  <section class="card weight" :class="{ collapsed: !box.open }">
+    <div class="weight-top card-head" v-bind="box.head">
       <p class="eyebrow">vægt</p>
       <p v-if="latest" class="weight-when">vejet {{ formatDayLabel(latest.measured_on) }}</p>
     </div>

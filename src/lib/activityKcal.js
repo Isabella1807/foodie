@@ -25,13 +25,26 @@ export const PLAN_MINUTES = 60
 // seks dage er dem, der rent faktisk bliver til noget.
 export const PLAN_DAYS_PER_WEEK = 6
 
+// Satsen for en dags bevægelse. En dag kan være blandet ("vr og gang", fordi
+// timen blev delt op i to ture) — så bruges gennemsnittet af de slags, der
+// indgår, i stedet for tilfældigvis den første.
 export function ratePerMinute(kind) {
   if (!kind) return DEFAULT_RATE
-  const key = String(kind).toLowerCase().trim()
-  for (const [name, rate] of Object.entries(PER_MIN_PER_KG)) {
-    if (key.includes(name)) return rate
+  const rates = []
+  for (const part of String(kind).toLowerCase().split(' og ')) {
+    const key = part.trim()
+    if (!key) continue
+    let found = null
+    for (const [name, rate] of Object.entries(PER_MIN_PER_KG)) {
+      if (key.includes(name)) {
+        found = rate
+        break
+      }
+    }
+    rates.push(found ?? DEFAULT_RATE)
   }
-  return DEFAULT_RATE
+  if (!rates.length) return DEFAULT_RATE
+  return rates.reduce((a, b) => a + b, 0) / rates.length
 }
 
 // Hvad ét pas kostede
@@ -66,4 +79,17 @@ export function oneSessionKcal(kg) {
 // Hvad planen forventer pr. dag i snit — seks timer om ugen fordelt på syv dage
 export function planMovementPerDay(kg) {
   return kg > 0 ? (PLAN_PER_KG * kg * PLAN_DAYS_PER_WEEK) / 7 : 0
+}
+
+// Hvor hårdt planens time skal være, sagt som puls.
+//
+// Den højeste puls, en krop kan nå, falder med alderen, så et pulstal kun giver
+// mening sammen med en alder. Tommelfingerreglen er 220 minus alderen, og
+// planens time ligger i 70 til 85 procent af det. Det er skøn: medicin, form og
+// dagsform flytter det, og tallet er til at pejle efter, ikke at ramme præcist.
+export function pulseZone(age) {
+  const a = Math.round(Number(age))
+  if (!(a > 0) || a > 120) return null
+  const max = 220 - a
+  return { low: Math.round((max * 0.7) / 5) * 5, high: Math.round((max * 0.85) / 5) * 5, max }
 }

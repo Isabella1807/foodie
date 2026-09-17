@@ -1,11 +1,13 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useDataStore } from '../stores/data'
+import { useCollapse } from '../lib/useCollapse'
 import { askNotifyPermission } from '../lib/liveStatus'
 import { kgPerWeekAt, MIN_GOAL } from '../lib/burn'
 import { KCAL_MACROS, MACRO_LABELS, FIBER_FLOOR, FIBER_PER_MJ, KCAL_PER_MJ } from '../lib/nutrition'
 
 const data = useDataStore()
+const box = useCollapse('goals')
 const editing = ref(null) // null | 'kcal' | 'weight' | 'protein' | 'carbs' | 'fat' | 'fiber'
 const input = ref('')
 // Dagsmålet er enten et fast tal, eller appen regner det ud fra dit målte
@@ -106,8 +108,8 @@ function save() {
 </script>
 
 <template>
-  <section class="card goals">
-    <p class="eyebrow">mine mål</p>
+  <section class="card goals" :class="{ collapsed: !box.open }">
+    <p class="eyebrow card-head" v-bind="box.head">mine mål</p>
 
     <div class="goal-row" :class="{ 'has-note': auto.auto && editing !== 'kcal' }">
       <span class="goal-key">Dagligt mål</span>
