@@ -15,7 +15,10 @@ const PER_MIN_PER_KG = {
   cykel: 0.049,
   badminton: 0.0298, // almindeligt spil med mange pauser — mindre end en gåtur
 }
-const DEFAULT_RATE = PER_MIN_PER_KG.gang // ukendt slags regnes som en gåtur, det forsigtige valg
+// Et pas UDEN slags regnes som planens egen slags, ikke som den langsomste.
+// Ellers mister man en tredjedel af passet, fordi man glemte at trykke på en
+// knap — og det er en dum straf for et tomt felt, ikke for det man lavede.
+const DEFAULT_RATE = PER_MIN_PER_KG.vr
 
 // Den slags, planen går ud fra: et pas, hvor man er forpustet
 export const PLAN_RATE = PER_MIN_PER_KG.vr
