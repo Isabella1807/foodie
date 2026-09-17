@@ -53,9 +53,6 @@ const week = computed(() => data.planWeek)
 const fmtNum = (n) => n.toLocaleString('da-DK', { maximumFractionDigits: 1 })
 
 // Hygge-kontoen
-const balance = computed(() => data.planBalance)
-const fmtKcal = (n) => Math.abs(n).toLocaleString('da-DK')
-const fmtDays = (n) => Math.abs(n).toLocaleString('da-DK', { maximumFractionDigits: 1 })
 
 // Dagens ting, der kan krydses af
 const movedToday = computed(() => todayKcal.value >= sessionKcal.value * ENOUGH)
@@ -118,34 +115,6 @@ function startPlan() {
         </li>
       </ul>
 
-      <div v-if="balance" class="plan-bank">
-        <p class="plan-bank-label">hygge-konto</p>
-        <p class="plan-bank-top">
-          <span class="plan-bank-num" :class="balance.total >= 0 ? 'good-text' : 'over-text'">
-            {{ balance.total >= 0 ? '+' : '−' }}{{ fmtKcal(balance.total) }}
-          </span>
-          <span class="plan-bank-unit">kcal {{ balance.total >= 0 ? 'vundet' : 'brugt forud' }}</span>
-        </p>
-        <p v-if="!balance.loggedDays" class="plan-sub">
-          Begynder i morgen. Spiser du under dit mål, eller træner du mere end planen venter, lægger
-          forskellen sig her.
-        </p>
-        <p v-else-if="balance.daysWon > 0" class="plan-sub">
-          Det er <strong>{{ fmtDays(balance.daysWon) }} dage</strong> hurtigere mod målet, end planen regnede med.
-        </p>
-        <p v-else-if="balance.daysWon < 0" class="plan-sub">
-          Det svarer til <strong>{{ fmtDays(balance.daysWon) }} dage</strong> længere til målet.
-        </p>
-        <p v-else class="plan-sub">Du ligger præcis på planen.</p>
-        <p class="plan-bank-split">
-          <span>mad {{ balance.food >= 0 ? '+' : '−' }}{{ fmtKcal(balance.food) }} kcal</span>
-          <span>træning {{ balance.move >= 0 ? '+' : '−' }}{{ fmtKcal(balance.move) }} kcal</span>
-        </p>
-        <p v-if="balance.loggedDays" class="plan-bank-split">
-          <span>{{ balance.loggedDays }} af {{ balance.days }} dage logget</span>
-          <span>{{ balance.movedDays }} dage med træning</span>
-        </p>
-      </div>
 
       <button type="button" class="link plan-why" @click="why.toggle()">
         {{ why.open ? 'skjul forklaringen' : 'hvordan virker planen?' }}

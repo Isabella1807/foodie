@@ -38,7 +38,7 @@ Tre faner i bunden: **I dag**, **Kalender**, **Mad**.
 ---
 
 ## Fane 1: I dag
-Forsiden handler KUN om i dag. Planen, vægten, målene og protein/fibre-oversigten ligger på fane 2, så man ikke skal scrolle forbi dem hver morgen. Rækkefølgen på forsiden er: dagens tal, plan-linjen, tilføj spiste ting, dagens måltider, forslag, dagens status, bevægelse, vægt. Forsiden har: dagens tal øverst, én rolig plan-linje, log et måltid, forslag, bevægelse, dagens måltider og dagens status.
+Forsiden handler KUN om i dag. Planen, vægten, målene og protein/fibre-oversigten ligger på fane 2, så man ikke skal scrolle forbi dem hver morgen. Rækkefølgen på forsiden er: dagens tal, plan-linjen, hygge-kontoen, tilføj spiste ting, dagens måltider, forslag, dagens status, bevægelse, vægt. Forsiden har: dagens tal øverst, én rolig plan-linje, log et måltid, forslag, bevægelse, dagens måltider og dagens status.
 
 ### Øverst: dagens tal
 - Dagens dato med ugedag.
@@ -86,6 +86,7 @@ Forsiden handler KUN om i dag. Planen, vægten, målene og protein/fibre-oversig
 - Under det fire ting, der kan krydses af: ugens hårde timer (6 om ugen, så der er én fast fridag), dagens time, dagens kalorier, og om der er vejet inden for et døgn.
 - **En time tæller efter, hvad den er værd, ikke efter hvor længe den varede.** Planen er regnet på en time, hvor man er forpustet (Beat Saber på expert eller gang i 5,5 km/t = ca. 317 kcal ved 94 kg). En dag tæller, når bevægelsen er mindst 80 % af det. En almindelig gåtur på en time er cirka 218 og tæller altså ikke; 75 minutter gør. De 80 % er valgt, så en time delt op i en halv time VR og en halv times gåtur også tæller. Derfor står der kalorier i kortet og ikke bare minutter.
 - **Hvor hårdt.** Kortet siger det som en prøve, man kan lave uden udstyr: man skal kunne sige en kort sætning, men ikke synge. Er alderen skrevet ind under "Mine mål", står der også en puls: 70 til 85 procent af 220 minus alderen, afrundet til nærmeste 5 (fx 135 til 165 for en på 27). Se `pulseZone()` i `src/lib/activityKcal.js`.
+- **Hygge-kontoen er sit eget kort på FORSIDEN** (`TreatBank.vue`), ikke inde i plan-kortet. Det er den, man kigger på hver dag. Sammenfoldet viser overskriften saldoen ("hygge-konto  +495 kcal").
 - **Hygge-kontoen vises fra dag ét**, også når den står på nul — ellers ved man ikke, at den findes. Første dag står der "Kontoen begynder i morgen".
 - **Hygge-kontoen.** Planen giver hver dag dagsmålet plus hyggedagens tillæg, og forventer seks timers bevægelse om ugen. Spises der mindre, eller bevæges der mere, lægger forskellen sig på kontoen: "+1.240 kcal vundet" og "det er 3,6 dage hurtigere mod målet". Delt op i mad og bevægelse. Er tallet negativt, er der brugt af fremtiden. Mad-siden springer dage uden logning over, for en dag uden tal er ukendt, ikke en dag uden mad; bevægelse tælles på alle dage, for en dag uden kryds er en dag uden træning.
 - **Forklaringerne ligger bag linket "hvordan virker planen?"** nederst på kortet, så tallene står rene. Bag det: hvor hårdt timen skal være med puls, hvad en time Beat Saber og en gåtur er værd, pladsen i planen (fridag og hyggedag), og hvorfor måldatoen flytter sig, mens målingen indhenter rutinen. Linket husker selv, om det var åbent.
