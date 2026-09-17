@@ -2243,3 +2243,48 @@ label {
   font-size: 0.82rem;
   color: var(--green-dark);
 }
+
+/* Felter under hinanden med tekst ved siden af — to smalle kasser side om side
+   siger ikke hvad man skal skrive hvor */
+.goal-stack {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 6px 0;
+}
+
+.goal-field {
+  display: flex;
+  /* label har en global regel med flex-direction: column — den skal slås fra
+     her, ellers lander teksten over feltet i stedet for ved siden af */
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.9rem;
+  font-weight: 400;
+}
+
+.goal-field input {
+  width: 96px;
+  flex: none;
+  text-align: right;
+}
+
+.goal-stack .btn-primary {
+  align-self: flex-end;
+}
+
+/* Når en indstilling rettes med flere felter, skal rækken være en kolonne —
+   ellers klemmes etiketterne sammen i en smal spalte ved siden af nøglen */
+.goal-row-edit {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  padding: 10px 0;
+}
+
+.goal-row-edit .goal-key {
+  font-weight: 700;
+}

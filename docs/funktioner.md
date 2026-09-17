@@ -24,6 +24,7 @@ En prisliste over, hvad hver ting flytter på måldatoen, delt i to: ting der sk
 
 ## "Træning i planen" — passets længde og antal dage
 Før stod der fast "en time, seks dage om ugen" i koden. Laver man i virkeligheden 45 minutter, passede måldatoen ikke, og hver enkelt 45-minutters gang faldt under dagsgrænsen og talte som nul. Nu sættes begge dele under "Mine mål" (`plan_minutes`, `plan_days`), og alt følger med: hvad ét pas er værd, grænsen for at en dag tæller, ugens mål, hyggedagens manglende pas, prislisten og kurven. Med hendes tal: 60 min × 6 dage = juli 2028, 45 min × 6 = august 2028, 45 min × 7 = juli 2028 (altså det samme som en time seks dage om ugen). Kræver kolonnerne — se bunden af `sql/schema.sql`.
+Felterne står UNDER hinanden med tekst ved siden af ("Minutter pr. gang 60", "Dage om ugen 6") og er udfyldt med de nuværende værdier fra start. To smalle kasser side om side uden etiketter var ikke til at bruge. Bemærk: `style.css` har en global regel `label { flex-direction: column }`, så et vandret felt-layout skal sætte `flex-direction: row` selv.
 **Begge felter viser måldatoen, MENS man taster**, så man kan sammenligne valg før man gemmer: "Med 7 × 45 min rammer du 65 kg i juli 2028". Samme på "Laveste dagsmål". Getteren hedder `planArrivalFor({ minutes, days, floor })` og kører hele kurven igennem med de midlertidige værdier.
 
 ## "Laveste dagsmål" — bunden under det tal, appen sætter

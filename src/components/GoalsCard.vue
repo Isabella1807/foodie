@@ -94,9 +94,9 @@ function edit(which) {
   } else if (which === 'weight') {
     input.value = goalKg.value || ''
   } else if (which === 'min') {
-    input.value = data.goals.min_kcal || ''
+    input.value = String(data.minGoal)
   } else if (which === 'session') {
-    input.value = data.planMinutes
+    input.value = String(data.planMinutes)
     rateInput.value = String(data.planDays)
   } else {
     input.value = macroGoals.value[which]
@@ -266,11 +266,17 @@ function save() {
       </template>
     </p>
 
-    <div class="goal-row">
+    <div class="goal-row" :class="{ 'goal-row-edit': editing === 'session' }">
       <span class="goal-key">Træning i planen</span>
-      <form v-if="editing === 'session'" class="goal-edit-form" @submit.prevent="save">
-        <input v-model="input" type="number" min="10" max="240" inputmode="numeric" placeholder="min" aria-label="Minutter pr. gang" />
-        <input v-model="rateInput" type="number" min="1" max="7" inputmode="numeric" placeholder="dage" aria-label="Dage om ugen" />
+      <form v-if="editing === 'session'" class="goal-stack" @submit.prevent="save">
+        <label class="goal-field">
+          <span>Minutter pr. gang</span>
+          <input v-model="input" type="number" min="10" max="240" inputmode="numeric" />
+        </label>
+        <label class="goal-field">
+          <span>Dage om ugen</span>
+          <input v-model="rateInput" type="number" min="1" max="7" inputmode="numeric" />
+        </label>
         <button class="btn-primary">Gem</button>
       </form>
       <p v-if="editing === 'session' && previewSession" class="goal-preview">
@@ -287,10 +293,13 @@ function save() {
       det til det, du faktisk gør, så passer måldatoen. Det første felt er minutter, det andet er dage.
     </p>
 
-    <div class="goal-row">
+    <div class="goal-row" :class="{ 'goal-row-edit': editing === 'min' }">
       <span class="goal-key">Laveste dagsmål</span>
-      <form v-if="editing === 'min'" class="goal-edit-form" @submit.prevent="save">
-        <input v-model="input" type="number" min="1200" inputmode="numeric" placeholder="kcal" aria-label="Laveste dagsmål i kcal" />
+      <form v-if="editing === 'min'" class="goal-stack" @submit.prevent="save">
+        <label class="goal-field">
+          <span>Laveste dagsmål i kcal</span>
+          <input v-model="input" type="number" min="1200" inputmode="numeric" />
+        </label>
         <button class="btn-primary">Gem</button>
       </form>
       <p v-if="editing === 'min' && previewMin" class="goal-preview">
