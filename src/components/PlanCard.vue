@@ -16,12 +16,19 @@ const fmtKg = (n) => n.toLocaleString('da-DK', { maximumFractionDigits: 1 })
 const MONTHS = ['januar', 'februar', 'marts', 'april', 'maj', 'juni', 'juli', 'august', 'september', 'oktober', 'november', 'december']
 
 // Måldatoen som "juni 2028" — dag og dato ville love en præcision, der ikke er der
-const arrival = computed(() => {
-  const d = plan.value?.arriveOn
+function asMonth(d) {
   if (!d) return null
   const [y, m] = d.split('-')
   return `${MONTHS[Number(m) - 1]} ${y}`
-})
+}
+const arrival = computed(() => asMonth(plan.value?.arriveOn))
+
+// Datoen bygger på de sidste ugers MÅLTE forbrug. Har man lige lagt rutinen om,
+// kender målingen den ikke endnu, og datoen er derfor for pessimistisk. Så
+// vises også den dato, rutinen fører til, når den er kommet med i målingen.
+const boost = computed(() => data.planBoost)
+const arrivalIfRoutine = computed(() => asMonth(data.planIfRoutine?.arriveOn))
+const showBoost = computed(() => boost.value && arrivalIfRoutine.value && arrivalIfRoutine.value !== arrival.value)
 
 // Dagens tre ting, der kan krydses af
 const movedToday = computed(() => Number(data.movement[today]?.minutes) >= 60)
@@ -53,6 +60,11 @@ function startPlan() {
       </p>
       <p v-if="arrival" class="plan-sub">
         Så rammer du {{ fmtKg(Number(data.goals.goal_kg)) }} kg i <strong>{{ arrival }}</strong>.
+      </p>
+      <p v-if="showBoost" class="plan-boost">
+        Datoen bygger på de sidste ugers målinger, hvor din bevægelse gav {{ boost.had }} kcal om dagen i snit.
+        Holder du timen hver dag, giver den {{ boost.planned }}, og så rykker målet frem til
+        <strong>{{ arrivalIfRoutine }}</strong>. Appen flytter selv datoen, efterhånden som den måler den nye rutine.
       </p>
       <p v-else-if="plan.stuckKg" class="plan-sub">
         Med det, du spiser nu, flader planen ud omkring {{ fmtKg(plan.stuckKg) }} kg.

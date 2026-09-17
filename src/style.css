@@ -1993,3 +1993,13 @@ label {
 .weight-table .muted-cell {
   color: var(--muted);
 }
+
+/* Forklaringen på, at måldatoen endnu bygger på den gamle rutine */
+.plan-boost {
+  margin: 0;
+  padding: 8px 10px;
+  font-size: 0.8rem;
+  color: var(--green-dark);
+  background: var(--green-soft);
+  border-radius: 8px;
+}

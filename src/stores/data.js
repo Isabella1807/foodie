@@ -5,6 +5,7 @@ import { localToday, weekStart, addDays } from '../lib/dates'
 import { kcalPerKgOf, bodyBurn } from '../lib/activity'
 import { estimateBurn, goalForRate } from '../lib/burn'
 import { planCurve, planStatus } from '../lib/plan'
+import { movementPerDay, planMovementPerDay } from '../lib/activityKcal'
 import { sumMacros, defaultMacroGoals, MACROS, REACH_GOALS } from '../lib/nutrition'
 import { balance } from '../lib/balance'
 import { encouragements } from '../lib/encourage'
@@ -288,6 +289,40 @@ export const useDataStore = defineStore('data', {
         targetKg: Number(g.goal_kg),
         rate: Number(g.loss_per_week),
         burn: { kcal: burn.kcal, kg: atKg },
+      })
+      return curve.ready ? curve : null
+    },
+
+    // Det målte forbrug bagud i tid kender kun den bevægelse, der ALLEREDE er
+    // logget. Har man lige lagt rutinen om, undervurderer det derfor forbruget
+    // fremad. Her regnes forskellen ud: hvad planens time giver, minus hvad
+    // bevægelsen faktisk gav i den periode, forbruget blev målt over.
+    // Giver null, når forskellen er lille nok til ikke at betyde noget.
+    planBoost(state) {
+      const burn = this.measuredBurn
+      const kg = this.currentWeight
+      if (!burn.ready || !kg) return null
+      const had = movementPerDay(state.movement, burn.from, burn.to, kg)
+      const planned = planMovementPerDay(kg)
+      const extra = Math.round(planned - had)
+      if (extra < 50) return null
+      return { extra, had: Math.round(had), planned: Math.round(planned), from: burn.from, to: burn.to }
+    },
+
+    // Planen, som den ser ud HVIS timen hver dag holdes — altså når det målte
+    // forbrug har nået at indhente den nye rutine
+    planIfRoutine(state) {
+      const g = state.goals
+      const burn = this.measuredBurn
+      const kg = this.currentWeight
+      const boost = this.planBoost
+      if (!boost || !g.plan_start_on || !g.plan_start_kg || !g.goal_kg || !g.loss_per_week) return null
+      if (!burn.ready || !kg) return null
+      const curve = planCurve({
+        start: { on: g.plan_start_on, kg: Number(g.plan_start_kg) },
+        targetKg: Number(g.goal_kg),
+        rate: Number(g.loss_per_week),
+        burn: { kcal: burn.kcal + boost.extra, kg },
       })
       return curve.ready ? curve : null
     },

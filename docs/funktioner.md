@@ -74,6 +74,7 @@ Tre faner i bunden: **I dag**, **Kalender**, **Mad**.
 - Nederst en linje om, at en hyggedag på op til 2500 kcal hver 14. dag ER regnet med i planen. Det er med vilje: en kurve, der kun holder på perfekte uger, ville sige "du er bagud" hver eneste uge.
 - Har man ikke startet planen endnu, står der en knap "Start planen i dag". Den gemmer dagens dato og dagens vægt som planens nulpunkt.
 - Kurven regner dag for dag og tager højde for, at forbrændingen falder med cirka 13 kcal pr. tabt kilo, og at dagsmålet har en bund på 1200. Derfor går de sidste kilo langsommere end de første. Se `src/lib/plan.js`.
+- **To datoer, når rutinen lige er lagt om.** Måldatoen bygger på det MÅLTE forbrug, og målingen kender kun den bevægelse, der allerede er logget. Har man lige sat en ny rutine i gang, er datoen derfor for pessimistisk. Er forskellen over 50 kcal om dagen, vises en grøn linje: hvad bevægelsen gav i måleperioden, hvad planens time giver, og hvilken dato rutinen fører til. Datoen flytter sig selv, efterhånden som målingen indhenter rutinen. Satserne pr. slags bevægelse ligger i `src/lib/activityKcal.js` og er NETTO, altså ud over hvad man ville brænde siddende.
 - Kræver to kolonner i databasen, `plan_start_on` og `plan_start_kg` — se bunden af `sql/schema.sql`.
 
 ### Forslag (vises kun når det er relevant)
