@@ -9,6 +9,16 @@ import { KCAL_MACROS, MACRO_LABELS, FIBER_FLOOR, FIBER_PER_MJ, KCAL_PER_MJ } fro
 const data = useDataStore()
 const box = useCollapse('goals')
 const help = useCollapse('goalshelp', false)
+const MONTHS = ['januar', 'februar', 'marts', 'april', 'maj', 'juni', 'juli', 'august', 'september', 'oktober', 'november', 'december']
+
+// Måldatoen for det, der står i felterne lige nu — så man kan se prisen for et
+// valg, FØR man gemmer det
+function asMonth(d) {
+  if (!d) return null
+  const [y, m] = d.split('-')
+  return `${MONTHS[Number(m) - 1]} ${y}`
+}
+
 const editing = ref(null) // null | 'kcal' | 'weight' | 'protein' | 'carbs' | 'fat' | 'fiber'
 const input = ref('')
 // Dagsmålet er enten et fast tal, eller appen regner det ud fra dit målte
@@ -92,6 +102,12 @@ function edit(which) {
     input.value = macroGoals.value[which]
   }
 }
+
+// Forhåndsvisning mens der tastes i "Træning i planen" og "Laveste dagsmål"
+const previewSession = computed(() =>
+  asMonth(data.planArrivalFor({ minutes: input.value, days: rateInput.value })),
+)
+const previewMin = computed(() => asMonth(data.planArrivalFor({ floor: input.value })))
 
 function save() {
   if (editing.value === 'kcal') {
@@ -257,6 +273,10 @@ function save() {
         <input v-model="rateInput" type="number" min="1" max="7" inputmode="numeric" placeholder="dage" aria-label="Dage om ugen" />
         <button class="btn-primary">Gem</button>
       </form>
+      <p v-if="editing === 'session' && previewSession" class="goal-preview">
+        Med {{ rateInput || data.planDays }} × {{ input || data.planMinutes }} min rammer du
+        {{ fmtKg(goalKg) }} kg i <strong>{{ previewSession }}</strong>.
+      </p>
       <template v-else>
         <span class="goal-val">{{ data.planDays }} × {{ data.planMinutes }} min</span>
         <button class="link" @click="edit('session')">ret</button>
@@ -273,6 +293,10 @@ function save() {
         <input v-model="input" type="number" min="1200" inputmode="numeric" placeholder="kcal" aria-label="Laveste dagsmål i kcal" />
         <button class="btn-primary">Gem</button>
       </form>
+      <p v-if="editing === 'min' && previewMin" class="goal-preview">
+        Med en bund på {{ input || data.minGoal }} kcal rammer du {{ fmtKg(goalKg) }} kg i
+        <strong>{{ previewMin }}</strong>.
+      </p>
       <template v-else>
         <span class="goal-val">{{ data.minGoal }} kcal</span>
         <button class="link" @click="edit('min')">ret</button>

@@ -437,6 +437,43 @@ export const useDataStore = defineStore('data', {
       return burn.kcal + (this.planBoost?.extra ?? 0)
     },
 
+    // Måldatoen, HVIS man vælger andre indstillinger end dem, der er gemt.
+    // Bruges til at vise konsekvensen med det samme, mens man taster, i stedet
+    // for at man skal gemme og bagefter scrolle op og lede efter datoen.
+    // Giver en dato-streng eller null.
+    planArrivalFor(state) {
+      return ({ minutes, days, floor } = {}) => {
+        const g = state.goals
+        const kg = this.currentWeight
+        const burn = this.measuredBurn
+        if (!g.plan_start_on || !g.plan_start_kg || !g.goal_kg || !g.loss_per_week) return null
+        if (!burn.ready || !kg) return null
+
+        const mins = Math.round(Number(minutes)) || this.planMinutes
+        const dayCount = (() => {
+          const n = Math.round(Number(days))
+          return n >= 1 && n <= 7 ? n : this.planDays
+        })()
+        const low = Math.max(MIN_GOAL, Math.round(Number(floor)) || this.minGoal)
+
+        // Samme korrektion som planBoost: målingen kender kun den bevægelse,
+        // der allerede er logget, så den nye rutine lægges oveni
+        const had = movementPerDay(state.movement, burn.from, burn.to, kg)
+        const planned = planMovementPerDay(kg, mins, dayCount)
+        const extra = Math.max(0, Math.round(planned - had))
+
+        const curve = planCurve({
+          start: { on: g.plan_start_on, kg: Number(g.plan_start_kg) },
+          targetKg: Number(g.goal_kg),
+          rate: Number(g.loss_per_week),
+          burn: { kcal: burn.kcal + extra, kg },
+          movementPerKg: planPerKg(mins),
+          floor: low,
+        })
+        return curve.arriveOn ?? null
+      }
+    },
+
     // Prisliste: hvad hver ting koster eller vinder på måldatoen.
     //
     // Skelnen, der betyder alt: noget sker ÉN gang (en sprunget træning), og

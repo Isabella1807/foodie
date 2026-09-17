@@ -2232,3 +2232,14 @@ label {
   text-align: right;
   white-space: nowrap;
 }
+
+/* Konsekvensen af et valg, vist mens der tastes */
+.goal-preview {
+  grid-column: 1 / -1;
+  margin: 2px 0 0;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: var(--green-soft);
+  font-size: 0.82rem;
+  color: var(--green-dark);
+}
