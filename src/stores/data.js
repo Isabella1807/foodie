@@ -450,17 +450,20 @@ export const useDataStore = defineStore('data', {
         // Måneden måldatoen falder i — så overskriften kan sige, hvor lang
         // "resten af vejen" faktisk er
         until: curve.arriveOn,
+        // Kalorierne er det egentlige. Tiden er bare den ene af to måder at
+        // betale dem på — den anden er mindre mad, fordi appen sætter dagsmålet
+        // ned, når forbrændingen falder.
         once: [
-          { text: 'Du springer én træning over', days: once(one), bad: true },
-          { text: 'Du tager én ekstra time', days: -once(one), bad: false },
-          { text: 'Du spiser 500 kcal over målet én dag', days: once(500), bad: true },
-          { text: 'Du springer én hyggedag over', days: -once(treat * 14), bad: false },
+          { text: 'Én sprunget træning', kcal: -Math.round(one), days: once(one), bad: true },
+          { text: 'Én ekstra time', kcal: Math.round(one), days: -once(one), bad: false },
+          { text: 'Én dag 500 kcal over målet', kcal: -500, days: once(500), bad: true },
+          { text: 'Én sprunget hyggedag', kcal: Math.round(treat * 14), days: -once(treat * 14), bad: false },
         ],
         daily: [
-          { text: 'Du spiser 100 kcal mere om dagen', days: shifted(-100), bad: true },
-          { text: 'Du spiser 100 kcal mindre om dagen', days: shifted(100), bad: false },
-          { text: 'Du tager syv timer om ugen i stedet for seks', days: shifted(one / 7), bad: false },
-          { text: 'Du nøjes med fem timer om ugen', days: shifted(-one / 7), bad: true },
+          { text: '100 kcal mere om dagen', kcal: -700, days: shifted(-100), bad: true },
+          { text: '100 kcal mindre om dagen', kcal: 700, days: shifted(100), bad: false },
+          { text: 'Syv timer om ugen i stedet for seks', kcal: Math.round(one), days: shifted(one / 7), bad: false },
+          { text: 'Kun fem timer om ugen', kcal: -Math.round(one), days: shifted(-one / 7), bad: true },
         ],
       }
     },

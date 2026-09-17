@@ -44,30 +44,50 @@ function say(days) {
       <span v-if="!box.open" class="card-head-note">i dage på måldatoen</span>
     </p>
 
-    <p class="price-head">Én enkelt gang</p>
-    <ul class="price-list">
-      <li v-for="p in prices.once" :key="p.text">
-        <span>{{ p.text }}</span>
-        <span class="price-num" :class="p.bad ? 'over-text' : 'good-text'">
-          {{ p.days > 0 ? '+' : '−' }}{{ say(p.days) }}
-        </span>
-      </li>
-    </ul>
+    <p class="price-head">Pr. gang</p>
+    <table class="price-table">
+      <thead>
+        <tr><th></th><th>i kalorier</th><th>i tid</th></tr>
+      </thead>
+      <tbody>
+        <tr v-for="p in prices.once" :key="p.text">
+          <td>{{ p.text }}</td>
+          <td class="price-num" :class="p.bad ? 'over-text' : 'good-text'">
+            {{ p.kcal > 0 ? '+' : '−' }}{{ Math.abs(p.kcal).toLocaleString('da-DK') }}
+          </td>
+          <td class="price-num" :class="p.bad ? 'over-text' : 'good-text'">
+            {{ p.days > 0 ? '+' : '−' }}{{ say(p.days) }}
+          </td>
+        </tr>
+      </tbody>
+    </table>
 
     <p class="price-head price-gap">Hver uge, hele vejen til {{ until }}</p>
-    <ul class="price-list">
-      <li v-for="p in prices.daily" :key="p.text">
-        <span>{{ p.text }}</span>
-        <span class="price-num" :class="p.bad ? 'over-text' : 'good-text'">
-          {{ p.days > 0 ? '+' : '−' }}{{ say(p.days) }}
-        </span>
-      </li>
-    </ul>
+    <table class="price-table">
+      <thead>
+        <tr><th></th><th>pr. uge</th><th>i alt</th></tr>
+      </thead>
+      <tbody>
+        <tr v-for="p in prices.daily" :key="p.text">
+          <td>{{ p.text }}</td>
+          <td class="price-num" :class="p.bad ? 'over-text' : 'good-text'">
+            {{ p.kcal > 0 ? '+' : '−' }}{{ Math.abs(p.kcal).toLocaleString('da-DK') }}
+          </td>
+          <td class="price-num" :class="p.bad ? 'over-text' : 'good-text'">
+            {{ p.days > 0 ? '+' : '−' }}{{ say(p.days) }}
+          </td>
+        </tr>
+      </tbody>
+    </table>
 
     <p class="plan-sub">
-      Plus betyder længere tid til målet, minus betyder hurtigere. Den nederste liste gælder KUN, hvis det
-      bliver sådan hver eneste uge herfra og til {{ until }}. Sker det bare en uge eller to, hører det
-      hjemme i den øverste liste.
+      Kalorierne er det egentlige. Tiden er kun den ene måde at betale dem på. Den anden er mindre mad:
+      træner du mindre, måler appen et lavere forbrug og sætter dit dagsmål ned, så tempoet holdes. Derfor
+      ser tiden lille ud, selvom prisen er reel — du betaler den på tallerkenen i stedet.
+    </p>
+    <p class="plan-sub">
+      Den nederste liste gælder KUN, hvis det bliver sådan hver eneste uge herfra og til {{ until }}.
+      Sker det en uge eller to, hører det hjemme i den øverste.
     </p>
   </section>
 </template>

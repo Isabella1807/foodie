@@ -2199,3 +2199,36 @@ label {
   font-weight: 700;
   color: var(--ink);
 }
+
+.price-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.price-table th {
+  text-align: right;
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: var(--muted);
+  padding: 0 0 4px 10px;
+}
+
+.price-table th:first-child {
+  text-align: left;
+}
+
+.price-table td {
+  padding: 5px 0 5px 10px;
+  border-top: 1px solid var(--line);
+}
+
+.price-table td:first-child {
+  padding-left: 0;
+}
+
+.price-table .price-num {
+  text-align: right;
+  white-space: nowrap;
+}
