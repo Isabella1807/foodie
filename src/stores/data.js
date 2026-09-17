@@ -305,12 +305,14 @@ export const useDataStore = defineStore('data', {
       const g = state.goals
       const burn = this.measuredBurn
       const atKg = this.currentWeight
-      if (!g.plan_start_on || !g.plan_start_kg || !g.goal_kg || !g.loss_per_week) return null
+      if (!g.plan_start_on || !g.plan_start_kg || !g.goal_kg) return null
+      if (!g.loss_per_week && !this.fixedGoal) return null
       if (!burn.ready || !atKg) return null
       const curve = planCurve({
         start: { on: g.plan_start_on, kg: Number(g.plan_start_kg) },
         targetKg: Number(g.goal_kg),
         rate: Number(g.loss_per_week),
+        fixedGoal: g.loss_per_week ? null : this.fixedGoal,
         burn: { kcal: burn.kcal, kg: atKg },
         movementPerKg: planPerKg(this.planMinutes),
         floor: this.minGoal,
@@ -342,13 +344,15 @@ export const useDataStore = defineStore('data', {
       const burn = this.measuredBurn
       const kg = this.currentWeight
       const boost = this.planBoost
-      if (!g.plan_start_on || !g.plan_start_kg || !g.goal_kg || !g.loss_per_week) return null
+      if (!g.plan_start_on || !g.plan_start_kg || !g.goal_kg) return null
+      if (!g.loss_per_week && !this.fixedGoal) return null
       if (!burn.ready || !kg) return null
       if (!boost) return this.planMeasured
       const curve = planCurve({
         start: { on: g.plan_start_on, kg: Number(g.plan_start_kg) },
         targetKg: Number(g.goal_kg),
         rate: Number(g.loss_per_week),
+        fixedGoal: g.loss_per_week ? null : this.fixedGoal,
         burn: { kcal: burn.kcal + boost.extra, kg },
         movementPerKg: planPerKg(this.planMinutes),
         floor: this.minGoal,
@@ -442,12 +446,20 @@ export const useDataStore = defineStore('data', {
     // for at man skal gemme og bagefter scrolle op og lede efter datoen.
     // Giver en dato-streng eller null.
     planArrivalFor(state) {
-      return ({ minutes, days, floor } = {}) => {
+      return ({ minutes, days, floor, intake, rate } = {}) => {
         const g = state.goals
         const kg = this.currentWeight
         const burn = this.measuredBurn
-        if (!g.plan_start_on || !g.plan_start_kg || !g.goal_kg || !g.loss_per_week) return null
+        if (!g.plan_start_on || !g.plan_start_kg || !g.goal_kg) return null
         if (!burn.ready || !kg) return null
+
+        // Enten et fast dagsmål eller kg om ugen — det man er ved at taste
+        // vinder over det, der står gemt
+        const eat = Math.round(Number(intake)) || 0
+        const perWeek = Number(String(rate ?? '').replace(',', '.')) || 0
+        const useFixed = eat > 0 ? eat : perWeek > 0 ? 0 : Number(g.loss_per_week) ? 0 : this.fixedGoal
+        const useRate = eat > 0 ? 0 : perWeek > 0 ? perWeek : Number(g.loss_per_week) || 0
+        if (!useFixed && !useRate) return null
 
         const mins = Math.round(Number(minutes)) || this.planMinutes
         const dayCount = (() => {
@@ -465,7 +477,8 @@ export const useDataStore = defineStore('data', {
         const curve = planCurve({
           start: { on: g.plan_start_on, kg: Number(g.plan_start_kg) },
           targetKg: Number(g.goal_kg),
-          rate: Number(g.loss_per_week),
+          rate: useRate,
+          fixedGoal: useFixed || null,
           burn: { kcal: burn.kcal + extra, kg },
           movementPerKg: planPerKg(mins),
           floor: low,

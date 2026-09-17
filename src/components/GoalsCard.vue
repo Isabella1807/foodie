@@ -108,6 +108,13 @@ const previewSession = computed(() =>
   asMonth(data.planArrivalFor({ minutes: input.value, days: rateInput.value })),
 )
 const previewMin = computed(() => asMonth(data.planArrivalFor({ floor: input.value })))
+const previewKcal = computed(() =>
+  asMonth(
+    goalMode.value === 'fixed'
+      ? data.planArrivalFor({ intake: input.value })
+      : data.planArrivalFor({ rate: rateInput.value }),
+  ),
+)
 
 function save() {
   if (editing.value === 'kcal') {
@@ -164,12 +171,18 @@ function save() {
         <span class="goal-unit">kcal om dagen</span>
         <button class="btn-primary">Gem</button>
       </div>
+      <p v-if="goalMode === 'fixed' && previewKcal" class="goal-preview">
+        Med {{ input }} kcal om dagen rammer du {{ fmtKg(goalKg) }} kg i <strong>{{ previewKcal }}</strong>.
+      </p>
       <template v-else>
         <div class="goal-edit-form">
           <input v-model="rateInput" type="text" inputmode="decimal" aria-label="Kg du vil tabe om ugen" />
           <span class="goal-unit">kg om ugen</span>
           <button class="btn-primary" :disabled="!toRate(rateInput)">Gem</button>
         </div>
+        <p v-if="previewKcal" class="goal-preview">
+          Med {{ rateInput }} kg om ugen rammer du {{ fmtKg(goalKg) }} kg i <strong>{{ previewKcal }}</strong>.
+        </p>
         <p class="goal-note goal-note-plain">
           Appen regner dagsmålet ud fra dit målte forbrug, så du står til at tabe det her om ugen.
           Målet sættes hver mandag og gælder ugen ud, så det ikke hopper fra dag til dag. Det går aldrig under {{ fmt(MIN_GOAL) }} kcal.

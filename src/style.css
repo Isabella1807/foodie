@@ -2288,3 +2288,17 @@ label {
 .goal-row-edit .goal-key {
   font-weight: 700;
 }
+
+/* "hvis jeg spiser": linjen med det nuværende mål fremhæves */
+.intake-now td {
+  font-weight: 700;
+  background: var(--green-soft);
+}
+
+.intake-own {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 4px;
+  border-top: 1px solid var(--line);
+}

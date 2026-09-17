@@ -38,10 +38,16 @@ const MAX_DAYS = 2200 // godt 6 år — derefter giver det ikke mening at tegne 
 // dagsmålets bund betyder, at underskuddet når nul først.
 // movementPerKg: hvad planens daglige time giver pr. kilo kropsvægt. Bruges til
 // at regne den time med, der ryger på en hyggedag.
-export function planCurve({ start, targetKg, rate, burn, movementPerKg = 0, floor = MIN_GOAL }) {
-  if (!start?.on || !(start.kg > 0) || !(targetKg > 0) || !(rate > 0) || !(burn?.kcal > 0)) {
+// Enten `rate` (kg om ugen, så dagsmålet følger forbrændingen) eller
+// `fixedGoal` (samme antal kcal hver dag). Et fast tal betyder, at underskuddet
+// vokser, efterhånden som man bliver lettere... nej, det falder: forbrændingen
+// falder, og målet står stille, så der bliver mindre og mindre tilbage.
+export function planCurve({ start, targetKg, rate, burn, movementPerKg = 0, floor = MIN_GOAL, fixedGoal = null }) {
+  const fixed = Math.round(Number(fixedGoal)) || 0
+  if (!start?.on || !(start.kg > 0) || !(targetKg > 0) || !(burn?.kcal > 0)) {
     return { ready: false, days: [] }
   }
+  if (!(rate > 0) && !(fixed > 0)) return { ready: false, days: [] }
   if (start.kg <= targetKg) return { ready: true, days: [{ date: start.on, kg: start.kg }], arriveOn: start.on }
 
   const days = [{ date: start.on, kg: round1(start.kg) }]
@@ -50,7 +56,7 @@ export function planCurve({ start, targetKg, rate, burn, movementPerKg = 0, floo
 
   for (let i = 0; i < MAX_DAYS; i++) {
     const burnNow = burn.kcal - BURN_PER_KG * (burn.kg - kg)
-    const { goal } = goalForRate(burnNow, rate, floor)
+    const goal = fixed > 0 ? Math.max(floor, fixed) : goalForRate(burnNow, rate, floor).goal
     // Hyggedagen fordelt ud over de dage, der er mellem to af dem — både maden
     // og den time, der ikke bliver lavet den dag
     const treat = treatPerDay(goal, movementPerKg * kg)
