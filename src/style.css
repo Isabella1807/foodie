@@ -2078,3 +2078,24 @@ label {
 .card.collapsed > .card-head::after {
   content: '›';
 }
+
+/* Forklaringen på plan-kortet: skjult som udgangspunkt, så tallene står rene */
+.plan-why {
+  align-self: flex-start;
+  font-size: 0.85rem;
+}
+
+.plan-explain {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--bg);
+}
+
+.plan-explain p {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+}

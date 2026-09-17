@@ -10,6 +10,7 @@ import { PLAN_MINUTES, PLAN_DAYS_PER_WEEK, oneSessionKcal, kcalForMovement, puls
 // ligger foran eller bagud. Kurven bag tallene ligger i lib/plan.js.
 const data = useDataStore()
 const box = useCollapse('plan')
+const why = useCollapse('planwhy')
 const today = localToday()
 
 const plan = computed(() => data.plan)
@@ -91,12 +92,7 @@ function startPlan() {
       <p v-if="arrival" class="plan-sub">
         Holder du planen, rammer du {{ fmtKg(Number(data.goals.goal_kg)) }} kg i <strong>{{ arrival }}</strong>.
       </p>
-      <p v-if="showBoost" class="plan-boost">
-        Målt på de sidste ugers tal alene ville det være {{ arrivalMeasured }}, for din bevægelse gav kun
-        {{ boost.had }} kcal om dagen i den periode mod planens {{ boost.planned }}. Målingen kender endnu ikke
-        din nye rutine. Den indhenter sig selv i løbet af et par uger.
-      </p>
-      <p v-else-if="plan.stuckKg" class="plan-sub">
+      <p v-if="plan.stuckKg" class="plan-sub">
         Med det, du spiser nu, flader planen ud omkring {{ fmtKg(plan.stuckKg) }} kg.
       </p>
 
@@ -135,8 +131,8 @@ function startPlan() {
           <span class="plan-bank-unit">kcal {{ balance.total >= 0 ? 'vundet' : 'brugt forud' }}</span>
         </p>
         <p v-if="!balance.loggedDays" class="plan-sub">
-          Kontoen begynder i morgen. Hver dag du spiser under dit mål, eller træner mere end planen venter,
-          lægger forskellen sig her.
+          Begynder i morgen. Spiser du under dit mål, eller træner du mere end planen venter, lægger
+          forskellen sig her.
         </p>
         <p v-else-if="balance.daysWon > 0" class="plan-sub">
           Det er <strong>{{ balance.daysWon }} dage</strong> hurtigere mod målet, end planen regnede med.
@@ -155,23 +151,32 @@ function startPlan() {
         </p>
       </div>
 
-      <p class="plan-sub plan-treat">
-        <strong>Så hårdt skal timen være:</strong> du skal kunne sige en kort sætning, men ikke synge, og
-        du skal kunne høre din egen vejrtrækning.
-        <template v-if="pulse"> Det svarer til en puls omkring {{ pulse.low }} til {{ pulse.high }}.</template>
-        <template v-else> Skriv din alder ind under "Mine mål", så regner jeg pulsen ud for dig.</template>
-      </p>
-      <p class="plan-sub">
-        {{ PLAN_MINUTES }} minutters Beat Saber på expert rammer det, og det samme gør gang i 5,5 km i timen.
-        En almindelig gåtur er cirka det halve værd, og så skal der halvanden time til. Derfor tæller kortet
-        kalorier og ikke bare minutter.
-      </p>
-      <p class="plan-sub">
-        <strong>Din plads i planen:</strong> én fridag fra træningen om ugen, og en hyggedag på op til
-        {{ TREAT_KCAL }} kcal hver {{ TREAT_EVERY_DAYS }}. dag, hvor der heller ikke trænes. Begge dele er
-        betalt på forhånd. Bruger du dem ikke, lægger de sig på kontoen ovenfor, og du kan bruge dem en
-        anden dag uden at måldatoen skrider.
-      </p>
+      <button type="button" class="link plan-why" @click="why.toggle()">
+        {{ why.open ? 'skjul forklaringen' : 'hvordan virker planen?' }}
+      </button>
+
+      <div v-show="why.open" class="plan-explain">
+        <p>
+          <strong>Så hårdt skal timen være.</strong> Du skal kunne sige en kort sætning, men ikke synge, og
+          du skal kunne høre din egen vejrtrækning.
+          <template v-if="pulse"> Det svarer til en puls omkring {{ pulse.low }} til {{ pulse.high }}.</template>
+          <template v-else> Skriv din alder ind under "Mine mål", så regner jeg pulsen ud for dig.</template>
+          {{ PLAN_MINUTES }} minutters Beat Saber på expert rammer det, og det samme gør gang i 5,5 km i timen.
+          En almindelig gåtur er cirka det halve værd. Derfor tæller kortet kalorier og ikke bare minutter.
+        </p>
+        <p>
+          <strong>Din plads i planen.</strong> Én fridag fra træningen om ugen, og en hyggedag på op til
+          {{ TREAT_KCAL }} kcal hver {{ TREAT_EVERY_DAYS }}. dag, hvor der heller ikke trænes. Begge dele er
+          betalt på forhånd. Bruger du dem ikke, lægger de sig på hygge-kontoen, og du kan bruge dem en
+          anden dag uden at måldatoen skrider.
+        </p>
+        <p v-if="showBoost">
+          <strong>Hvorfor datoen flytter sig.</strong> Målt på de sidste ugers tal alene ville målet være
+          {{ arrivalMeasured }}, for din bevægelse gav kun {{ boost.had }} kcal om dagen i den periode mod
+          planens {{ boost.planned }}. Målingen kender endnu ikke din nye rutine, og den indhenter sig selv
+          i løbet af et par uger.
+        </p>
+      </div>
     </template>
 
     <template v-else-if="!data.goals.plan_start_on">

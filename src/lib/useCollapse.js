@@ -3,7 +3,7 @@
 //
 // Tilstanden ligger kun i browseren: den er en visnings-indstilling, ikke data,
 // og skal ikke fylde i databasen eller følge med til en anden telefon.
-import { ref, computed } from 'vue'
+import { ref, computed, reactive } from 'vue'
 
 const PREFIX = 'foodie.card.'
 
@@ -46,5 +46,8 @@ export function useCollapse(key) {
     },
   }))
 
-  return { open, toggle, head }
+  // reactive() og ikke et almindeligt objekt: så pakkes ref'erne selv ud i
+  // skabelonen, og man skriver box.open i stedet for box.open.value. Et
+  // almindeligt objekt ville give selve ref'en, som ALTID er sand.
+  return reactive({ open, toggle, head })
 }
