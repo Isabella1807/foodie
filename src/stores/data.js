@@ -148,10 +148,20 @@ export const useDataStore = defineStore('data', {
       return oneSessionKcal(this.currentWeight, this.planMinutes)
     },
 
-    // Din egen bund under dagsmålet. Uden en bund sætter appen maden ned, hver
-    // gang forbrændingen falder — også når det skyldes en sprunget træning.
+    // Hvor langt NED appen må sætte dagsmålet.
+    //
+    // Som standard er det dit eget daglige mål. Altså: appen må gerne give dig
+    // MERE at spise, når forbrændingen tillader det, men den beder dig aldrig om
+    // mindre, end du selv har sat. Falder forbrændingen — fx fordi en træning
+    // blev sprunget over — rykker måldatoen i stedet.
+    //
+    // Det var før omvendt: bunden var 1200, med mindre man selv fandt og satte
+    // et tal. Så kunne appen skære i maden, uden at man havde bedt om det, og
+    // det er præcis det, den ikke skal.
     minGoal(state) {
-      return Math.max(MIN_GOAL, Math.round(Number(state.goals.min_kcal)) || MIN_GOAL)
+      const egen = Math.round(Number(state.goals.min_kcal)) || 0
+      if (egen > 0) return Math.max(MIN_GOAL, egen)
+      return Math.max(MIN_GOAL, Math.round(Number(state.goals.kcal_goal)) || MIN_GOAL)
     },
 
     // Dit forbrug, som det så ud på en bestemt dato: kun vejninger til og med
@@ -441,10 +451,10 @@ export const useDataStore = defineStore('data', {
       return burn.kcal + (this.planBoost?.extra ?? 0)
     },
 
-    // Måldatoen, HVIS man vælger andre indstillinger end dem, der er gemt.
+    // Udfaldet, HVIS man vælger andre indstillinger end dem, der er gemt.
     // Bruges til at vise konsekvensen med det samme, mens man taster, i stedet
     // for at man skal gemme og bagefter scrolle op og lede efter datoen.
-    // Giver en dato-streng eller null.
+    // Giver { on, stuckKg }: enten en dato, eller den vægt hvor det går i stå.
     planArrivalFor(state) {
       return ({ minutes, days, floor, intake, rate } = {}) => {
         const g = state.goals
@@ -483,7 +493,7 @@ export const useDataStore = defineStore('data', {
           movementPerKg: planPerKg(mins),
           floor: low,
         })
-        return curve.arriveOn ?? null
+        return { on: curve.arriveOn ?? null, stuckKg: curve.stuckKg ?? null }
       }
     },
 

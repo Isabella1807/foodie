@@ -38,8 +38,8 @@ function say(days) {
 }
 
 function row(kcal) {
-  const date = data.planArrivalFor({ intake: kcal })
-  return { kcal, maaned: asMonth(date), days: shift(date), naaes: !!date }
+  const r = data.planArrivalFor({ intake: kcal }) || {}
+  return { kcal, maaned: asMonth(r.on), days: shift(r.on), naaes: !!r.on, stuckKg: r.stuckKg }
 }
 
 // Et spænd omkring dagsmålet, så man kan se både op og ned
@@ -69,7 +69,7 @@ const mine = computed(() => {
       <tbody>
         <tr v-for="r in rows" :key="r.kcal" :class="{ 'intake-now': r.kcal === goal }">
           <td>{{ r.kcal.toLocaleString('da-DK') }} kcal<template v-if="r.kcal === goal"> · dit mål i dag</template></td>
-          <td class="price-num">{{ r.naaes ? r.maaned : 'aldrig' }}</td>
+          <td class="price-num">{{ r.naaes ? r.maaned : r.stuckKg ? 'stopper ved ' + r.stuckKg.toLocaleString('da-DK') + ' kg' : 'aldrig' }}</td>
           <td class="price-num" :class="r.days > 0 ? 'over-text' : r.days < 0 ? 'good-text' : ''">
             <template v-if="!r.naaes">—</template>
             <template v-else-if="r.days === 0">som planlagt</template>
@@ -91,7 +91,10 @@ const mine = computed(() => {
           <template v-if="mine.days === 0">altså som planlagt.</template>
           <template v-else>{{ say(mine.days) }} {{ mine.days > 0 ? 'senere' : 'tidligere' }} end planen.</template>
         </template>
-        <template v-else>Med {{ mine.kcal.toLocaleString('da-DK') }} kcal om dagen når du ikke målet.</template>
+        <template v-else>
+          Med {{ mine.kcal.toLocaleString('da-DK') }} kcal om dagen går det i stå omkring
+          <strong>{{ (mine.stuckKg ?? 0).toLocaleString('da-DK') }} kg</strong>.
+        </template>
       </p>
     </form>
 

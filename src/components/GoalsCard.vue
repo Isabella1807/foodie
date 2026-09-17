@@ -104,16 +104,12 @@ function edit(which) {
 }
 
 // Forhåndsvisning mens der tastes i "Træning i planen" og "Laveste dagsmål"
-const previewSession = computed(() =>
-  asMonth(data.planArrivalFor({ minutes: input.value, days: rateInput.value })),
-)
-const previewMin = computed(() => asMonth(data.planArrivalFor({ floor: input.value })))
+const previewSession = computed(() => data.planArrivalFor({ minutes: input.value, days: rateInput.value }))
+const previewMin = computed(() => data.planArrivalFor({ floor: input.value }))
 const previewKcal = computed(() =>
-  asMonth(
-    goalMode.value === 'fixed'
-      ? data.planArrivalFor({ intake: input.value })
-      : data.planArrivalFor({ rate: rateInput.value }),
-  ),
+  goalMode.value === 'fixed'
+    ? data.planArrivalFor({ intake: input.value })
+    : data.planArrivalFor({ rate: rateInput.value }),
 )
 
 function save() {
@@ -172,7 +168,8 @@ function save() {
         <button class="btn-primary">Gem</button>
       </div>
       <p v-if="goalMode === 'fixed' && previewKcal" class="goal-preview">
-        Med {{ input }} kcal om dagen rammer du {{ fmtKg(goalKg) }} kg i <strong>{{ previewKcal }}</strong>.
+        <template v-if="previewKcal.on">Med {{ input }} kcal om dagen rammer du {{ fmtKg(goalKg) }} kg i <strong>{{ asMonth(previewKcal.on) }}</strong>.</template>
+        <template v-else-if="previewKcal.stuckKg">Med {{ input }} kcal om dagen går det i stå omkring <strong>{{ fmtKg(previewKcal.stuckKg) }} kg</strong>.</template>
       </p>
       <template v-else>
         <div class="goal-edit-form">
@@ -181,7 +178,8 @@ function save() {
           <button class="btn-primary" :disabled="!toRate(rateInput)">Gem</button>
         </div>
         <p v-if="previewKcal" class="goal-preview">
-          Med {{ rateInput }} kg om ugen rammer du {{ fmtKg(goalKg) }} kg i <strong>{{ previewKcal }}</strong>.
+          <template v-if="previewKcal.on">Med {{ rateInput }} kg om ugen rammer du {{ fmtKg(goalKg) }} kg i <strong>{{ asMonth(previewKcal.on) }}</strong>.</template>
+          <template v-else-if="previewKcal.stuckKg">Med {{ rateInput }} kg om ugen går det i stå omkring <strong>{{ fmtKg(previewKcal.stuckKg) }} kg</strong>.</template>
         </p>
         <p class="goal-note goal-note-plain">
           Appen regner dagsmålet ud fra dit målte forbrug, så du står til at tabe det her om ugen.
@@ -293,8 +291,14 @@ function save() {
         <button class="btn-primary">Gem</button>
       </form>
       <p v-if="editing === 'session' && previewSession" class="goal-preview">
-        Med {{ rateInput || data.planDays }} × {{ input || data.planMinutes }} min rammer du
-        {{ fmtKg(goalKg) }} kg i <strong>{{ previewSession }}</strong>.
+        <template v-if="previewSession.on">
+          Med {{ rateInput || data.planDays }} × {{ input || data.planMinutes }} min rammer du
+          {{ fmtKg(goalKg) }} kg i <strong>{{ asMonth(previewSession.on) }}</strong>.
+        </template>
+        <template v-else-if="previewSession.stuckKg">
+          Med {{ rateInput || data.planDays }} × {{ input || data.planMinutes }} min går det i stå omkring
+          <strong>{{ fmtKg(previewSession.stuckKg) }} kg</strong> og når ikke {{ fmtKg(goalKg) }}.
+        </template>
       </p>
       <template v-else>
         <span class="goal-val">{{ data.planDays }} × {{ data.planMinutes }} min</span>
@@ -307,17 +311,24 @@ function save() {
     </p>
 
     <div class="goal-row" :class="{ 'goal-row-edit': editing === 'min' }">
-      <span class="goal-key">Laveste dagsmål</span>
+      <span class="goal-key">Appen må ikke gå under</span>
       <form v-if="editing === 'min'" class="goal-stack" @submit.prevent="save">
         <label class="goal-field">
-          <span>Laveste dagsmål i kcal</span>
+          <span>Appen må ikke gå under</span>
           <input v-model="input" type="number" min="1200" inputmode="numeric" />
         </label>
         <button class="btn-primary">Gem</button>
       </form>
       <p v-if="editing === 'min' && previewMin" class="goal-preview">
-        Med en bund på {{ input || data.minGoal }} kcal rammer du {{ fmtKg(goalKg) }} kg i
-        <strong>{{ previewMin }}</strong>.
+        <template v-if="previewMin.on">
+          Må appen gå ned til {{ input || data.minGoal }} kcal, rammer du {{ fmtKg(goalKg) }} kg i
+          <strong>{{ asMonth(previewMin.on) }}</strong>.
+        </template>
+        <template v-else-if="previewMin.stuckKg">
+          Må appen ikke gå under {{ input || data.minGoal }} kcal, går det i stå omkring
+          <strong>{{ fmtKg(previewMin.stuckKg) }} kg</strong>. Dit forbrug er der nede omkring det, du spiser,
+          så der er ikke mere underskud tilbage.
+        </template>
       </p>
       <template v-else>
         <span class="goal-val">{{ data.minGoal }} kcal</span>
@@ -325,10 +336,11 @@ function save() {
       </template>
     </div>
     <p v-show="help.open" class="goal-note">
-      Det her er en bund under det tal, APPEN sætter — ikke en regel for, hvad du skal spise. Er du ikke
-      sulten en dag, er det helt i orden. Bunden findes, fordi det automatiske dagsmål ellers falder, hver
-      gang din forbrænding falder, også når den falder, fordi du sprang en træning over. Så ville mindre
-      motion betyde mindre mad. Med en bund rykker måldatoen i stedet. Appen går aldrig under 1200.
+      En grænse for APPEN, ikke for dig. Den siger, hvor langt ned appen må sætte dit dagsmål, når den
+      regner. Som standard er det dit eget daglige mål, så appen aldrig beder dig om at spise mindre, end
+      du selv har valgt — den må kun give dig mere. Falder din forbrænding, fordi en træning blev sprunget
+      over, rykker måldatoen i stedet for maden. Sæt den kun ned, hvis du bevidst vil have appen til at
+      måtte skære. Under 1200 går den aldrig.
     </p>
 
     <div class="goal-row">
