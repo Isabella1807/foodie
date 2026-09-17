@@ -132,7 +132,7 @@ export const useDataStore = defineStore('data', {
       return state.goals.kcal_goal ?? 1500
     },
 
-    // Planens pas: hvor længe, og hvor mange dage om ugen. Sat under "Mine mål",
+    // Planens træning: hvor længe, og hvor mange dage om ugen. Sat under "Mine mål",
     // så planen passer til det, man faktisk gør, og ikke til et tal appen fandt på.
     planMinutes(state) {
       return Math.round(Number(state.goals.plan_minutes)) || PLAN_MINUTES
@@ -143,7 +143,7 @@ export const useDataStore = defineStore('data', {
       return n >= 1 && n <= 7 ? n : PLAN_DAYS_PER_WEEK
     },
 
-    // Ét pas i kalorier ved den nuværende vægt
+    // Én træning i kalorier ved den nuværende vægt
     sessionKcal(state) {
       return oneSessionKcal(this.currentWeight, this.planMinutes)
     },
@@ -529,20 +529,20 @@ export const useDataStore = defineStore('data', {
         // betale dem på — den anden er mindre mad, fordi appen sætter dagsmålet
         // ned, når forbrændingen falder.
         once: [
-          { text: 'Ét sprunget pas', kcal: -Math.round(one), days: once(one), bad: true },
-          { text: 'Ét ekstra pas', kcal: Math.round(one), days: -once(one), bad: false },
+          { text: 'Én sprunget træning', kcal: -Math.round(one), days: once(one), bad: true },
+          { text: 'Én ekstra træning', kcal: Math.round(one), days: -once(one), bad: false },
           { text: 'Én dag 500 kcal over målet', kcal: -500, days: once(500), bad: true },
           { text: 'Én sprunget hyggedag', kcal: Math.round(treat * 14), days: -once(treat * 14), bad: false },
         ],
         daily: [
           { text: '100 kcal mere om dagen', kcal: -700, days: shifted(-100), bad: true },
           { text: '100 kcal mindre om dagen', kcal: 700, days: shifted(100), bad: false },
-          // Et pas mere giver kun mening, hvis der er en dag tilbage i ugen
+          // En træning mere giver kun mening, hvis der er en dag tilbage i ugen
           ...(this.planDays < 7
-            ? [{ text: `${this.planDays + 1} pas om ugen i stedet for ${this.planDays}`, kcal: Math.round(one), days: shifted(one / 7), bad: false }]
+            ? [{ text: `${this.planDays + 1} træninger om ugen i stedet for ${this.planDays}`, kcal: Math.round(one), days: shifted(one / 7), bad: false }]
             : []),
           ...(this.planDays > 1
-            ? [{ text: `Kun ${this.planDays - 1} pas om ugen`, kcal: -Math.round(one), days: shifted(-one / 7), bad: true }]
+            ? [{ text: `Kun ${this.planDays - 1} træninger om ugen`, kcal: -Math.round(one), days: shifted(-one / 7), bad: true }]
             : []),
         ],
       }
@@ -570,7 +570,7 @@ export const useDataStore = defineStore('data', {
           kcal += v
           days++
         }
-        // Et pas tælles på tid, så man får æren for at have lavet det —
+        // En træning tælles på tid, så man får æren for at have lavet den —
         // kalorierne tæller stadig fuldt ud i kontoen og i måldatoen
         if (isHardEnough(entry, kg, this.planMinutes)) sessions++
       }

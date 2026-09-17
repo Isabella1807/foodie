@@ -4,15 +4,15 @@
 // for det ligger allerede i det målte forbrug. Derfor ser tallene mindre ud end
 // dem, et ur viser.
 //
-// Enheden er kcal pr. minut pr. kilo kropsvægt, så det samme pas koster mindre,
+// Enheden er kcal pr. minut pr. kilo kropsvægt, så den samme træning koster mindre,
 // efterhånden som man bliver lettere. Det er skøn, ikke facit.
 
-// Vi VED ikke, hvad et bestemt pas har kostet. Derfor bruger appen ÉN sats for
+// Vi VED ikke, hvad en bestemt træning har kostet. Derfor bruger appen ÉN sats for
 // al bevægelse: minutter gange satsen. Slagsen (gåtur, VR-spil, badminton) er
 // kun en etiket, man kan kigge tilbage på — den ændrer ikke regnestykket.
 //
 // Før havde hver slags sin egen sats, så en gåtur på 50 minutter blev til
-// "0,76 pas" og en time badminton til "0,71". Det er en præcision, der ikke
+// "0,76 træning" og en time badminton til "0,71". Det er en præcision, der ikke
 // findes. Vi kan bede om en intensitet — gå 5,5 km i timen, hold pulsen oppe —
 // men vi kan ikke måle, om den blev ramt.
 //
@@ -35,7 +35,7 @@ export function ratePerMinute() {
   return PER_MIN_PER_KG
 }
 
-// Hvad ét pas kostede
+// Hvad én træning kostede
 export function kcalForMovement(entry, kg) {
   const minutes = Number(entry?.minutes)
   if (!(minutes > 0) || !(kg > 0)) return 0
@@ -55,32 +55,32 @@ export function movementPerDay(movement, from, to, kg) {
   return total / days
 }
 
-// Ét pas udtrykt pr. kilo kropsvægt, så kurven selv kan skalere det ned,
+// Én træning udtrykt pr. kilo kropsvægt, så kurven selv kan skalere det ned,
 // efterhånden som vægten falder
 export function planPerKg(minutes = PLAN_MINUTES) {
   return (Math.round(Number(minutes)) || PLAN_MINUTES) * PLAN_RATE
 }
 
-// Hvad ÉT pas giver
+// Hvad ÉN træning giver
 export function oneSessionKcal(kg, minutes = PLAN_MINUTES) {
   return kg > 0 ? planPerKg(minutes) * kg : 0
 }
 
 // Et PAS tælles i TID, ikke i kalorier.
 //
-// Det var før energi: et pas skulle være 80 % af 45 minutters hårdt arbejde.
-// Men så blev en gåtur på 50 minutter til 0,76 pas, og appen bad om 3 minutter
+// Det var før energi: en træning skulle være 80 % af 45 minutters hårdt arbejde.
+// Men så blev en gåtur på 50 minutter til 0,76 træning, og appen bad om 3 minutter
 // mere for at krydse en usynlig streg. Det er noget vrøvl at sige til nogen, der
 // lige har været ude at gå i 50 minutter.
 //
-// Nu tæller et pas, når man har bevæget sig nogenlunde så længe, man havde sat
+// Nu tæller en træning, når man har bevæget sig nogenlunde så længe, man havde sat
 // sig for. Intensiteten forsvinder ikke af den grund: den tæller stadig fuldt ud
 // i kalorierne, altså i hygge-kontoen og i måldatoen. Der SKAL den tælle, for en
 // gåtur brænder mindre end Beat Saber. Men den skal ikke fratage én æren for at
-// have lavet sit pas.
+// have lavet sin træning.
 export const ENOUGH_SHARE = 0.8
 
-// Så mange minutter skal der til, før dagen tæller som et pas
+// Så mange minutter skal der til, før dagen tæller som en træning
 export function enoughMinutes(minutes = PLAN_MINUTES) {
   return Math.round((Math.round(Number(minutes)) || PLAN_MINUTES) * ENOUGH_SHARE)
 }
@@ -89,18 +89,18 @@ export function enoughKcal(kg, minutes = PLAN_MINUTES) {
   return oneSessionKcal(kg, minutes) * ENOUGH_SHARE
 }
 
-// Tæller dagen som et pas? Måles på minutter.
+// Tæller dagen som en træning? Måles på minutter.
 export function isHardEnough(entry, kg, minutes = PLAN_MINUTES) {
   return (Math.round(Number(entry?.minutes)) || 0) >= enoughMinutes(minutes)
 }
 
-// Hvor mange minutter mere der mangler, før dagen er et pas
+// Hvor mange minutter mere der mangler, før dagen er en træning
 export function minutesToGo(entry, kg, minutes = PLAN_MINUTES) {
   const had = Math.round(Number(entry?.minutes)) || 0
   return Math.max(0, enoughMinutes(minutes) - had)
 }
 
-// Hvad planen forventer pr. dag i snit — ugens pas fordelt på syv dage
+// Hvad planen forventer pr. dag i snit — ugens træninger fordelt på syv dage
 export function planMovementPerDay(kg, minutes = PLAN_MINUTES, days = PLAN_DAYS_PER_WEEK) {
   const d = Math.round(Number(days)) || PLAN_DAYS_PER_WEEK
   return kg > 0 ? (planPerKg(minutes) * kg * d) / 7 : 0

@@ -86,8 +86,8 @@ const weekNote = computed(() => {
   // Med en plan tælles ugen i timer, ikke i dage der lige akkurat tæller
   if (goal.value.fromPlan && week2.value) {
     const w = week2.value
-    if (w.done) return `${w.sessions} af ${w.target} pas — ugens mål er nået.`
-    return `${w.sessions} af ${w.target} pas denne uge.`
+    if (w.done) return `${w.sessions} af ${w.target} træninger — ugens mål er nået.`
+    return `${w.sessions} af ${w.target} træninger denne uge.`
   }
   if (doneDays.value >= target) return `${doneDays.value} af ${target} dage — ugens mål er nået.`
   const missing = target - doneDays.value
@@ -178,7 +178,7 @@ function startEdit() {
       <p class="movement-status" :class="{ 'good-text': done }">
         {{ entry.minutes }} min{{ entry.kind ? ` ${kindText(entry.kind)}` : '' }} {{ whenText }}
         <template v-if="done">✓</template>
-        <template v-else-if="toGo"> — {{ toGo }} min mere, så er det et pas</template>
+        <template v-else-if="toGo"> — {{ toGo }} min mere, så tæller den</template>
       </p>
       <div class="movement-actions">
         <button type="button" class="link" @click="startAdd">en tur mere</button>
@@ -232,9 +232,9 @@ function startEdit() {
       <button v-if="editing" type="button" class="link" @click="editing = false; adding = false">annullér</button>
       <p v-else class="weight-note">
         <template v-if="goal.fromPlan">
-          En dag tæller som et pas fra {{ goal.enoughMinutes }} minutter. Målet er {{ goal.daysPerWeek }} pas om ugen.
-          Slagsen er kun til dig selv — appen kan ikke vide, hvor mange kalorier netop dit pas kostede, så alle
-          pas tæller ens.
+          En dag tæller som en træning fra {{ goal.enoughMinutes }} minutter. Målet er {{ goal.daysPerWeek }} træninger om ugen.
+          Slagsen er kun til dig selv — appen kan ikke vide, hvor mange kalorier netop din træning kostede, så alle
+          træninger tæller ens.
         </template>
         <template v-else>
           Mindst {{ goal.minMinutes }} minutter tæller som en dag. Målet er {{ goal.daysPerWeek }} dage om ugen.

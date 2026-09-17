@@ -25,7 +25,7 @@ const fmtKg = (n) => Math.abs(n).toLocaleString('da-DK', { maximumFractionDigits
       </span>
       <template v-if="week">
         <span class="planline-sep">·</span>
-        <span>{{ week.sessions }} af {{ week.target }} pas denne uge</span>
+        <span>{{ week.sessions }} af {{ week.target }} træninger denne uge</span>
       </template>
     </p>
   </section>
