@@ -53,7 +53,6 @@ const pulse = computed(() => pulseZone(data.profile.age))
 // Ugens bevægelse i timer — se planWeek i stores/data.js for hvorfor timer og
 // ikke "dage der tæller"
 const week = computed(() => data.planWeek)
-const fmtNum = (n) => n.toLocaleString('da-DK', { maximumFractionDigits: 1 })
 
 // Hygge-kontoen
 
@@ -96,7 +95,7 @@ function startPlan() {
         <li v-if="week" :class="{ done: week.done }">
           <span class="plan-mark">{{ week.done ? '✓' : '○' }}</span>
           {{ days }} × {{ minutes }} min om ugen, hvor du er forpustet
-          <span class="plan-note">{{ fmtNum(week.hours) }} af {{ week.target }} pas denne uge</span>
+          <span class="plan-note">{{ week.sessions }} af {{ week.target }} pas denne uge</span>
         </li>
         <li :class="{ done: movedToday }">
           <span class="plan-mark">{{ movedToday ? '✓' : '○' }}</span>
@@ -127,10 +126,16 @@ function startPlan() {
         <p>
           <strong>Så hårdt skal passet være.</strong> Du skal kunne sige en kort sætning, men ikke synge, og
           du skal kunne høre din egen vejrtrækning.
-          <template v-if="pulse"> Det svarer til en puls omkring {{ pulse.low }} til {{ pulse.high }}.</template>
+          <template v-if="pulse"> Sigt efter en puls omkring {{ pulse.low }} til {{ pulse.high }}.</template>
           <template v-else> Skriv din alder ind under "Mine mål", så regner jeg pulsen ud for dig.</template>
-          {{ minutes }} minutters Beat Saber på expert rammer det, og det samme gør gang i 5,5 km i timen.
-          En almindelig gåtur er cirka det halve værd. Derfor tæller kortet kalorier og ikke bare minutter.
+          Beat Saber på expert rammer det. Til fods skal det være omkring 5,5 km i timen, altså din
+          {{ minutes }}-minutters tur på cirka 4 km.
+        </p>
+        <p>
+          <strong>Hvad appen ikke ved.</strong> Den kan ikke måle, hvor mange kalorier ét pas kostede.
+          Derfor tæller alle pas ens her, og slagsen er kun en etiket. Det rigtige tal kommer fra din vægt:
+          appen ser, hvad du har spist, og hvad vægten gjorde, og regner baglæns. Det tager et par uger,
+          men det er den eneste måling, der er ægte.
         </p>
         <p>
           <strong>Din plads i planen.</strong>

@@ -5,7 +5,7 @@ import { localToday, weekStart, addDays } from '../lib/dates'
 import { kcalPerKgOf, bodyBurn } from '../lib/activity'
 import { estimateBurn, goalForRate, MIN_GOAL } from '../lib/burn'
 import { planCurve, planStatus, treatPerDay } from '../lib/plan'
-import { movementPerDay, planMovementPerDay, kcalForMovement, oneSessionKcal, enoughKcal, isHardEnough, minutesToGo, planPerKg, PLAN_MINUTES, PLAN_DAYS_PER_WEEK } from '../lib/activityKcal'
+import { movementPerDay, planMovementPerDay, kcalForMovement, oneSessionKcal, enoughKcal, enoughMinutes, isHardEnough, minutesToGo, planPerKg, PLAN_MINUTES, PLAN_DAYS_PER_WEEK } from '../lib/activityKcal'
 import { MOVE_GOAL_MIN, MOVE_DAYS_PER_WEEK, isDone } from '../lib/movement'
 import { sumMacros, defaultMacroGoals, MACROS, REACH_GOALS } from '../lib/nutrition'
 import { balance } from '../lib/balance'
@@ -562,6 +562,7 @@ export const useDataStore = defineStore('data', {
       const today = localToday()
       let kcal = 0
       let days = 0
+      let sessions = 0
       for (const [date, entry] of Object.entries(state.movement)) {
         if (date < start || date > today) continue
         const v = kcalForMovement(entry, kg)
@@ -569,14 +570,17 @@ export const useDataStore = defineStore('data', {
           kcal += v
           days++
         }
+        // Et pas tælles på tid, så man får æren for at have lavet det —
+        // kalorierne tæller stadig fuldt ud i kontoen og i måldatoen
+        if (isHardEnough(entry, kg, this.planMinutes)) sessions++
       }
       return {
-        hours: Math.round((kcal / one) * 10) / 10,
+        sessions,
         target: this.planDays,
         kcal: Math.round(kcal),
         targetKcal: Math.round(one * this.planDays),
         days,
-        done: kcal >= one * this.planDays,
+        done: sessions >= this.planDays,
       }
     },
 
@@ -592,6 +596,7 @@ export const useDataStore = defineStore('data', {
           minutes: this.planMinutes,
           sessionKcal: Math.round(this.sessionKcal),
           enoughKcal: Math.round(enoughKcal(kg, this.planMinutes)),
+          enoughMinutes: enoughMinutes(this.planMinutes),
           done: (entry) => isHardEnough(entry, kg, this.planMinutes),
           toGo: (entry) => minutesToGo(entry, kg, this.planMinutes),
         }

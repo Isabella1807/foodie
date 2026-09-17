@@ -14,7 +14,7 @@ const data = useDataStore()
 // Teksten i signaturen skal sige den regel, der faktisk bruges
 const moveLegend = computed(() =>
   data.movementGoal.fromPlan
-    ? `mindst ${data.movementGoal.enoughKcal} kcal bevægelse`
+    ? `mindst ${data.movementGoal.enoughMinutes} min bevægelse`
     : `mindst ${data.movementGoal.minMinutes} min bevægelse`,
 )
 

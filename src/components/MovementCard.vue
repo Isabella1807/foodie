@@ -85,9 +85,9 @@ const weekNote = computed(() => {
   const left = week.value.filter((d) => !d.done && d.date >= today).length
   // Med en plan tælles ugen i timer, ikke i dage der lige akkurat tæller
   if (goal.value.fromPlan && week2.value) {
-    const h = week2.value.hours.toLocaleString('da-DK', { maximumFractionDigits: 1 })
-    if (week2.value.done) return `${h} af ${week2.value.target} pas — ugens mål er nået.`
-    return `${h} af ${week2.value.target} pas denne uge.`
+    const w = week2.value
+    if (w.done) return `${w.sessions} af ${w.target} pas — ugens mål er nået.`
+    return `${w.sessions} af ${w.target} pas denne uge.`
   }
   if (doneDays.value >= target) return `${doneDays.value} af ${target} dage — ugens mål er nået.`
   const missing = target - doneDays.value
@@ -178,7 +178,7 @@ function startEdit() {
       <p class="movement-status" :class="{ 'good-text': done }">
         {{ entry.minutes }} min{{ entry.kind ? ` ${kindText(entry.kind)}` : '' }} {{ whenText }}
         <template v-if="done">✓</template>
-        <template v-else-if="toGo"> — {{ toGo }} min mere i samme tempo, så tæller dagen</template>
+        <template v-else-if="toGo"> — {{ toGo }} min mere, så er det et pas</template>
       </p>
       <div class="movement-actions">
         <button type="button" class="link" @click="startAdd">en tur mere</button>
@@ -232,8 +232,9 @@ function startEdit() {
       <button v-if="editing" type="button" class="link" @click="editing = false; adding = false">annullér</button>
       <p v-else class="weight-note">
         <template v-if="goal.fromPlan">
-          En dag tæller, når du har lavet mindst {{ goal.enoughKcal }} kcal — det er {{ goal.minutes }} minutter,
-          hvor du er forpustet, eller længere tid i roligere tempo. Målet er {{ goal.daysPerWeek }} dage om ugen.
+          En dag tæller som et pas fra {{ goal.enoughMinutes }} minutter. Målet er {{ goal.daysPerWeek }} pas om ugen.
+          Slagsen er kun til dig selv — appen kan ikke vide, hvor mange kalorier netop dit pas kostede, så alle
+          pas tæller ens.
         </template>
         <template v-else>
           Mindst {{ goal.minMinutes }} minutter tæller som en dag. Målet er {{ goal.daysPerWeek }} dage om ugen.
