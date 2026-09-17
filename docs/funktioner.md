@@ -35,7 +35,7 @@ Tre faner i bunden: **I dag**, **Kalender**, **Mad**.
 ---
 
 ## Fane 1: I dag
-Forsiden handler KUN om i dag. Planen, vægten, målene og protein/fibre-oversigten ligger på fane 2, så man ikke skal scrolle forbi dem hver morgen. Forsiden har: dagens tal øverst, én rolig plan-linje, log et måltid, forslag, bevægelse, dagens måltider og dagens status.
+Forsiden handler KUN om i dag. Planen, vægten, målene og protein/fibre-oversigten ligger på fane 2, så man ikke skal scrolle forbi dem hver morgen. Rækkefølgen på forsiden er: dagens tal, plan-linjen, tilføj spiste ting, dagens måltider, forslag, dagens status, bevægelse, vægt. Forsiden har: dagens tal øverst, én rolig plan-linje, log et måltid, forslag, bevægelse, dagens måltider og dagens status.
 
 ### Øverst: dagens tal
 - Dagens dato med ugedag.

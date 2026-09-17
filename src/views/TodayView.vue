@@ -9,6 +9,7 @@ import MovementCard from '../components/MovementCard.vue'
 import StarterBanner from '../components/StarterBanner.vue'
 import KcalGoal from '../components/KcalGoal.vue'
 import DailyStatus from '../components/DailyStatus.vue'
+import WeightCard from '../components/WeightCard.vue'
 import MacroLine from '../components/MacroLine.vue'
 import { describeMacros } from '../lib/nutrition'
 
@@ -47,8 +48,6 @@ function remove(entry) {
     <div class="today-log">
       <PlanLine />
       <QuickAdd />
-      <NutrientNudge />
-      <MovementCard />
       <section v-if="data.todayEntries.length" class="card list">
         <div v-for="entry in data.todayEntries" :key="entry.id" class="row">
           <span class="row-name">
@@ -60,10 +59,13 @@ function remove(entry) {
         </div>
       </section>
       <p v-else class="empty">Du har ikke logget noget i dag endnu.</p>
+      <NutrientNudge />
     </div>
 
     <div class="today-side">
       <DailyStatus />
+      <MovementCard />
+      <WeightCard />
     </div>
   </div>
 </template>
