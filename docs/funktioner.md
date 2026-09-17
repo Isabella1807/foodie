@@ -35,7 +35,7 @@ Tre faner i bunden: **I dag**, **Kalender**, **Mad**.
 ---
 
 ## Fane 1: I dag
-Forsiden handler KUN om i dag. Planen, vægten, målene og protein/fibre-oversigten ligger på fane 2, så man ikke skal scrolle forbi dem hver morgen. Forsiden har: dagens tal øverst, "til dig"-kortet, én rolig plan-linje, log et måltid, forslag, bevægelse, dagens måltider og dagens status.
+Forsiden handler KUN om i dag. Planen, vægten, målene og protein/fibre-oversigten ligger på fane 2, så man ikke skal scrolle forbi dem hver morgen. Forsiden har: dagens tal øverst, én rolig plan-linje, log et måltid, forslag, bevægelse, dagens måltider og dagens status.
 
 ### Øverst: dagens tal
 - Dagens dato med ugedag.
@@ -48,7 +48,7 @@ Forsiden handler KUN om i dag. Planen, vægten, målene og protein/fibre-oversig
 ### Start-hjælp
 - Er madlisten tom, tilbydes en startliste med almindelige madvarer, der kan hentes med ét tryk.
 
-### Til dig (vises kun når der er noget at sige)
+### Til dig (på Plan-fanen, under plan-kortet — vises kun når der er noget at sige)
 - Ét lille kort med én sand, opmuntrende besked ud fra ens egne tal, mest relevante først. Eksempler: "Vægten har stået stille i to uger (94,2 → 94,3 kg). Det ser jeg godt. Men tallene siger, at du taber dig: de sidste to uger har du i snit spist 1.480 kcal om dagen, og dit forbrug er målt til ca. 1.700. Underskuddet er der. Hold fast." Andre: en høj dag i går flytter ikke ugen, −0,4 kg siden sidste uge, 5 dage i træk under målet, bevægelse 4 af ugens dage, protein foran i ugen, X kg tabt i alt, logget hver dag i 12 dage.
 - Et "tak"-tryk gemmer den besked væk i tre dage, så den næste kommer frem.
 - Den korte udgave af beskeden står også i den faste notifikation, hvis den er slået til.
