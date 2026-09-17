@@ -241,9 +241,9 @@ function save() {
     </p>
 
     <div class="goal-row">
-      <span class="goal-key">Spis aldrig under</span>
+      <span class="goal-key">Laveste dagsmål</span>
       <form v-if="editing === 'min'" class="goal-edit-form" @submit.prevent="save">
-        <input v-model="input" type="number" min="1200" inputmode="numeric" placeholder="kcal" aria-label="Laveste dagsmål" />
+        <input v-model="input" type="number" min="1200" inputmode="numeric" placeholder="kcal" aria-label="Laveste dagsmål i kcal" />
         <button class="btn-primary">Gem</button>
       </form>
       <template v-else>
@@ -252,9 +252,10 @@ function save() {
       </template>
     </div>
     <p v-show="help.open" class="goal-note">
-      Det automatiske dagsmål falder, hver gang din forbrænding falder — også når den falder, fordi du
-      trænede mindre end planlagt. Med en bund her sker det ikke: springer du en træning over, rykker
-      måldatoen i stedet, og maden bliver stående. Appen går aldrig under 1200 uanset hvad.
+      Det her er en bund under det tal, APPEN sætter — ikke en regel for, hvad du skal spise. Er du ikke
+      sulten en dag, er det helt i orden. Bunden findes, fordi det automatiske dagsmål ellers falder, hver
+      gang din forbrænding falder, også når den falder, fordi du sprang en træning over. Så ville mindre
+      motion betyde mindre mad. Med en bund rykker måldatoen i stedet. Appen går aldrig under 1200.
     </p>
 
     <div class="goal-row">
