@@ -1,8 +1,9 @@
 <script setup>
 import { computed } from 'vue'
 import { useDataStore } from '../stores/data'
-import { localToday } from '../lib/dates'
+import { localToday, weekStart } from '../lib/dates'
 import { TREAT_KCAL, TREAT_EVERY_DAYS } from '../lib/plan'
+import { PLAN_MINUTES, PLAN_DAYS_PER_WEEK } from '../lib/activityKcal'
 
 // Planen mod målvægten, samlet ét sted: hvad du skal gøre i dag, og om du
 // ligger foran eller bagud. Kurven bag tallene ligger i lib/plan.js.
@@ -27,11 +28,25 @@ const arrival = computed(() => asMonth(plan.value?.arriveOn))
 // kender målingen den ikke endnu, og datoen er derfor for pessimistisk. Så
 // vises også den dato, rutinen fører til, når den er kommet med i målingen.
 const boost = computed(() => data.planBoost)
-const arrivalIfRoutine = computed(() => asMonth(data.planIfRoutine?.arriveOn))
-const showBoost = computed(() => boost.value && arrivalIfRoutine.value && arrivalIfRoutine.value !== arrival.value)
+const arrivalMeasured = computed(() => asMonth(data.planMeasured?.arriveOn))
+const showBoost = computed(() => boost.value && arrivalMeasured.value && arrivalMeasured.value !== arrival.value)
 
-// Dagens tre ting, der kan krydses af
-const movedToday = computed(() => Number(data.movement[today]?.minutes) >= 60)
+// Ugens timer: planen regner med seks om ugen, så der er én fast fridag
+const weekSessions = computed(() => {
+  const start = weekStart(today)
+  let n = 0
+  for (const [date, e] of Object.entries(data.movement)) {
+    if (date >= start && date <= today && Number(e?.minutes) >= PLAN_MINUTES) n++
+  }
+  return n
+})
+
+// Hygge-kontoen
+const balance = computed(() => data.planBalance)
+const fmtKcal = (n) => Math.abs(n).toLocaleString('da-DK')
+
+// Dagens ting, der kan krydses af
+const movedToday = computed(() => Number(data.movement[today]?.minutes) >= PLAN_MINUTES)
 const minutesToday = computed(() => Number(data.movement[today]?.minutes) || 0)
 const ateToday = computed(() => data.todayTotal)
 const goalToday = computed(() => data.dailyGoal)
@@ -59,22 +74,27 @@ function startPlan() {
         Planen siger {{ fmtKg(status.expected) }} kg i dag. Du vejer {{ fmtKg(status.actual) }} kg.
       </p>
       <p v-if="arrival" class="plan-sub">
-        Så rammer du {{ fmtKg(Number(data.goals.goal_kg)) }} kg i <strong>{{ arrival }}</strong>.
+        Holder du planen, rammer du {{ fmtKg(Number(data.goals.goal_kg)) }} kg i <strong>{{ arrival }}</strong>.
       </p>
       <p v-if="showBoost" class="plan-boost">
-        Datoen bygger på de sidste ugers målinger, hvor din bevægelse gav {{ boost.had }} kcal om dagen i snit.
-        Holder du timen hver dag, giver den {{ boost.planned }}, og så rykker målet frem til
-        <strong>{{ arrivalIfRoutine }}</strong>. Appen flytter selv datoen, efterhånden som den måler den nye rutine.
+        Målt på de sidste ugers tal alene ville det være {{ arrivalMeasured }}, for din bevægelse gav kun
+        {{ boost.had }} kcal om dagen i den periode mod planens {{ boost.planned }}. Målingen kender endnu ikke
+        din nye rutine. Den indhenter sig selv i løbet af et par uger.
       </p>
       <p v-else-if="plan.stuckKg" class="plan-sub">
         Med det, du spiser nu, flader planen ud omkring {{ fmtKg(plan.stuckKg) }} kg.
       </p>
 
       <ul class="plan-steps">
+        <li :class="{ done: weekSessions >= PLAN_DAYS_PER_WEEK }">
+          <span class="plan-mark">{{ weekSessions >= PLAN_DAYS_PER_WEEK ? '✓' : '○' }}</span>
+          {{ PLAN_DAYS_PER_WEEK }} timer om ugen, én fridag
+          <span class="plan-note">{{ weekSessions }} af {{ PLAN_DAYS_PER_WEEK }} denne uge</span>
+        </li>
         <li :class="{ done: movedToday }">
           <span class="plan-mark">{{ movedToday ? '✓' : '○' }}</span>
-          En time bevægelse, alle dage
-          <span class="plan-note">{{ minutesToday ? `${minutesToday} min i dag` : 'ikke i dag endnu' }}</span>
+          Din time i dag
+          <span class="plan-note">{{ minutesToday ? `${minutesToday} min` : 'ikke endnu' }}</span>
         </li>
         <li :class="{ done: withinGoal }">
           <span class="plan-mark">{{ withinGoal ? '✓' : '○' }}</span>
@@ -88,9 +108,31 @@ function startPlan() {
         </li>
       </ul>
 
+      <div v-if="balance && balance.loggedDays" class="plan-bank">
+        <p class="plan-bank-top">
+          <span class="plan-bank-num" :class="balance.total >= 0 ? 'good-text' : 'over-text'">
+            {{ balance.total >= 0 ? '+' : '−' }}{{ fmtKcal(balance.total) }}
+          </span>
+          <span class="plan-bank-unit">kcal {{ balance.total >= 0 ? 'vundet' : 'brugt forud' }}</span>
+        </p>
+        <p v-if="balance.daysWon" class="plan-sub">
+          <template v-if="balance.daysWon > 0">
+            Det er <strong>{{ balance.daysWon }} dage</strong> hurtigere mod målet, end planen regnede med.
+          </template>
+          <template v-else>
+            Det svarer til <strong>{{ Math.abs(balance.daysWon) }} dage</strong> længere til målet.
+          </template>
+        </p>
+        <p class="plan-bank-split">
+          <span>mad {{ balance.food >= 0 ? '+' : '−' }}{{ fmtKcal(balance.food) }}</span>
+          <span>bevægelse {{ balance.move >= 0 ? '+' : '−' }}{{ fmtKcal(balance.move) }}</span>
+        </p>
+      </div>
+
       <p class="plan-sub plan-treat">
-        Hyggedag på op til {{ TREAT_KCAL }} kcal hver {{ TREAT_EVERY_DAYS }}. dag er regnet med i planen.
-        Du skal ikke have dårlig samvittighed over den.
+        Planen giver dig én fridag om ugen og en hyggedag på op til {{ TREAT_KCAL }} kcal hver
+        {{ TREAT_EVERY_DAYS }}. dag, hvor der heller ikke trænes. Bruger du dem ikke, lægger de sig
+        på kontoen ovenfor, og du kan bruge dem en anden dag uden at måldatoen skrider.
       </p>
     </template>
 

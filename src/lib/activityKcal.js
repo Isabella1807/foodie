@@ -21,6 +21,10 @@ const DEFAULT_RATE = PER_MIN_PER_KG.gang // ukendt slags regnes som en gåtur, d
 export const PLAN_RATE = PER_MIN_PER_KG.vr
 export const PLAN_MINUTES = 60
 
+// Planen regner med én fast fridag om ugen. En plan uden fridag knækker, og
+// seks dage er dem, der rent faktisk bliver til noget.
+export const PLAN_DAYS_PER_WEEK = 6
+
 export function ratePerMinute(kind) {
   if (!kind) return DEFAULT_RATE
   const key = String(kind).toLowerCase().trim()
@@ -50,7 +54,16 @@ export function movementPerDay(movement, from, to, kg) {
   return total / days
 }
 
-// Hvad planens time giver pr. dag
+// Planens time udtrykt pr. kilo kropsvægt, så kurven selv kan skalere den ned,
+// efterhånden som vægten falder
+export const PLAN_PER_KG = PLAN_MINUTES * PLAN_RATE
+
+// Hvad ÉN times pas giver
+export function oneSessionKcal(kg) {
+  return kg > 0 ? PLAN_PER_KG * kg : 0
+}
+
+// Hvad planen forventer pr. dag i snit — seks timer om ugen fordelt på syv dage
 export function planMovementPerDay(kg) {
-  return kg > 0 ? PLAN_MINUTES * PLAN_RATE * kg : 0
+  return kg > 0 ? (PLAN_PER_KG * kg * PLAN_DAYS_PER_WEEK) / 7 : 0
 }

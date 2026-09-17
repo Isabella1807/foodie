@@ -2003,3 +2003,41 @@ label {
   background: var(--green-soft);
   border-radius: 8px;
 }
+
+/* ---- hygge-kontoen: det man har vundet ind ---- */
+
+.plan-bank {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--green-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.plan-bank-top {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+}
+
+.plan-bank-num {
+  font-family: var(--font-display);
+  font-size: 1.7rem;
+  line-height: 1;
+  font-weight: 600;
+}
+
+.plan-bank-unit {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.plan-bank-split {
+  margin: 2px 0 0;
+  display: flex;
+  gap: 16px;
+  font-size: 0.8rem;
+  color: var(--muted);
+}

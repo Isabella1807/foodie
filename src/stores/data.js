@@ -4,8 +4,8 @@ import { load, save, remove } from '../lib/storage'
 import { localToday, weekStart, addDays } from '../lib/dates'
 import { kcalPerKgOf, bodyBurn } from '../lib/activity'
 import { estimateBurn, goalForRate } from '../lib/burn'
-import { planCurve, planStatus } from '../lib/plan'
-import { movementPerDay, planMovementPerDay } from '../lib/activityKcal'
+import { planCurve, planStatus, treatPerDay } from '../lib/plan'
+import { movementPerDay, planMovementPerDay, kcalForMovement, oneSessionKcal, PLAN_PER_KG } from '../lib/activityKcal'
 import { sumMacros, defaultMacroGoals, MACROS, REACH_GOALS } from '../lib/nutrition'
 import { balance } from '../lib/balance'
 import { encouragements } from '../lib/encourage'
@@ -275,10 +275,10 @@ export const useDataStore = defineStore('data', {
       return estimateBurn(state.weights, state.entries)
     },
 
-    // Din plan mod målvægten: kurven fra den dag, planen blev sat, til målet.
-    // Bygger på det MÅLTE forbrug, så den retter sig selv, efterhånden som
-    // appen lærer din nye rutine at kende. Null, før planen er sat i gang.
-    plan(state) {
+    // Kurven, som de sidste ugers MÅLINGER alene peger på. Kender kun den
+    // bevægelse, der allerede er logget, så den er for pessimistisk lige efter
+    // en omlagt rutine. Vises som kontrast til planen, ikke som planen selv.
+    planMeasured(state) {
       const g = state.goals
       const burn = this.measuredBurn
       const atKg = this.currentWeight
@@ -289,6 +289,7 @@ export const useDataStore = defineStore('data', {
         targetKg: Number(g.goal_kg),
         rate: Number(g.loss_per_week),
         burn: { kcal: burn.kcal, kg: atKg },
+        movementPerKg: PLAN_PER_KG,
       })
       return curve.ready ? curve : null
     },
@@ -309,22 +310,98 @@ export const useDataStore = defineStore('data', {
       return { extra, had: Math.round(had), planned: Math.round(planned), from: burn.from, to: burn.to }
     },
 
-    // Planen, som den ser ud HVIS timen hver dag holdes — altså når det målte
-    // forbrug har nået at indhente den nye rutine
-    planIfRoutine(state) {
+    // DIN PLAN: kurven, som den ser ud, når rutinen holdes. Det er den, alt
+    // andet måles mod — det er jo den, du har sagt ja til. Er der ingen forskel
+    // på rutinen og det målte, er de to ens.
+    plan(state) {
       const g = state.goals
       const burn = this.measuredBurn
       const kg = this.currentWeight
       const boost = this.planBoost
-      if (!boost || !g.plan_start_on || !g.plan_start_kg || !g.goal_kg || !g.loss_per_week) return null
+      if (!g.plan_start_on || !g.plan_start_kg || !g.goal_kg || !g.loss_per_week) return null
       if (!burn.ready || !kg) return null
+      if (!boost) return this.planMeasured
       const curve = planCurve({
         start: { on: g.plan_start_on, kg: Number(g.plan_start_kg) },
         targetKg: Number(g.goal_kg),
         rate: Number(g.loss_per_week),
         burn: { kcal: burn.kcal + boost.extra, kg },
+        movementPerKg: PLAN_PER_KG,
       })
       return curve.ready ? curve : null
+    },
+
+    // Alt spist pr. dag, regnet én gang — saldoen nedenfor skal ellers løbe
+    // entries igennem for hver eneste dag siden planen startede
+    totalsByDay(state) {
+      const out = {}
+      for (const e of state.entries) out[e.eaten_on] = (out[e.eaten_on] || 0) + e.kcal
+      return out
+    },
+
+    // Hygge-kontoen: hvor mange kalorier du har til gode i forhold til planen.
+    //
+    // Planen giver dig dit dagsmål PLUS hyggedagens tillæg hver dag, og regner
+    // med en times bevægelse hver dag. Spiser du mindre, eller bevæger du dig
+    // mere, står forskellen her — og kan bruges en anden dag uden at måldatoen
+    // skrider. Er tallet negativt, er der brugt af fremtiden.
+    //
+    // Dage uden mad-logning springes over på mad-siden: en dag uden tal er
+    // ukendt, ikke en dag uden mad. Bevægelse tælles derimod på alle dage, for
+    // en dag uden kryds er en dag uden træning.
+    planBalance(state) {
+      const g = state.goals
+      const kg = this.currentWeight
+      if (!this.plan || !g.plan_start_on || !kg) return null
+      const today = localToday()
+      const totals = this.totalsByDay
+      const plannedMove = planMovementPerDay(kg)
+      const goalCache = {}
+      let food = 0
+      let move = 0
+      let days = 0
+      let loggedDays = 0
+      let movedDays = 0
+      // Dagsmålet står fast hele ugen, så det slås kun op én gang pr. uge
+      for (let d = g.plan_start_on; d < today; d = addDays(d, 1)) {
+        if (++days > 1200) break
+        const wk = weekStart(d)
+        if (!(wk in goalCache)) goalCache[wk] = this.goalFor(d)
+        const goal = goalCache[wk]
+        const eaten = totals[d] || 0
+        if (eaten > 0) {
+          loggedDays++
+          food += goal + treatPerDay(goal, oneSessionKcal(kg)) - eaten
+        }
+        const moved = kcalForMovement(state.movement[d], kg)
+        if (moved > 0) movedDays++
+        move += moved - plannedMove
+      }
+      const total = Math.round(food + move)
+      // Hvad saldoen er værd i TID: hver kalorie i overskud er en kalorie, der
+      // ikke skal spares op senere, så måldatoen rykker sig tilsvarende
+      const perDay = this.planDeficitPerDay
+      return {
+        total,
+        food: Math.round(food),
+        move: Math.round(move),
+        days,
+        loggedDays,
+        movedDays,
+        daysWon: perDay > 0 ? Math.round((total / perDay) * 10) / 10 : null,
+      }
+    },
+
+    // Det underskud planen regner med pr. dag lige nu — altså hvor hurtigt
+    // saldoen omsættes til dage på måldatoen
+    planDeficitPerDay(state) {
+      const kg = this.currentWeight
+      const burn = this.measuredBurn
+      const boost = this.planBoost
+      if (!kg || !burn.ready) return 0
+      const total = burn.kcal + (boost?.extra ?? 0)
+      const goal = this.dailyGoal
+      return Math.round(total - goal - treatPerDay(goal, oneSessionKcal(kg)))
     },
 
     // Foran eller bagud i forhold til planen i dag

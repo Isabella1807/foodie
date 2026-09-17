@@ -19,6 +19,16 @@ export const BURN_PER_KG = 13
 export const TREAT_KCAL = 2500
 export const TREAT_EVERY_DAYS = 14
 
+// Hyggedagens tillæg, fordelt ud på hver dag. Det er sådan, planen har råd til
+// en hyggedag hver TREAT_EVERY_DAYS. dag uden at måldatoen skrider.
+//
+// En hyggedag koster to ting: maden op til TREAT_KCAL, OG den time bevægelse,
+// man realistisk ikke får lavet til et bryllup eller en fødselsdag. Begge dele
+// er med her, så dagen er fuldt betalt på forhånd.
+export function treatPerDay(goal, missedMovement = 0) {
+  return Math.max(0, (TREAT_KCAL - goal + Math.max(0, missedMovement)) / TREAT_EVERY_DAYS)
+}
+
 const MAX_DAYS = 2200 // godt 6 år — derefter giver det ikke mening at tegne videre
 
 // Simulér vejen fra startvægt til målvægt.
@@ -26,7 +36,9 @@ const MAX_DAYS = 2200 // godt 6 år — derefter giver det ikke mening at tegne 
 // Giver { ready, days: [{ date, kg }], arriveOn, stuckKg }
 // stuckKg er sat, hvis planen går i stå, før målet er nået — altså hvis
 // dagsmålets bund betyder, at underskuddet når nul først.
-export function planCurve({ start, targetKg, rate, burn }) {
+// movementPerKg: hvad planens daglige time giver pr. kilo kropsvægt. Bruges til
+// at regne den time med, der ryger på en hyggedag.
+export function planCurve({ start, targetKg, rate, burn, movementPerKg = 0 }) {
   if (!start?.on || !(start.kg > 0) || !(targetKg > 0) || !(rate > 0) || !(burn?.kcal > 0)) {
     return { ready: false, days: [] }
   }
@@ -39,8 +51,9 @@ export function planCurve({ start, targetKg, rate, burn }) {
   for (let i = 0; i < MAX_DAYS; i++) {
     const burnNow = burn.kcal - BURN_PER_KG * (burn.kg - kg)
     const { goal } = goalForRate(burnNow, rate)
-    // Hyggedagen fordelt ud over de dage, der er mellem to af dem
-    const treat = Math.max(0, (TREAT_KCAL - goal) / TREAT_EVERY_DAYS)
+    // Hyggedagen fordelt ud over de dage, der er mellem to af dem — både maden
+    // og den time, der ikke bliver lavet den dag
+    const treat = treatPerDay(goal, movementPerKg * kg)
     const deficit = burnNow - (goal + treat)
     if (deficit <= 0) return { ready: true, days, stuckKg: round1(kg) }
 
