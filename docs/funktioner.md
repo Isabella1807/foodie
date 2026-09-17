@@ -19,6 +19,12 @@ hvordan det hele kan sættes op mere overskueligt.
 - Et par gange om ugen: kigge i kalenderen (ugen og måneden), se vægtgrafen og tempoet.
 - Sjældent: rette mål, udfylde krops-tal, rydde op i madlisten, slå notifikation til.
 
+## Én måldato, ét sted
+Er der lagt en plan, står måldatoen KUN på plan-kortet. "Statistik" og "forventet tid til målet" har hver sin måde at regne på, og før viste de tre forskellige datoer på samme side (juli 2028, oktober 2028, august 2029). Derfor holder de mund om deres egen udregning, når planen findes: statistik viser kun tabt i alt, tempo og målt forbrug, og forecast-kortet bliver til "dine krops-tal", hvor man taster højde, alder og køn.
+
+## Lange forklaringer ligger bag et link
+Kortene viser tal. Forklaringerne ligger bag et link, der husker sin egen tilstand og starter LUKKET: "hvordan virker planen?" på plan-kortet, "hvad betyder tallene?" på mine mål, og "hvad betyder bagud?" på protein og fibre. `useCollapse(key, defaultOpen)` styrer det.
+
 ## Kort, der kan foldes sammen
 Tryk på overskriften på et kort for at folde det sammen; tryk igen for at åbne det. Det gælder min plan, bevægelse, forslag, dagens status, protein og fibre over tid, vægt, vægtudvikling og mine mål. Hvert kort husker sin egen tilstand i browseren (`localStorage`, nøgler med `foodie.card.`), så det følger ikke med til en anden telefon — det er en visnings-indstilling, ikke data. Er lageret blokeret, åbner kortene bare som normalt. Teknisk: `src/lib/useCollapse.js` giver `box.open` og `box.head`, som spredes ud på overskriften; kortets section får klassen `collapsed`, og CSS skjuler alt andet end overskriften, så kortenes egne layouts ikke røres. **`useCollapse` returnerer `reactive(...)` og ikke et almindeligt objekt** — i et almindeligt objekt pakkes ref'erne ikke ud i skabelonen, så `box.open` ville være selve ref'en, som altid er sand, og kortet ville aldrig lukke.
 

@@ -69,10 +69,10 @@ button {
 .app-main {
   max-width: 480px;
   margin: 0 auto;
-  padding: 20px 16px calc(84px + env(safe-area-inset-bottom));
+  padding: 20px 16px calc(96px + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 18px;
 }
 
 /* Dagens indhold: én søjle på telefon, to søjler side om side på bred skærm */
@@ -81,7 +81,7 @@ button {
 .today-side {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 18px;
 }
 
 .view-header {
@@ -984,7 +984,17 @@ button {
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  padding: 14px;
+  padding: 18px 16px;
+  /* Kortene er lodrette lister — én fast afstand, så indholdet ikke klumper */
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Lukkede kort skal ikke have luft under overskriften */
+.card.collapsed {
+  gap: 0;
+  padding-bottom: 16px;
 }
 
 .card.list {
@@ -2135,4 +2145,10 @@ label {
   font-weight: 400;
   letter-spacing: 0.04em;
   color: var(--muted);
+}
+
+.goals-help {
+  align-self: flex-start;
+  font-size: 0.85rem;
+  margin-top: -4px;
 }

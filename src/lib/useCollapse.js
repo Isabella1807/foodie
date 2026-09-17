@@ -7,11 +7,14 @@ import { ref, computed, reactive } from 'vue'
 
 const PREFIX = 'foodie.card.'
 
-function load(key) {
+function load(key, fallback) {
   try {
-    return localStorage.getItem(PREFIX + key) !== 'lukket'
+    const saved = localStorage.getItem(PREFIX + key)
+    if (saved === 'lukket') return false
+    if (saved === 'aabent') return true
+    return fallback
   } catch {
-    return true // privat vindue eller blokeret lager: vis kortet
+    return fallback // privat vindue eller blokeret lager
   }
 }
 
@@ -23,8 +26,10 @@ function save(key, open) {
   }
 }
 
-export function useCollapse(key) {
-  const open = ref(load(key))
+// defaultOpen: om det skal stå åbent, FØR man selv har rørt ved det. Lange
+// forklaringer starter lukkede; selve kortene starter åbne.
+export function useCollapse(key, defaultOpen = true) {
+  const open = ref(load(key, defaultOpen))
 
   function toggle() {
     open.value = !open.value

@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useDataStore } from '../stores/data'
 
 const data = useDataStore()
+const hasPlan = computed(() => !!data.plan)
 const fmtKg = (n) => n.toLocaleString('da-DK', { maximumFractionDigits: 1 })
 const fmtRate = (n) => n.toLocaleString('da-DK', { maximumFractionDigits: 2 })
 const fmtKcal = (n) => n.toLocaleString('da-DK')
@@ -70,12 +71,16 @@ const forecast = computed(() => {
       </div>
     </template>
 
-    <p v-if="forecast" class="stat-forecast">
-      Med dit tempo når du <b>{{ fmtKg(goal) }} kg</b> om ca. <b>{{ forecast.weeks }} uger</b> — omkring {{ forecast.label }}.
-    </p>
-    <p v-else-if="remaining === 0" class="stat-forecast">Du har nået din målvægt 🎉</p>
-    <p v-else-if="!goal" class="weight-note">Sæt en målvægt under "Mine mål", så regner jeg et forventet tidspunkt ud.</p>
-    <p v-else class="weight-note">Vej dig nogle uger endnu, så viser jeg, hvornår du når målet med dit tempo.</p>
+    <!-- Er der lagt en plan, står måldatoen ÉT sted: på plan-kortet. Ellers ville
+         siden vise to forskellige datoer, regnet på hver sin måde. -->
+    <template v-if="!hasPlan">
+      <p v-if="forecast" class="stat-forecast">
+        Med dit tempo når du <b>{{ fmtKg(goal) }} kg</b> om ca. <b>{{ forecast.weeks }} uger</b> — omkring {{ forecast.label }}.
+      </p>
+      <p v-else-if="remaining === 0" class="stat-forecast">Du har nået din målvægt 🎉</p>
+      <p v-else-if="!goal" class="weight-note">Sæt en målvægt under "Mine mål", så regner jeg et forventet tidspunkt ud.</p>
+      <p v-else class="weight-note">Vej dig nogle uger endnu, så viser jeg, hvornår du når målet med dit tempo.</p>
+    </template>
 
     <p v-if="burn.ready" class="stat-forecast maint-line">
       Dit forbrug er ca. <b>{{ fmtKcal(burn.kcal) }} kcal/dag</b> — målt over de sidste {{ burn.weeks }} uger ud fra din logning og vægt.

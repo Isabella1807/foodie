@@ -59,10 +59,11 @@ const weekMinutes = computed(() => week.value.reduce((sum, d) => sum + d.minutes
 const weekNote = computed(() => {
   const target = goal.value.daysPerWeek
   const left = week.value.filter((d) => !d.done && d.date >= today).length
-  if (doneDays.value >= target) return `${doneDays.value} af 7 dage — ugens mål er nået.`
+  const unit = goal.value.fromPlan ? 'timer' : 'dage'
+  if (doneDays.value >= target) return `${doneDays.value} af ${target} ${unit} — ugens mål er nået.`
   const missing = target - doneDays.value
-  if (left === 0) return `${doneDays.value} af 7 dage denne uge.`
-  return `${doneDays.value} af 7 dage — ${missing} ${missing === 1 ? 'dag' : 'dage'} mere, så er ugens ${target} nået.`
+  if (left === 0) return `${doneDays.value} af ${target} ${unit} denne uge.`
+  return `${doneDays.value} af ${target} ${unit} — ${missing} mere denne uge.`
 })
 
 function set(m) {
@@ -118,7 +119,7 @@ function startEdit() {
       <span class="movement-week-note">{{ weekNote }}</span>
     </div>
 
-    <div class="movement-week" role="img" :aria-label="`${doneDays} af 7 dage nået`">
+    <div class="movement-week" role="img" :aria-label="`${doneDays} af ${goal.daysPerWeek} nået denne uge`">
       <span v-for="d in week" :key="d.date" class="movement-day" :class="{ done: d.done, some: !d.done && d.minutes > 0, current: d.isDay, future: d.future }">
         <i class="movement-dot"></i>
         <small>{{ d.label }}</small>

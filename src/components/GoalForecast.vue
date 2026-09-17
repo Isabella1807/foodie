@@ -5,6 +5,9 @@ import { ACTIVITY_LEVELS, bodyBurn } from '../lib/activity'
 import { KCAL_PER_KG, goalForRate } from '../lib/burn'
 
 const data = useDataStore()
+// Er der lagt en plan, er DEN facit for måldatoen — så holder kortet mund om sin
+// egen udregning, i stedet for at vise en anden dato på samme side
+const hasPlan = computed(() => !!data.plan)
 
 const MONTHS = [
   'januar', 'februar', 'marts', 'april', 'maj', 'juni',
@@ -96,9 +99,17 @@ function save() {
 
 <template>
   <section class="card forecast">
-    <p class="eyebrow">forventet tid til målet</p>
+    <p class="eyebrow">{{ hasPlan ? 'dine krops-tal' : 'forventet tid til målet' }}</p>
 
-    <template v-if="!showForm">
+    <template v-if="!showForm && hasPlan">
+      <p class="weight-note">
+        Måldatoen står på plan-kortet øverst. Her kan du rette de tal om din krop, appen bruger til
+        proteinmål, fibermål og pulsen i planen.
+        <button class="link" @click="openEdit">{{ complete ? 'ret dine tal' : 'tilføj dine krops-tal' }}</button>
+      </p>
+    </template>
+
+    <template v-else-if="!showForm">
       <p v-if="forecast && forecast.stallKg" class="stat-forecast">
         Med <b>{{ fmt(intake) }} kcal/dag</b> når du ned omkring <b>{{ fmt(forecast.stallKg) }} kg</b> om ca. <b>{{ forecast.months }} måneder</b>.
         Derefter står vægten stille, fordi man forbrænder mindre, når man bliver lettere — sæt målet lavere til den tid,

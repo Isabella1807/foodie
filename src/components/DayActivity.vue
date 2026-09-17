@@ -39,7 +39,7 @@ function pick(level) {
     </div>
 
     <p v-if="!data.canComputeBurn" class="weight-note">
-      Udfyld dine krops-tal under "forventet tid til målet", så giver en aktiv dag dig ekstra plads.
+      Udfyld dine krops-tal under "dine krops-tal" på Plan-fanen, så giver en aktiv dag dig ekstra plads.
     </p>
     <p v-else-if="bonus > 0" class="day-activity-bonus good-text">
       +{{ fmt(bonus) }} kcal ekstra plads {{ when }}

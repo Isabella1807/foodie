@@ -10,7 +10,7 @@ import { PLAN_MINUTES, PLAN_DAYS_PER_WEEK, oneSessionKcal, kcalForMovement, puls
 // ligger foran eller bagud. Kurven bag tallene ligger i lib/plan.js.
 const data = useDataStore()
 const box = useCollapse('plan')
-const why = useCollapse('planwhy')
+const why = useCollapse('planwhy', false)
 const today = localToday()
 
 const plan = computed(() => data.plan)
@@ -60,6 +60,7 @@ const weekSessions = computed(() => {
 // Hygge-kontoen
 const balance = computed(() => data.planBalance)
 const fmtKcal = (n) => Math.abs(n).toLocaleString('da-DK')
+const fmtDays = (n) => Math.abs(n).toLocaleString('da-DK', { maximumFractionDigits: 1 })
 
 // Dagens ting, der kan krydses af
 const movedToday = computed(() => todayKcal.value >= sessionKcal.value * ENOUGH)
@@ -135,10 +136,10 @@ function startPlan() {
           forskellen sig her.
         </p>
         <p v-else-if="balance.daysWon > 0" class="plan-sub">
-          Det er <strong>{{ balance.daysWon }} dage</strong> hurtigere mod målet, end planen regnede med.
+          Det er <strong>{{ fmtDays(balance.daysWon) }} dage</strong> hurtigere mod målet, end planen regnede med.
         </p>
         <p v-else-if="balance.daysWon < 0" class="plan-sub">
-          Det svarer til <strong>{{ Math.abs(balance.daysWon) }} dage</strong> længere til målet.
+          Det svarer til <strong>{{ fmtDays(balance.daysWon) }} dage</strong> længere til målet.
         </p>
         <p v-else class="plan-sub">Du ligger præcis på planen.</p>
         <p class="plan-bank-split">

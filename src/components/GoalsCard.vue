@@ -8,6 +8,7 @@ import { KCAL_MACROS, MACRO_LABELS, FIBER_FLOOR, FIBER_PER_MJ, KCAL_PER_MJ } fro
 
 const data = useDataStore()
 const box = useCollapse('goals')
+const help = useCollapse('goalshelp', false)
 const editing = ref(null) // null | 'kcal' | 'weight' | 'protein' | 'carbs' | 'fat' | 'fiber'
 const input = ref('')
 // Dagsmålet er enten et fast tal, eller appen regner det ud fra dit målte
@@ -110,6 +111,9 @@ function save() {
 <template>
   <section class="card goals" :class="{ collapsed: !box.open }">
     <p class="eyebrow card-head" v-bind="box.head">mine mål</p>
+    <button type="button" class="link goals-help" @click="help.toggle()">
+      {{ help.open ? 'skjul forklaringerne' : 'hvad betyder tallene?' }}
+    </button>
 
     <div class="goal-row" :class="{ 'has-note': auto.auto && editing !== 'kcal' }">
       <span class="goal-key">Dagligt mål</span>
@@ -142,7 +146,7 @@ function save() {
       </template>
     </form>
 
-    <p v-if="auto.auto && editing !== 'kcal'" class="goal-note">
+    <p v-show="help.open" v-if="auto.auto && editing !== 'kcal'" class="goal-note">
       <template v-if="!auto.ready">
         Appen skal regne målet ud, så du taber ca. {{ fmtRate(rate) }} kg om ugen. Det kræver daglige vejninger i cirka tre uger,
         før dit forbrug er sikkert nok — indtil da gælder dit faste tal på {{ fmt(fixedGoal) }} kcal.
@@ -167,7 +171,7 @@ function save() {
       <span v-if="burn.ready" class="goal-val">ca. {{ fmt(burn.kcal) }} kcal/dag</span>
       <span v-else class="goal-val goal-val-muted">—</span>
     </div>
-    <p v-if="burn.ready" class="goal-note">
+    <p v-show="help.open" v-if="burn.ready" class="goal-note">
       Målt over de sidste {{ burn.weeks }} uger ud fra din logning og vægt.
       <template v-if="deficit > 0">
         Med {{ fmt(goal) }} kcal/dag spiser du ca. {{ fmt(deficit) }} mindre, end du forbrænder — det svarer til ca. {{ fmtRate(expectedRate) }} kg om ugen.
@@ -179,7 +183,7 @@ function save() {
         ({{ burn.unloggedDays }} dage i perioden er ikke logget, så tallet er lidt mere usikkert.)
       </template>
     </p>
-    <p v-else class="goal-note">
+    <p v-show="help.open" class="goal-note">
       Dit forbrug regnes ud, når du har vejet dig over et par uger og logget din mad imellem.
     </p>
 
@@ -194,7 +198,7 @@ function save() {
         <button class="link" @click="edit(k)">ret</button>
       </template>
     </div>
-    <p class="goal-note">
+    <p v-show="help.open" class="goal-note">
       <template v-if="!anyCustom">
         Et udgangspunkt regnet ud fra dit daglige mål: 25 % af kalorierne fra protein, 45 % fra kulhydrat og 30 % fra fedt.
         Protein er sat lidt højere end de almindelige anbefalinger, fordi det mætter, når man taber sig. Ret tallene, hvis du har fået andre.
@@ -215,7 +219,7 @@ function save() {
         <button class="link" @click="edit('fiber')">ret</button>
       </template>
     </div>
-    <p class="goal-note">
+    <p v-show="help.open" class="goal-note">
       <template v-if="fiberCustom">
         Dit eget tal. Sletter du det, går det tilbage til udgangspunktet på {{ fmt(fiberBasis.kcalNeed ? Math.max(fiberFloor, fiberFromBurn) : fiberFloor) }} g.
       </template>
@@ -227,7 +231,7 @@ function save() {
       </template>
       <template v-else>
         De nordiske anbefalinger: mindst 25 g om dagen for kvinder og 35 g for mænd. Udfyld dine krops-tal (køn, højde og alder)
-        under "forventet tid til målet" i kalenderen, så regnes tallet ud fra din krop og vægt.
+        under "dine krops-tal" på Plan-fanen, så regnes tallet ud fra din krop og vægt.
       </template>
     </p>
 

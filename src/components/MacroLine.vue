@@ -25,7 +25,7 @@ const gaps = computed(() => {
   const known = props.macros.known
   if (!known) return []
   return MACROS.filter((k) => known[k] < props.macros.counted).map(
-    (k) => `${cap(MACRO_LABELS[k])} er kun med fra ${known[k]} af ${props.macros.total} måltider`,
+    (k) => `${cap(MACRO_LABELS[k])}: tal fra ${known[k]} af ${props.macros.total} måltider`,
   )
 })
 </script>

@@ -10,6 +10,7 @@ import { REACH_GOALS, MACRO_LABELS } from '../lib/nutrition'
 // har logget mad, og kun på de måltider, der har tal — se lib/balance.js.
 const data = useDataStore()
 const box = useCollapse('balance')
+const help = useCollapse('balancehelp', false)
 const fmt = (n) => n.toLocaleString('da-DK')
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1)
 
@@ -53,7 +54,10 @@ function diff(b) {
         </tr>
       </tbody>
     </table>
-    <p class="weight-note">
+    <button type="button" class="link" @click="help.toggle()">
+      {{ help.open ? 'skjul' : 'hvad betyder bagud?' }}
+    </button>
+    <p v-show="help.open" class="weight-note">
       Bagud = mindre end dagsmålet gange de dage, du har logget mad. Regnet på de måltider, der har tal — så
       tallet er i underkanten, hvis nogle måltider mangler dem. Er du bagud, kan du spise lidt ekstra af det de næste dage.
     </p>
