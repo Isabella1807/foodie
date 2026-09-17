@@ -6,6 +6,12 @@ gennemsnit, og se en farvekalender der viser hver dag som under/omkring/over dit
 mål. Vej dig et par gange om ugen og følg vægten med graf, milepæle og fremskridt mod
 målvægten — og marker hygge-/festdage, så en planlagt dag ikke ligner en fejl.
 Man behøver ikke veje sig hver dag; appen minder først om det efter to dage uden.
+Sæt en målvægt og et vægttab pr. uge, og start planen: så viser forsiden et kort
+med hvor du bør ligge i dag, om du er foran eller bagud, og hvornår du rammer
+målet. Kurven regner med, at forbrændingen falder, efterhånden som du bliver
+lettere, og der er en hyggedag hver 14. dag lagt ind i den med vilje.
+Vægtgrafen kan vises som en tabel med dato, vægt og ændring pr. vejning, og
+kopieres direkte over i et regneark.
 De fleste badevægte viser forskellige tal alt efter hvor man står på pladen, så
 under "Vej nu" kan man taste tre vejninger og lade appen gemme midtertallet. En
 vejning taget på en fremmed vægt kan slettes igen under "Tidligere vejning".

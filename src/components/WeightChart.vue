@@ -1,9 +1,15 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useDataStore } from '../stores/data'
+import { expectedKgOn } from '../lib/plan'
 
 const data = useDataStore()
 const fmtKg = (n) => n.toLocaleString('da-DK', { maximumFractionDigits: 1 })
+
+// Graf eller tabel. Grafen viser formen, tabellen viser de præcise tal på hver
+// dato — nogle gange vil man bare se listen.
+const asTable = ref(false)
+const copied = ref(false)
 
 function toDate(s) {
   const [y, m, d] = s.split('-').map(Number)
@@ -71,6 +77,44 @@ const milestones = computed(() => {
   list.push(Math.round(goal * 10) / 10)
   return list.map((kg) => ({ kg, reached: now != null && now <= kg + 0.05 }))
 })
+
+// Tabellen: nyeste øverst, med ændringen siden den forrige vejning og — når
+// der er lagt en plan — hvad planen sagde, man skulle veje den dag
+const rows = computed(() => {
+  const list = data.weighIns.map((w) => ({ ...w, kg: Number(w.kg) }))
+  const plan = data.plan
+  return list.map((w, i) => {
+    const prev = list[i + 1]
+    const expected = plan ? expectedKgOn(plan, w.measured_on) : null
+    return {
+      date: w.measured_on,
+      kg: w.kg,
+      change: prev ? Math.round((w.kg - prev.kg) * 10) / 10 : null,
+      days: prev ? daysBetween(prev.measured_on, w.measured_on) : null,
+      expected,
+    }
+  })
+})
+
+// Kopiér tabellen med tabulator mellem felterne, så den kan sættes direkte ind
+// i et regneark
+async function copyTable() {
+  const head = ['Dato', 'Vægt (kg)', 'Ændring (kg)', 'Dage siden']
+  if (data.plan) head.push('Planen (kg)')
+  const lines = [head.join('\t')]
+  for (const r of rows.value) {
+    const cells = [r.date, String(r.kg).replace('.', ','), r.change == null ? '' : String(r.change).replace('.', ','), r.days ?? '']
+    if (data.plan) cells.push(r.expected == null ? '' : String(r.expected).replace('.', ','))
+    lines.push(cells.join('\t'))
+  }
+  try {
+    await navigator.clipboard.writeText(lines.join('\n'))
+    copied.value = true
+    setTimeout(() => (copied.value = false), 2000)
+  } catch {
+    copied.value = false
+  }
+}
 </script>
 
 <template>
@@ -80,8 +124,42 @@ const milestones = computed(() => {
       <p v-if="data.currentWeight != null" class="weight-when">{{ fmtKg(data.currentWeight) }} kg nu</p>
     </div>
 
+    <div v-if="rows.length" class="weight-views">
+      <button type="button" class="link" @click="asTable = !asTable">
+        {{ asTable ? 'vis som graf' : 'vis alle tal i en tabel' }}
+      </button>
+      <button v-if="asTable" type="button" class="link" @click="copyTable">
+        {{ copied ? 'kopieret ✓' : 'kopiér til regneark' }}
+      </button>
+    </div>
+
+    <div v-if="asTable" class="weight-table-wrap">
+      <table class="weight-table">
+        <thead>
+          <tr>
+            <th>Dato</th>
+            <th>Vægt</th>
+            <th>Ændring</th>
+            <th v-if="data.plan">Planen</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="r in rows" :key="r.date">
+            <td>{{ r.date }}</td>
+            <td class="num">{{ fmtKg(r.kg) }}</td>
+            <td class="num" :class="r.change == null ? '' : r.change < 0 ? 'good-text' : r.change > 0 ? 'over-text' : ''">
+              <template v-if="r.change == null">–</template>
+              <template v-else-if="r.change === 0">±0</template>
+              <template v-else>{{ r.change < 0 ? '−' : '+' }}{{ fmtKg(Math.abs(r.change)) }}</template>
+            </td>
+            <td v-if="data.plan" class="num muted-cell">{{ r.expected == null ? '–' : fmtKg(r.expected) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
     <svg
-      v-if="chart"
+      v-else-if="chart"
       class="weight-svg"
       :viewBox="`0 0 ${W} ${H}`"
       role="img"
@@ -100,12 +178,12 @@ const milestones = computed(() => {
     </svg>
     <p v-else class="weight-note">Vej dig et par gange, så tegner grafen din udvikling her.</p>
 
-    <div v-if="chart" class="weight-legend">
+    <div v-if="chart && !asTable" class="weight-legend">
       <span><i class="ln ln-line"></i>vejning</span>
       <span v-if="chart.goalY !== null"><i class="ln ln-goal"></i>mål {{ fmtKg(data.goals.goal_kg) }} kg</span>
     </div>
 
-    <div v-if="milestones.length" class="milestones">
+    <div v-if="milestones.length && !asTable" class="milestones">
       <span v-for="m in milestones" :key="m.kg" class="milestone" :class="{ reached: m.reached }">
         {{ fmtKg(m.kg) }} kg
       </span>

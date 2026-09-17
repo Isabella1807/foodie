@@ -4,6 +4,7 @@ import { load, save, remove } from '../lib/storage'
 import { localToday, weekStart, addDays } from '../lib/dates'
 import { kcalPerKgOf, bodyBurn } from '../lib/activity'
 import { estimateBurn, goalForRate } from '../lib/burn'
+import { planCurve, planStatus } from '../lib/plan'
 import { sumMacros, defaultMacroGoals, MACROS, REACH_GOALS } from '../lib/nutrition'
 import { balance } from '../lib/balance'
 import { encouragements } from '../lib/encourage'
@@ -40,7 +41,7 @@ export const useDataStore = defineStore('data', {
       // (tomt = appen regner et udgangspunkt ud fra kalorie-målet og kroppen).
       // loss_per_week: sat = appen regner selv dagsmålet ud fra dit målte
       // forbrug, så du taber så mange kg om ugen; kcal_goal er så kun reserven
-      goals: { kcal_goal: 1500, goal_kg: null, protein_goal: null, carbs_goal: null, fat_goal: null, fiber_goal: null, loss_per_week: null, ...(cache.goals || {}) },
+      goals: { kcal_goal: 1500, goal_kg: null, protein_goal: null, carbs_goal: null, fat_goal: null, fiber_goal: null, loss_per_week: null, plan_start_on: null, plan_start_kg: null, ...(cache.goals || {}) },
       celebrations: cache.celebrations || [], // dage markeret som hygge-/festdag: { id, date }
       // Krops-tal til at anslå tid til målet og ekstra plads på aktive dage.
       // Synces nu, så de samme tal gælder på alle enheder
@@ -271,6 +272,32 @@ export const useDataStore = defineStore('data', {
     // logning og vejninger — se lib/burn.js for hvordan
     measuredBurn(state) {
       return estimateBurn(state.weights, state.entries)
+    },
+
+    // Din plan mod målvægten: kurven fra den dag, planen blev sat, til målet.
+    // Bygger på det MÅLTE forbrug, så den retter sig selv, efterhånden som
+    // appen lærer din nye rutine at kende. Null, før planen er sat i gang.
+    plan(state) {
+      const g = state.goals
+      const burn = this.measuredBurn
+      const atKg = this.currentWeight
+      if (!g.plan_start_on || !g.plan_start_kg || !g.goal_kg || !g.loss_per_week) return null
+      if (!burn.ready || !atKg) return null
+      const curve = planCurve({
+        start: { on: g.plan_start_on, kg: Number(g.plan_start_kg) },
+        targetKg: Number(g.goal_kg),
+        rate: Number(g.loss_per_week),
+        burn: { kcal: burn.kcal, kg: atKg },
+      })
+      return curve.ready ? curve : null
+    },
+
+    // Foran eller bagud i forhold til planen i dag
+    planToday(state) {
+      const curve = this.plan
+      const kg = this.currentWeight
+      if (!curve || !kg) return null
+      return planStatus(curve, localToday(), kg)
     },
 
     // Det grundlag fiber-målet regnes ud fra: køn, og forbruget anslået ud fra
@@ -587,7 +614,7 @@ export const useDataStore = defineStore('data', {
       this.foods = []
       this.entries = []
       this.weights = []
-      this.goals = { kcal_goal: 1500, goal_kg: null, protein_goal: null, carbs_goal: null, fat_goal: null, fiber_goal: null, loss_per_week: null }
+      this.goals = { kcal_goal: 1500, goal_kg: null, protein_goal: null, carbs_goal: null, fat_goal: null, fiber_goal: null, loss_per_week: null, plan_start_on: null, plan_start_kg: null }
       this.celebrations = []
       this.profile = { height_cm: null, age: null, sex: null, activity: null }
       this.dayActivity = {}
@@ -707,6 +734,8 @@ export const useDataStore = defineStore('data', {
             fat_goal: g.fat_goal ?? null,
             fiber_goal: g.fiber_goal ?? null,
             loss_per_week: g.loss_per_week ?? null,
+            plan_start_on: g.plan_start_on ?? null,
+            plan_start_kg: g.plan_start_kg ?? null,
           }
         }
         // Krops-tal: behold et lokalt tal, hvor serveren ikke har nogen — så et

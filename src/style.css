@@ -1889,3 +1889,107 @@ label {
     transition: background-color 0.15s ease, color 0.15s ease;
   }
 }
+
+/* ---- min plan ---- */
+
+.plan-line {
+  margin: 2px 0 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.plan-sub {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.plan-steps {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.plan-steps li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.plan-steps li.done {
+  color: var(--green-dark);
+  font-weight: 600;
+}
+
+.plan-mark {
+  width: 1em;
+  flex: none;
+}
+
+.plan-note {
+  margin-left: auto;
+  font-size: 0.8rem;
+  opacity: 0.8;
+  text-align: right;
+}
+
+.plan-treat {
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+}
+
+/* ---- vægt som tabel ---- */
+
+.weight-views {
+  display: flex;
+  gap: 14px;
+  font-size: 0.85rem;
+}
+
+/* Mange vejninger fylder mere end kortet — så rulles der i tabellen alene */
+.weight-table-wrap {
+  max-height: 340px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.weight-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.weight-table th {
+  position: sticky;
+  top: 0;
+  background: var(--card);
+  text-align: left;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.weight-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.weight-table tr:last-child td {
+  border-bottom: none;
+}
+
+.weight-table .num {
+  text-align: right;
+}
+
+.weight-table .muted-cell {
+  color: var(--muted);
+}

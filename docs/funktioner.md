@@ -68,6 +68,14 @@ Tre faner i bunden: **I dag**, **Kalender**, **Mad**.
 - Links: "Annullér" og "Ret varen, fx et forkert tal" (åbner varens fulde formular direkte herfra, og man kommer tilbage til mængde-valget med de nye tal).
 - Måltidet gemmes med navn, mængde i navnet (fx "Letmælk (500 milliliter)"), kalorier og næringsstoffer.
 
+### Min plan (vises kun når der er sat en målvægt)
+- Ét kort med hele planen mod målvægten: "Du er 0,4 kg foran planen", hvad planen siger man bør veje i dag, og hvornår målvægten nås, skrevet som måned og år ("juni 2028").
+- Under det tre ting, der kan krydses af for i dag: en time bevægelse, dagens kalorier, og om der er vejet inden for et døgn.
+- Nederst en linje om, at en hyggedag på op til 2500 kcal hver 14. dag ER regnet med i planen. Det er med vilje: en kurve, der kun holder på perfekte uger, ville sige "du er bagud" hver eneste uge.
+- Har man ikke startet planen endnu, står der en knap "Start planen i dag". Den gemmer dagens dato og dagens vægt som planens nulpunkt.
+- Kurven regner dag for dag og tager højde for, at forbrændingen falder med cirka 13 kcal pr. tabt kilo, og at dagsmålet har en bund på 1200. Derfor går de sidste kilo langsommere end de første. Se `src/lib/plan.js`.
+- Kræver to kolonner i databasen, `plan_start_on` og `plan_start_kg` — se bunden af `sql/schema.sql`.
+
 ### Forslag (vises kun når det er relevant)
 - Når protein eller fibre halter bagefter dagens kalorier (dagen er godt i gang, og andelen af målet ligger klart under andelen af kalorierne), ELLER når man samlet er bagud fra de sidste 7 dage, vises et kort med:
   - En forklaring: "Protein halter bagefter. Du mangler X g i dag (og er Y g bagud fra de sidste dage) og har Z kcal tilbage i dag." Eller: "Protein haltede de sidste dage. Du er Y g bagud i alt, spis lidt ekstra i dag, så hentes noget af det."
@@ -142,6 +150,8 @@ Tre faner i bunden: **I dag**, **Kalender**, **Mad**.
 - Graf over alle vejninger over tid (linje med punkter) og en vandret linje for målvægten. "94,3 kg nu" i hjørnet.
 - Milepæle: en række med hele kg-trin ned mod målet, hvor de nåede er markeret.
 - Tom tilstand: "Vej dig et par gange, så tegner grafen din udvikling her."
+- Linket "vis alle tal i en tabel" bytter grafen ud med en tabel: én række pr. vejning med dato, vægt og ændringen siden den forrige vejning, nyeste øverst. Er der lagt en plan, kommer der en kolonne mere med, hvad planen sagde man skulle veje den dag. Vejninger fra før planen blev sat viser en streg.
+- I tabel-visningen står også "kopiér til regneark". Den lægger tabellen på udklipsholderen med tabulator mellem felterne og komma som decimaltegn, så den kan sættes direkte ind i Excel eller Google Sheets.
 
 ### Statistik
 - "Tabt i alt" i kg og "dit tempo" i kg/uge (regnet over hele perioden).

@@ -188,3 +188,14 @@ create policy "own movement" on public.movement
 -- afviser databasen en selvskrevet slags, og den går tabt ved næste hentning.
 
 alter table public.movement drop constraint if exists movement_kind_check;
+
+-- ---------------------------------------------------------------------------
+-- Min plan (kør kun dette, hvis du allerede har kørt alt ovenfor)
+--
+-- Planen mod målvægten skal vide, hvornår den blev sat i gang, og hvad man
+-- vejede den dag. Ellers kan appen ikke sige, om man er foran eller bagud.
+-- Selve kurven regnes ud i appen af de tal, der allerede står her:
+-- goal_kg (målvægten), loss_per_week (hvor hurtigt) og det målte forbrug.
+
+alter table public.goals add column if not exists plan_start_on date;
+alter table public.goals add column if not exists plan_start_kg numeric check (plan_start_kg > 0);
