@@ -80,3 +80,43 @@ Alt herunder regnes allerede i appen. Design skal bare vise det.
   spredt ud som småtekst under hvert tal.
 - **Kontoen som noget, man bruger.** I dag er den et tal. Den kunne være en
   knap: "brug 900 kcal på i dag".
+
+
+## Senere: mål hvad ET pas er værd for hende
+
+Appen gætter i dag ikke længere på kalorier pr. slags bevægelse, fordi vi ikke
+kan vide det. Men vi kan MÅLE det, når der er data nok. Det er den rigtige vej,
+og den kræver ikke nye tal fra hende — kun tid.
+
+**Metoden.** `estimateBurn` regner allerede det samlede daglige forbrug ud af
+vægtens udvikling sammenholdt med det, der er logget. Det tal indeholder
+bevægelsen. Har man perioder med FORSKELLIG mængde bevægelse, kan forskellen
+tilskrives bevægelsen:
+
+    forbrug i en periode med mange pas − forbrug i en periode med få pas
+    ───────────────────────────────────────────────────────────────────
+              forskellen i pas pr. dag mellem de to perioder
+
+Det giver kcal pr. pas for præcis hendes krop og hendes måde at træne på, uden
+at nogen skal gætte på METs.
+
+**Hvad der skal være opfyldt, før tallet er brugbart:**
+
+- Mindst to perioder på hver ca. fire uger. Kortere, og vægtens støj på ±0,3 kg
+  pr. vejning æder signalet.
+- En reel forskel i mængden af bevægelse mellem perioderne, gerne to pas om ugen
+  eller mere. Sker af sig selv: ferier, sygdom, travle uger.
+- Mad logget på mindst 80 % af dagene i begge perioder.
+- Vejninger mindst hver anden dag.
+
+**Hvornår.** Planen startede 2026-09-17. Med den slags variation, der opstår af
+sig selv, er der data nok omkring årsskiftet 2026/2027.
+
+**Alt det nødvendige gemmes allerede:** `entries` (mad pr. dag), `weights`
+(vejninger) og `movement` (minutter og slags pr. dag). Der skal ikke ændres i
+databasen for at kunne lave analysen senere.
+
+**Vis det forsigtigt.** Tallet skal først frem, når betingelserne ovenfor er
+opfyldt, og det skal stå som et interval og ikke som ét tal — fx "et pas er
+værd omkring 200 til 300 kcal for dig". Ét præcist tal ville være samme fejl som
+det, der lige er fjernet.
