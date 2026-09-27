@@ -585,10 +585,18 @@ button {
   align-items: baseline;
   justify-content: space-between;
   gap: 10px;
-  flex-wrap: wrap;
+}
+
+/* Ugens tekst kan være lang. Den brydes inde i sin egen plads i stedet for at
+   skubbe pilen ned på en ny linje, så pilen bliver i øverste højre hjørne */
+.movement-head .eyebrow {
+  flex: none;
 }
 
 .movement-week-note {
+  flex: 1;
+  min-width: 0;
+  text-align: right;
   font-size: 0.8rem;
   color: var(--muted);
 }
