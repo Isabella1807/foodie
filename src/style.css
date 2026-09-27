@@ -1595,6 +1595,21 @@ button {
   color: var(--muted);
 }
 
+.recipe-item-units {
+  display: flex;
+  gap: 6px;
+}
+
+.recipe-item-note {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
 .recipe-row {
   display: flex;
   gap: 8px;

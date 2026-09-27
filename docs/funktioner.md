@@ -221,6 +221,8 @@ Alt om hvor det bærer hen, samlet ét sted. Øverst det store tal: hvor mange k
 - Navn på retten.
 - Tilføj varer ved at søge i madlisten eller skanne stregkoden på hver vare. Almindelige råvarer (løg, gulerod, hakket oksekød) foreslås fra Fødevaredatabasen (DTU) med tal pr. 100 gram. Findes varen ikke, kan den oprettes med tal fra etiketten undervejs.
 - For hver vare: mængde i den enhed varen har (gram, milliliter, styk med "1 styk ≈ 13 gram", eller portioner), kalorier for mængden, fjern-knap.
+- **Har varen både en vægt og en styk-vægt, kan man skifte mellem styk og gram** med to knapper ved feltet, og mængden regnes om (2 styk à 45 gram bliver til 90 gram). En skannet vare starter i gram, for dens styk-vægt er bare etikettens portion, og til en ret vejer man. Æg, rugbrød og retter starter i styk.
+- **"ret varen"** under hver vare åbner varens formular inde i retten, fx for at rette et forkert tal fra skanningen eller fjerne styk-vægten. Rettelsen gemmes også på varen i madlisten, og ingrediensen får de nye tal med det samme, med samme mængde.
 - Valgfrit: færdig rets vægt i gram (hvis den fx koger ind) og antal portioner.
 - Opsummering: hele rettens kalorier og næringsstoffer, og hvordan retten gemmes (pr. 100 g med "1 portion ≈ 296 gram ≈ 420 kcal", eller pr. portion hvis vægten ikke kendes). Hints hvis noget mangler.
 - Retten gemmes som én vare i madlisten og kan logges i portioner (kvart/halv/hel osv.) eller gram. Ingredienserne huskes, så retten kan rettes igen.

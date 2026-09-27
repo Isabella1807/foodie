@@ -7,12 +7,50 @@ import { MACROS, scaleFood, parseGrams } from './nutrition'
 const num = (v) => (v == null || v === '' ? null : Number(v))
 const round1 = (n) => Math.round(n * 10) / 10
 
-// Hvad en ingrediens måles i: styk hvis varen har en styk-vægt, ellers gram
-// eller milliliter for 100-varer, ellers portioner
+// Hvad en ingrediens måles i fra start: styk for noget man tæller (æg,
+// rugbrød), gram eller milliliter for 100-varer, ellers portioner. En SKANNET
+// vare starter i gram: dens styk-vægt er bare etikettens portion, og til en ret
+// vejer man.
 export function itemUnit(food) {
-  if (food.per_unit && food.piece_size) return 'stk'
+  if (food.per_unit && food.piece_size) return food.barcode ? food.per_unit : 'stk'
   if (food.per_unit) return food.per_unit
   return 'portion'
+}
+
+// Hvad en ingrediens KAN måles i. Har varen både en vægt og en styk-vægt, kan
+// man skifte mellem styk og gram — ellers kun den ene enhed.
+export function itemUnits(item) {
+  if (item.per_unit && item.piece_size) return ['stk', item.per_unit]
+  if (item.per_unit) return [item.per_unit]
+  return ['portion']
+}
+
+// Tal uden tusind-punktum og med komma, så parseGrams kan læse det igen
+const decimal = (n) => String(Math.round(n * 10) / 10).replace('.', ',')
+
+// Skift enhed og regn mængden om, så 2 styk à 45 gram bliver til 90 gram og
+// ikke til 2 gram
+export function switchUnit(item, unit) {
+  if (unit === item.unit || !itemUnits(item).includes(unit)) return
+  const a = parseGrams(item.amount)
+  if (a && item.piece_size) {
+    if (unit === 'stk') item.amount = decimal(a / item.piece_size)
+    else if (item.unit === 'stk') item.amount = decimal(a * item.piece_size)
+  }
+  item.unit = unit
+}
+
+// Varen er rettet midt i en ret: hent de nye tal ind, men behold mængden og
+// enheden. Er styk-vægten fjernet, regnes styk om til gram med den gamle vægt.
+export function refreshItem(item, food) {
+  const next = itemFromFood(food, item.amount)
+  if (itemUnits(next).includes(item.unit)) {
+    next.unit = item.unit
+  } else if (item.unit === 'stk' && item.piece_size && next.per_unit) {
+    const a = parseGrams(item.amount)
+    if (a) next.amount = decimal(a * item.piece_size)
+  }
+  return next
 }
 
 // Lav en ingrediens ud fra en vare. Tallene kopieres, så retten ikke ændrer

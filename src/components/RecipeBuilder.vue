@@ -3,7 +3,7 @@ import { ref, computed, watch } from 'vue'
 import { useDataStore } from '../stores/data'
 import { unitName } from '../lib/units'
 import { describeMacros, parseGrams } from '../lib/nutrition'
-import { itemFromFood, itemNutrition, itemsFromFood, recipeTotals, recipeToFood } from '../lib/recipe'
+import { itemFromFood, itemNutrition, itemsFromFood, itemUnits, switchUnit, refreshItem, recipeTotals, recipeToFood } from '../lib/recipe'
 import { draftFromBarcode } from '../lib/openFoodFacts'
 import { loadFrida, searchFrida, fridaToFood } from '../lib/frida'
 import BarcodeScanner from './BarcodeScanner.vue'
@@ -29,6 +29,8 @@ const scanning = ref(false)
 const lookingUp = ref(false)
 const draft = ref(null) // ny vare på vej ind (fra skanning eller søgning) — vises i madformularen
 const draftNote = ref('')
+// Ingrediensen, hvis vare rettes lige nu (index), eller null
+const editing = ref(null)
 
 const fmt = (n) => n.toLocaleString('da-DK')
 
@@ -88,10 +90,24 @@ const macroHint = computed(() => {
   return `${missing} af ${items.value.length} varer mangler tal for protein, kulhydrat, fedt og fibre, så rettens tal for dem er i underkanten.`
 })
 
-function unitWord(item) {
-  if (item.unit === 'stk') return 'styk'
-  if (item.unit === 'portion') return 'portioner'
-  return unitName(item.unit)
+function unitWord(unit) {
+  if (unit === 'stk') return 'styk'
+  if (unit === 'portion') return 'portioner'
+  return unitName(unit)
+}
+
+// Varen bag en ingrediens, hvis den stadig er på madlisten
+const foodOf = (item) => data.foods.find((f) => f.id === item.food_id) ?? null
+
+// Ret varen inde fra retten, fx et forkert tal fra skanningen. Rettelsen gemmes
+// på varen i madlisten, og ingrediensen får de nye tal med det samme.
+function saveEdit(values) {
+  const i = editing.value
+  const item = items.value[i]
+  data.updateFood(item.food_id, values)
+  const food = foodOf(item)
+  if (food) items.value[i] = refreshItem(item, food)
+  editing.value = null
 }
 
 function chipKcal(food) {
@@ -106,6 +122,7 @@ function addFood(food) {
 
 function removeItem(i) {
   items.value.splice(i, 1)
+  editing.value = null
 }
 
 // Stregkode læst: kendt vare ind i retten med det samme — ny vare slås op og
@@ -154,18 +171,45 @@ function submit() {
           <span class="row-kcal">{{ fmt(itemNutrition(it).kcal) }} kcal</span>
           <button type="button" class="row-delete" :aria-label="`Fjern ${it.name}`" @click="removeItem(i)">✕</button>
         </div>
-        <div class="recipe-item-amount">
-          <input
-            v-model="it.amount"
-            type="text"
-            inputmode="decimal"
-            :placeholder="`antal ${unitWord(it)}`"
-            :aria-label="`Mængde ${it.name} i ${unitWord(it)}`"
-          />
-          <span class="recipe-item-unit">
-            {{ unitWord(it) }}<template v-if="it.unit === 'stk' && it.piece_size"> (1 styk ≈ {{ fmt(it.piece_size) }} gram)</template>
-          </span>
-        </div>
+        <FoodForm
+          v-if="editing === i"
+          :food="foodOf(it)"
+          note="Rettelsen gemmes også på varen i din madliste."
+          embedded
+          @save="saveEdit"
+          @cancel="editing = null"
+        />
+        <template v-else>
+          <div class="recipe-item-amount">
+            <input
+              v-model="it.amount"
+              type="text"
+              inputmode="decimal"
+              :placeholder="`antal ${unitWord(it.unit)}`"
+              :aria-label="`Mængde ${it.name} i ${unitWord(it.unit)}`"
+            />
+            <!-- Vare med både vægt og styk-vægt: vælg selv, om den tastes i gram eller styk -->
+            <div v-if="itemUnits(it).length > 1" class="recipe-item-units" role="group" :aria-label="`Enhed for ${it.name}`">
+              <button
+                v-for="u in itemUnits(it)"
+                :key="u"
+                type="button"
+                class="chip"
+                :class="{ selected: it.unit === u }"
+                :aria-pressed="String(it.unit === u)"
+                @click="switchUnit(it, u)"
+              >
+                {{ unitWord(u) }}
+              </button>
+            </div>
+            <span v-else class="recipe-item-unit">{{ unitWord(it.unit) }}</span>
+          </div>
+          <p class="recipe-item-note">
+            <span v-if="it.piece_size && it.per_unit">1 styk ≈ {{ fmt(it.piece_size) }} {{ unitName(it.per_unit) }}</span>
+            <!-- En ret som ingrediens rettes som ret, ikke her: formularen kender ikke ingredienserne -->
+            <button v-if="foodOf(it) && !foodOf(it).ingredients" type="button" class="link" @click="editing = i">ret varen</button>
+          </p>
+        </template>
       </div>
     </div>
     <p v-else class="quickadd-new-label">Tilføj varerne i retten: søg i din madliste eller skan stregkoden på hver vare.</p>
