@@ -138,6 +138,8 @@ function startEdit() {
       <p class="eyebrow">bevægelse</p>
       <span class="movement-week-note">{{ weekNote }}</span>
     </div>
+    <!-- Målet står altid fremme, også når dagen er sat og formularen er væk -->
+    <p class="movement-goal">Målet er ca. {{ goal.minutes }} min, {{ goal.daysPerWeek }} gange om ugen.</p>
 
     <div class="movement-week" role="img" :aria-label="`${moveWeek.minutes} af ${moveWeek.target} minutter denne uge`">
       <button
@@ -222,8 +224,8 @@ function startEdit() {
       </p>
       <button v-if="editing" type="button" class="link" @click="editing = false; adding = false">annullér</button>
       <p v-else class="weight-note">
-        Målet er {{ goal.daysPerWeek }} × {{ goal.minutes }} = {{ goal.weekMinutes }} minutter om ugen. Alle minutter
-        tæller med, også en kort tur<template v-if="goal.fromPlan">, og alt over målet giver ekstra i hygge-kontoen.
+        Alle minutter tæller med i ugens {{ goal.weekMinutes }}, også en kort tur<template v-if="goal.fromPlan">, og alt
+          over målet giver ekstra i hygge-kontoen.
           Slagsen er kun til dig selv — appen kan ikke vide, hvor mange kalorier netop din træning kostede, så alle
           minutter tæller ens.</template><template v-else>.</template>
       </p>

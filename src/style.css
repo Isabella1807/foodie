@@ -593,6 +593,12 @@ button {
   color: var(--muted);
 }
 
+.movement-goal {
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
 .movement-week {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
