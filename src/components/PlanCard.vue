@@ -34,16 +34,11 @@ const boost = computed(() => data.planBoost)
 const arrivalMeasured = computed(() => asMonth(data.planMeasured?.arriveOn))
 const showBoost = computed(() => boost.value && arrivalMeasured.value && arrivalMeasured.value !== arrival.value)
 
-// En time tæller efter, hvad den er VÆRD, ikke efter hvor længe den varede.
-// En time slentretur er cirka det halve af en time, hvor man er forpustet, og
-// planen er regnet på den hårde slags. 80 % er nok til at sige god for dagen,
-// så en time delt op i en halv time VR og en halv times gåtur også tæller.
 const kg = computed(() => data.currentWeight)
 // Passets længde og antal dage kommer fra hendes egne indstillinger
 const minutes = computed(() => data.planMinutes)
 const days = computed(() => data.planDays)
 const sessionKcal = computed(() => Math.round(data.sessionKcal))
-const ENOUGH = 0.8
 const kcalOn = (date) => Math.round(kcalForMovement(data.movement[date], kg.value))
 const todayKcal = computed(() => kcalOn(today))
 
@@ -57,7 +52,8 @@ const week = computed(() => data.planWeek)
 // Hygge-kontoen
 
 // Dagens ting, der kan krydses af
-const movedToday = computed(() => todayKcal.value >= sessionKcal.value * ENOUGH)
+// Samme regel som bevægelses-kortet og ugens tælling (movementGoal)
+const movedToday = computed(() => data.movementGoal.done(data.movement[today]))
 const minutesToday = computed(() => Number(data.movement[today]?.minutes) || 0)
 const ateToday = computed(() => data.todayTotal)
 const goalToday = computed(() => data.dailyGoal)

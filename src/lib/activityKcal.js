@@ -20,6 +20,8 @@
 // regnes ud af vægtens udvikling sammenholdt med det, der er logget. Det fanger
 // over et par uger, hvad bevægelsen reelt har givet, uanset hvad vi antog her.
 // Satsen nedenfor er derfor kun et udgangspunkt for at kunne tegne en plan.
+import { MOVE_GOAL_MIN } from './movement'
+
 const PER_MIN_PER_KG = 0.056
 
 export const PLAN_RATE = PER_MIN_PER_KG
@@ -80,9 +82,16 @@ export function oneSessionKcal(kg, minutes = PLAN_MINUTES) {
 // have lavet sin træning.
 export const ENOUGH_SHARE = 0.8
 
+// Men en halv time er en halv time. Er passet sat til 45 minutter, ville 80 %
+// kræve 36, og så talte en halv times træning ikke — heller ikke i en uge med
+// bevægelse seks af syv dage. 30 minutter tæller derfor altid som en træning.
+// De ekstra minutter tæller stadig i kalorierne, bare ikke i krydset.
+export const ENOUGH_CAP = MOVE_GOAL_MIN
+
 // Så mange minutter skal der til, før dagen tæller som en træning
 export function enoughMinutes(minutes = PLAN_MINUTES) {
-  return Math.round((Math.round(Number(minutes)) || PLAN_MINUTES) * ENOUGH_SHARE)
+  const share = Math.round((Math.round(Number(minutes)) || PLAN_MINUTES) * ENOUGH_SHARE)
+  return Math.min(share, ENOUGH_CAP)
 }
 
 export function enoughKcal(kg, minutes = PLAN_MINUTES) {

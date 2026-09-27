@@ -120,7 +120,7 @@ Kortet starter lukket, og overskriften bærer selv pointen: "forslag — 21 g fi
 ### Bevægelse
 - **Målet kommer fra planen, hvis der er lagt en.** Så er det 6 dage om ugen, og en dag tæller, når bevægelsen er mindst 80 % af en hård time (ca. 253 kcal ved 94 kg) — ikke bare 30 minutter. Uden en plan gælder det gamle, lempeligere kryds: 30 minutter, 5 dage om ugen. Ét sted i koden afgør det, `movementGoal` i `src/stores/data.js`, så bevægelses-kortet og plan-kortet aldrig siger to forskellige ting.
 - **Ét træning er ét træning.** Appen kan ikke vide, hvor mange kalorier netop dét træning kostede, så der bruges ÉN sats for al bevægelse, og slagsen er kun en etiket. Før havde hver slags sin egen sats, så en gåtur på 50 minutter blev til "0,76 træning" og en time badminton til "0,71" — en præcision, der ikke findes. Intensitet står nu som en instruktion (gå 5,5 km/t, hold pulsen i zonen), ikke som en måling. Det ægte kalorietal kommer fra `estimateBurn`, som regner baglæns fra vægt og logning.
-- **En dag tæller som et træning på TID**: fra 80 % af de valgte minutter. Ikke på energi, for så bad appen om "3 minutter mere i samme tempo" efter en gåtur på 50 minutter.
+- **En dag tæller som en træning på TID**: fra 80 % af de valgte minutter, dog aldrig mere end 30. Med et pas på 45 minutter tæller en halv time altså også (80 % ville ellers være 36). De ekstra minutter tæller stadig i kalorierne. Ikke på energi, for så bad appen om "3 minutter mere i samme tempo" efter en gåtur på 50 minutter.
 - **Ugen tælles i HELE PAS** ("3 af 5 træning denne uge").
 - ~~Ugen tælles i TIMER, ikke i dage der tæller~~ ("1,8 af 6 timer denne uge"). Planen regner i kalorier pr. uge, så det er også sådan det skal vises. Med dage-tælling faldt 45 minutters VR (238 kcal) under dagsgrænsen (253) og blev til nul, selvom den er 3/4 af en time — både forkert og nedslående. Se `planWeek` i `src/stores/data.js`. Uden en plan tælles der stadig dage.
 - **Prikkerne er knapper.** Tryk på en dag for at se og rette, hvad der blev lavet dén dag, uden at gå i kalenderen. Der står så "Du ser på mandag" med et link tilbage til i dag. Fremtidige dage kan ikke vælges.
@@ -135,13 +135,12 @@ Kortet starter lukket, og overskriften bærer selv pointen: "forslag — 21 g fi
 - Liste over alt logget i dag: navn (inkl. mængde), en lille linje med protein/kulhydrat/fedt/fibre hvis kendt, kalorier, og en slet-knap (med bekræftelse).
 - Tom tilstand: "Du har ikke logget noget i dag endnu."
 
-### Dagens status
-- Ugens gennemsnit i kcal/dag (farves når ugen samlet ligger over budgettet).
-- Procent af vejen mod målvægten med en lille bjælke (eller bare den nuværende vægt, hvis der ikke er en målvægt).
-- "Hvor aktiv var du i dag?": fire knapper (Stillesiddende, Let aktiv, Moderat, Meget aktiv). Ens generelle niveau er valgt som standard. En mere aktiv dag giver ekstra plads i dagens mål ("+180 kcal ekstra plads i dag"), en roligere dag giver mindre. Kræver at krops-tallene er udfyldt, ellers en hjælpetekst om det.
+### Statistik (forsiden)
+- Fire tal, to og to: ugens gennemsnit i kcal/dag (farves når ugen samlet ligger over budgettet), procent af vejen mod målvægten med en lille bjælke (eller bare den nuværende vægt, hvis der ikke er en målvægt), kg tabt i alt og ugens træninger ("5 / 6").
+- Der var før en "Hvor aktiv var du i dag?" pr. dag, som gav ekstra plads i dagens mål. Den er fjernet: bevægelse tælles i minutter på bevægelses-kortet og lægges ikke oveni målet. Gamle valg ligger stadig i `dayActivity`, men bruges ikke.
 - Knap: "Marker i dag som hyggedag" / "🎉 I dag er en hyggedag". En hyggedag får en beroligende tekst i kalenderen og et flag på dagen.
 
-### Protein og fibre over tid
+### Protein og fibre over tid (nederst på plan-fanen)
 - En lille tabel: protein og fibre for "denne uge" og "denne måned": "X g bagud" / "X g foran" / "på målet", og under hvert tal "fået af forventet" i gram. Regnet på de dage, der er logget mad, og kun på måltider, der har tal.
 - En kort forklaring af, hvad "bagud" betyder, og at man kan spise lidt ekstra af det de næste dage.
 

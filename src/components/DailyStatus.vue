@@ -3,8 +3,10 @@ import { computed } from 'vue'
 import { useDataStore } from '../stores/data'
 import { useCollapse } from '../lib/useCollapse'
 import { localToday } from '../lib/dates'
-import DayActivity from './DayActivity.vue'
+import { weekDates } from '../lib/movement'
 
+// Nøgletallene samlet ét sted: hvad du spiser i snit, hvor langt du er mod
+// målvægten, hvad du har tabt, og ugens træninger
 const data = useDataStore()
 const box = useCollapse('status')
 const today = localToday()
@@ -15,13 +17,20 @@ const isHygge = computed(() => data.isCelebration(today))
 
 // Ugens snit farves gult, hvis ugen samlet ligger over budgettet (ellers grønt)
 const avgOver = computed(() => data.weekOver !== null && data.weekOver > 0)
+
+// Ugens træninger efter samme regel som bevægelses-kortet
+const trainings = computed(() => {
+  const goal = data.movementGoal
+  const done = weekDates(today).filter((d) => d <= today && goal.done(data.movement[d])).length
+  return { done, target: goal.daysPerWeek }
+})
 </script>
 
 <template>
   <section class="card status" :class="{ collapsed: !box.open }">
-    <p class="eyebrow card-head" v-bind="box.head">dagens status</p>
+    <p class="eyebrow card-head" v-bind="box.head">statistik</p>
 
-    <div class="stat-row">
+    <div class="stat-grid">
       <div class="stat">
         <p class="stat-num" :class="{ over: avgOver }">{{ data.weekAverage ? fmt(data.weekAverage) : '—' }}</p>
         <p class="stat-label">kcal/dag i snit</p>
@@ -38,9 +47,19 @@ const avgOver = computed(() => data.weekOver !== null && data.weekOver > 0)
         <p class="stat-num">{{ fmtKg(data.currentWeight) }}<span class="stat-pct">kg</span></p>
         <p class="stat-label">din vægt nu</p>
       </div>
-    </div>
 
-    <DayActivity :date="today" when="i dag" />
+      <div v-if="data.weightLost != null" class="stat">
+        <p class="stat-num">{{ fmtKg(data.weightLost) }}<span class="stat-pct">kg</span></p>
+        <p class="stat-label">tabt i alt</p>
+      </div>
+
+      <div class="stat">
+        <p class="stat-num">
+          {{ trainings.done }}<span class="stat-pct">/ {{ trainings.target }}</span>
+        </p>
+        <p class="stat-label">træninger denne uge</p>
+      </div>
+    </div>
 
     <button type="button" class="hygge-toggle" :class="{ on: isHygge }" @click="data.toggleCelebration(today)">
       {{ isHygge ? '🎉 I dag er en hyggedag' : 'Marker i dag som hyggedag' }}

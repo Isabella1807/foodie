@@ -39,6 +39,7 @@ const lost = computed(() => data.weightLost)
   <WeightChart />
   <WeightStats />
   <GoalForecast />
-  <NutrientBalance />
   <GoalsCard />
+  <!-- Bagud-kortet står nederst: det er noget, man kigger på en gang imellem -->
+  <NutrientBalance />
 </template>

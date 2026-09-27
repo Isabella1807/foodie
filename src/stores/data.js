@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { supabase } from '../lib/supabase'
 import { load, save, remove } from '../lib/storage'
 import { localToday, weekStart, addDays } from '../lib/dates'
-import { kcalPerKgOf, bodyBurn } from '../lib/activity'
+import { bodyBurn } from '../lib/activity'
 import { estimateBurn, goalForRate, MIN_GOAL } from '../lib/burn'
 import { planCurve, planStatus, treatPerDay } from '../lib/plan'
 import { movementPerDay, planMovementPerDay, kcalForMovement, oneSessionKcal, enoughKcal, enoughMinutes, isHardEnough, minutesToGo, planPerKg, PLAN_MINUTES, PLAN_DAYS_PER_WEEK } from '../lib/activityKcal'
@@ -207,33 +207,14 @@ export const useDataStore = defineStore('data', {
       return this.currentWeight ?? this.startWeight?.kg ?? null
     },
 
-    // Kan vi regne ekstra plads ud? Kræver højde, alder, køn, et generelt
-    // aktivitetsniveau og en vægt — ellers er der ikke nok tal
-    canComputeBurn(state) {
-      const p = state.profile
-      return !!(p.height_cm && p.age && p.sex && p.activity && this.bodyWeight)
-    },
-
-    // Ekstra kalorier en dags aktivitet giver oveni dagsmålet, i forhold til
-    // dit generelle niveau: en mere aktiv dag forbrænder mere, så du kan spise
-    // tilsvarende mere og stadig ligge i samme underskud. Regnes ud fra din
-    // vægt og hvor meget hvert niveau dækker (kcal pr. kg). 0 hvis tallene
-    // mangler eller dagen svarer til dit generelle niveau.
-    activityBonus(state) {
-      return (date) => {
-        if (!this.canComputeBurn) return 0
-        const base = state.profile.activity
-        const level = state.dayActivity[date] || base
-        return Math.round(this.bodyWeight * (kcalPerKgOf(level) - kcalPerKgOf(base)))
-      }
-    },
-
-    // Dagens samlede budget = dagsmålet + evt. ekstra plads for den dags aktivitet
+    // Dagens budget er dagsmålet. Før kunne en dag sættes til "moderat" eller
+    // "meget aktiv" og give ekstra plads, men bevægelse tælles nu i minutter på
+    // bevægelses-kortet og lægges med vilje IKKE oveni målet (se lib/movement.js).
+    // Gamle valg i dayActivity bliver liggende, men bruges ikke længere.
     dayBudget() {
-      return (date) => this.goalFor(date) + this.activityBonus(date)
+      return (date) => this.goalFor(date)
     },
 
-    // I dags budget (dagsmål + ekstra plads, hvis i dag er sat til mere aktiv)
     todayBudget() {
       return this.dayBudget(localToday())
     },

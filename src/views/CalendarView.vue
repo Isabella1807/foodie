@@ -3,7 +3,6 @@ import { ref, computed } from 'vue'
 import { useDataStore } from '../stores/data'
 import { monthGrid, monthLabel, localToday, formatDayLabel } from '../lib/dates'
 import { highDayMessage, celebrationMessage } from '../lib/coach'
-import DayActivity from '../components/DayActivity.vue'
 import MovementCard from '../components/MovementCard.vue'
 import QuickAdd from '../components/QuickAdd.vue'
 import MacroLine from '../components/MacroLine.vue'
@@ -201,7 +200,6 @@ function remove(entry) {
     </div>
     <p v-if="!openEntries.length" class="empty">Intet mad logget denne dag.</p>
     <p v-if="openMessage" class="status-coach cal-coach">{{ openMessage }}</p>
-    <DayActivity :date="openDay" when="den dag" />
     <MovementCard :date="openDay" when="den dag" />
     <button
       type="button"
