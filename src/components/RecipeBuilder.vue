@@ -6,6 +6,7 @@ import { describeMacros, parseGrams } from '../lib/nutrition'
 import { itemFromFood, itemNutrition, itemsFromFood, itemUnits, switchUnit, refreshItem, recipeTotals, recipeToFood } from '../lib/recipe'
 import { draftFromBarcode } from '../lib/openFoodFacts'
 import { loadFrida, searchFrida, fridaToFood } from '../lib/frida'
+import { useDraft } from '../lib/drafts'
 import BarcodeScanner from './BarcodeScanner.vue'
 import FoodForm from './FoodForm.vue'
 
@@ -23,6 +24,34 @@ const items = ref(itemsFromFood(props.recipe))
 const storedWeight = props.recipe?.ingredients?.total_weight
 const finishedWeight = ref(storedWeight && storedWeight !== recipeTotals(items.value).weight ? String(storedWeight) : '')
 const portions = ref(props.recipe?.ingredients?.portions ?? '')
+
+// Husk retten, hvis formularen lukkes før "Gem retten" — se lib/drafts.js.
+// En ny ret har én kladde; en gemt ret, der rettes, har sin egen.
+const initial = { name: name.value, items: JSON.parse(JSON.stringify(items.value)), finishedWeight: finishedWeight.value, portions: portions.value }
+const same = (a, b) => (a || '').trim().toLowerCase() === (b || '').trim().toLowerCase()
+function fill(v) {
+  // Et navn fra søgningen bliver stående, hvis kladden ikke havde noget navn
+  if (v.name) name.value = v.name
+  items.value = JSON.parse(JSON.stringify(v.items || []))
+  finishedWeight.value = v.finishedWeight ?? ''
+  portions.value = v.portions ?? ''
+}
+const memory = useDraft(
+  `recipe.${props.recipe?.id ?? 'new'}`,
+  () => ({ name: name.value, items: items.value, finishedWeight: finishedWeight.value, portions: portions.value }),
+  fill,
+  // En ny rets kladde hentes kun af sig selv, hvis den ikke er åbnet til en
+  // ret med et andet navn. Ellers tilbydes den.
+  (kept) => !!props.recipe || !props.name || !kept.name || same(props.name, kept.name),
+)
+
+function startOver() {
+  memory.startOver(() => {
+    fill(initial)
+    name.value = initial.name
+    editing.value = null
+  })
+}
 
 const search = ref('')
 const scanning = ref(false)
@@ -152,6 +181,7 @@ function saveDraft(values) {
 
 function submit() {
   if (!canSave.value) return
+  memory.done()
   emit('save', recipeToFood({ name: name.value.trim(), items: items.value, finishedWeight: finishedWeight.value, portions: portions.value }))
 }
 </script>
@@ -159,6 +189,14 @@ function submit() {
 <template>
   <div class="recipe-form" :class="{ card: !embedded }">
     <p class="eyebrow">{{ recipe ? 'ret retten' : 'byg en ret' }}</p>
+    <p v-if="memory.restored" class="scan-note">
+      Udfyldt med det, du tastede sidst.
+      <button type="button" class="link" @click="startOver">start forfra</button>
+    </p>
+    <p v-else-if="memory.offer" class="scan-note">
+      Du var i gang med {{ memory.offer.name ? `"${memory.offer.name}"` : 'en anden ret' }}.
+      <button type="button" class="link" @click="memory.takeOffer()">hent den</button>
+    </p>
     <label>
       Navn på retten
       <input v-model="name" type="text" placeholder="fx pasta hvidløg" required />

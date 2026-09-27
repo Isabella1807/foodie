@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { unitName } from '../lib/units'
 import { parseGrams } from '../lib/nutrition'
 import { draftFromBarcode } from '../lib/openFoodFacts'
+import { useDraft } from '../lib/drafts'
 import BarcodeScanner from './BarcodeScanner.vue'
 
 // food: en eksisterende madvare (med id) eller et udkast fra en skanning
@@ -49,6 +50,40 @@ function applyDraft(d) {
   if (d.barcode) barcode.value = d.barcode
 }
 applyDraft(props.food)
+
+// Husk det, der er tastet, hvis formularen lukkes før "Gem" — se lib/drafts.js.
+// En ny vare har én kladde; en eksisterende vare har sin egen.
+const fields = { name, kcal, perUnit, pieceSize, protein, carbs, fat, fiber, barcode }
+const same = (a, b) => (a || '').trim().toLowerCase() === (b || '').trim().toLowerCase()
+const memory = useDraft(
+  `food.${props.food?.id ?? 'new'}`,
+  () => Object.fromEntries(Object.entries(fields).map(([k, r]) => [k, r.value])),
+  (kept) => {
+    for (const [k, r] of Object.entries(fields)) {
+      // Et navn fra søgningen bliver stående, hvis kladden ikke havde noget navn
+      if (k === 'name' && !kept.name) continue
+      r.value = kept[k]
+    }
+  },
+  // Den nye vares kladde hentes kun af sig selv, hvis formularen er åbnet til
+  // den samme vare: tom, samme navn eller samme stregkode. Ellers tilbydes den.
+  (kept) => {
+    const f = props.food
+    if (!f || f.id) return true
+    if (f.barcode) return kept.barcode === f.barcode
+    if (f.kcal != null) return false
+    return !f.name || !kept.name || same(f.name, kept.name)
+  },
+)
+
+function startOver() {
+  memory.startOver(() => {
+    for (const r of Object.values(fields)) r.value = ''
+    perUnit.value = null
+    barcode.value = null
+    applyDraft(props.food)
+  })
+}
 
 const kcalLabel = computed(() => {
   if (perUnit.value === 'stk') return 'Kalorier pr. styk'
@@ -101,6 +136,7 @@ function submit() {
   const trimmed = name.value.trim()
   const amount = Math.round(Number(kcal.value))
   if (!trimmed || !amount || amount <= 0) return
+  memory.done()
   const size = Number(pieceSize.value)
   const common = { name: trimmed, barcode: barcode.value }
   if (perUnit.value === 'stk') {
@@ -132,6 +168,14 @@ function submit() {
       <span v-if="barcode" class="scan-note">kode {{ barcode }}</span>
     </div>
     <p v-if="scanNote" class="scan-note">{{ scanNote }}</p>
+    <p v-if="memory.restored" class="scan-note">
+      Udfyldt med det, du tastede sidst.
+      <button type="button" class="link" @click="startOver">start forfra</button>
+    </p>
+    <p v-else-if="memory.offer" class="scan-note">
+      Du var i gang med {{ memory.offer.name ? `"${memory.offer.name}"` : 'en anden vare' }}.
+      <button type="button" class="link" @click="memory.takeOffer()">hent den</button>
+    </p>
     <BarcodeScanner v-if="scanning" @detected="onScanned" @cancel="scanning = false" />
 
     <label>

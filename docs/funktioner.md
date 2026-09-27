@@ -217,6 +217,12 @@ Alt om hvor det bærer hen, samlet ét sted. Øverst det store tal: hvor mange k
 - Protein, kulhydrat, fedt og fibre i gram (valgfrit), på samme grundlag som kalorierne.
 - Annullér / Gem.
 
+### Kladder: formularen husker, hvad der er tastet
+- Formularen til en vare og "byg en ret" gemmer løbende, hvad der er tastet. Lukkes formularen, før der er trykket "Gem" (skift af fane, appen lukket, Annullér), står det der igen næste gang, med teksten "Udfyldt med det, du tastede sidst" og et link "start forfra".
+- En ny vare og en ny ret har hver én kladde. En eksisterende vare eller ret, der rettes, har sin egen. Kladden slettes, når der gemmes, eller når man trykker "start forfra", og en kladde ældre end en uge smides væk.
+- Åbnes formularen til noget andet (en anden skannet vare, et andet navn fra søgningen), hentes kladden ikke ind af sig selv. Så står der "Du var i gang med "Müsli"" og et link "hent den".
+- Kladderne ligger kun i browseren (`localStorage`, nøgler med `foodie.draft.`), ligesom de foldede kort. Se `src/lib/drafts.js`.
+
 ### Byg en ret af flere varer
 - Navn på retten.
 - Tilføj varer ved at søge i madlisten eller skanne stregkoden på hver vare. Almindelige råvarer (løg, gulerod, hakket oksekød) foreslås fra Fødevaredatabasen (DTU) med tal pr. 100 gram. Findes varen ikke, kan den oprettes med tal fra etiketten undervejs.
