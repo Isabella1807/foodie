@@ -3,10 +3,9 @@ import { computed } from 'vue'
 import { useDataStore } from '../stores/data'
 import { useCollapse } from '../lib/useCollapse'
 import { localToday } from '../lib/dates'
-import { weekDates } from '../lib/movement'
 
 // Nøgletallene samlet ét sted: hvad du spiser i snit, hvor langt du er mod
-// målvægten, hvad du har tabt, og ugens træninger
+// målvægten, hvad du har tabt, og ugens bevægelse i minutter
 const data = useDataStore()
 const box = useCollapse('status')
 const today = localToday()
@@ -18,12 +17,7 @@ const isHygge = computed(() => data.isCelebration(today))
 // Ugens snit farves gult, hvis ugen samlet ligger over budgettet (ellers grønt)
 const avgOver = computed(() => data.weekOver !== null && data.weekOver > 0)
 
-// Ugens træninger efter samme regel som bevægelses-kortet
-const trainings = computed(() => {
-  const goal = data.movementGoal
-  const done = weekDates(today).filter((d) => d <= today && goal.done(data.movement[d])).length
-  return { done, target: goal.daysPerWeek }
-})
+const moveWeek = computed(() => data.moveWeek)
 </script>
 
 <template>
@@ -55,9 +49,9 @@ const trainings = computed(() => {
 
       <div class="stat">
         <p class="stat-num">
-          {{ trainings.done }}<span class="stat-pct">/ {{ trainings.target }}</span>
+          {{ moveWeek.minutes }}<span class="stat-pct">/ {{ moveWeek.target }} min</span>
         </p>
-        <p class="stat-label">træninger denne uge</p>
+        <p class="stat-label">bevægelse denne uge</p>
       </div>
     </div>
 

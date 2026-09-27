@@ -15,7 +15,7 @@ hvordan det hele kan sættes op mere overskueligt.
 ## Hvad der bruges hvor tit (til at prioritere)
 
 - Flere gange dagligt: logge et måltid, se hvor mange kalorier der er tilbage i dag, se om protein og fibre følger med.
-- Én gang dagligt: sætte kryds for bevægelse, veje sig (hver anden dag), evt. markere dagen som hyggedag eller som mere aktiv end normalt.
+- Én gang dagligt: sætte kryds for bevægelse, veje sig (hver anden dag), evt. markere dagen som hyggedag.
 - Et par gange om ugen: kigge i kalenderen (ugen og måneden), se vægtgrafen og tempoet.
 - Sjældent: rette mål, udfylde krops-tal, rydde op i madlisten, slå notifikation til.
 
@@ -34,13 +34,13 @@ Det automatiske dagsmål er forbruget minus underskuddet. Falder forbruget, fald
 En tabel med ét kalorietal pr. række omkring dagsmålet (−150 til +300) plus et felt til at prøve sit eget tal. Hver række viser måldatoen og hvor meget den flytter sig i forhold til planen. **Rækkerne fastfryser tallet hele vejen til målet**, mens planen sætter dagsmålet ned, efterhånden som vægten falder — derfor står der en anden dato ud for det nuværende dagsmål end på plan-kortet, og det forklares direkte i kortet. Går regnestykket ikke op, står der "aldrig". Kurven kan nu køre på enten kg/uge (`rate`) eller et fast dagsmål (`fixedGoal`).
 
 ## Én måldato, ét sted
-Er der lagt en plan, står måldatoen KUN på plan-kortet. "Statistik" og "forventet tid til målet" har hver sin måde at regne på, og før viste de tre forskellige datoer på samme side (juli 2028, oktober 2028, august 2029). Derfor holder de mund om deres egen udregning, når planen findes: statistik viser kun tabt i alt, tempo og målt forbrug, og forecast-kortet bliver til "dine krops-tal", hvor man taster højde, alder og køn.
+Er der lagt en plan, står måldatoen KUN på plan-kortet. Før viste plan-kortet, "statistik" og "forventet tid til målet" tre forskellige datoer på samme side (juli 2028, oktober 2028, august 2029). Statistik-kortet på Plan-fanen er fjernet, og forecast-kortet holder mund om sin egen udregning, når planen findes: det bliver til "dine krops-tal", hvor man taster højde, alder og køn.
 
 ## Lange forklaringer ligger bag et link
 Kortene viser tal. Forklaringerne ligger bag et link, der husker sin egen tilstand og starter LUKKET: "hvordan virker planen?" på plan-kortet, "hvad betyder tallene?" på mine mål, og "hvad betyder bagud?" på protein og fibre. `useCollapse(key, defaultOpen)` styrer det.
 
 ## Kort, der kan foldes sammen
-Tryk på overskriften på et kort for at folde det sammen; tryk igen for at åbne det. Det gælder min plan, bevægelse, forslag, dagens status, protein og fibre over tid, vægt, vægtudvikling og mine mål. Hvert kort husker sin egen tilstand i browseren (`localStorage`, nøgler med `foodie.card.`), så det følger ikke med til en anden telefon — det er en visnings-indstilling, ikke data. Er lageret blokeret, åbner kortene bare som normalt. Teknisk: `src/lib/useCollapse.js` giver `box.open` og `box.head`, som spredes ud på overskriften; kortets section får klassen `collapsed`, og CSS skjuler alt andet end overskriften, så kortenes egne layouts ikke røres. **`useCollapse` returnerer `reactive(...)` og ikke et almindeligt objekt** — i et almindeligt objekt pakkes ref'erne ikke ud i skabelonen, så `box.open` ville være selve ref'en, som altid er sand, og kortet ville aldrig lukke.
+Tryk på overskriften på et kort for at folde det sammen; tryk igen for at åbne det. Det gælder min plan, bevægelse, forslag, statistik, protein og fibre over tid, vægt, vægtudvikling og mine mål. Hvert kort husker sin egen tilstand i browseren (`localStorage`, nøgler med `foodie.card.`), så det følger ikke med til en anden telefon — det er en visnings-indstilling, ikke data. Er lageret blokeret, åbner kortene bare som normalt. Teknisk: `src/lib/useCollapse.js` giver `box.open` og `box.head`, som spredes ud på overskriften; kortets section får klassen `collapsed`, og CSS skjuler alt andet end overskriften, så kortenes egne layouts ikke røres. **`useCollapse` returnerer `reactive(...)` og ikke et almindeligt objekt** — i et almindeligt objekt pakkes ref'erne ikke ud i skabelonen, så `box.open` ville være selve ref'en, som altid er sand, og kortet ville aldrig lukke.
 
 ## Navigation
 
@@ -49,11 +49,11 @@ Tre faner i bunden: **I dag**, **Kalender**, **Mad**.
 ---
 
 ## Fane 1: I dag
-Forsiden handler KUN om i dag. Planen, vægten, målene og protein/fibre-oversigten ligger på fane 2, så man ikke skal scrolle forbi dem hver morgen. Rækkefølgen på forsiden er: dagens tal, plan-linjen, hygge-kontoen, tilføj spiste ting, dagens måltider, forslag, dagens status, bevægelse, vægt. Forsiden har: dagens tal øverst, én rolig plan-linje, log et måltid, forslag, bevægelse, dagens måltider og dagens status.
+Forsiden handler KUN om i dag. Planen, vægtudviklingen, målene og protein/fibre-oversigten ligger på fane 2, så man ikke skal scrolle forbi dem hver morgen. Rækkefølgen på forsiden er: dagens tal, plan-linjen, hygge-kontoen, tilføj spiste ting, dagens måltider, bevægelse, vægt (vej dig), statistik og til sidst forslag. På en bred skærm står statistik og forslag i en kolonne ved siden af.
 
 ### Øverst: dagens tal
 - Dagens dato med ugedag.
-- Stort tal: kalorier spist i dag / dagens mål. Dagens mål kan være højere end det normale, hvis dagen er sat som mere aktiv (se "aktivitet").
+- Stort tal: kalorier spist i dag / dagens mål.
 - Fire små målere for protein, kulhydrat, fedt og fibre: gram spist / dagens mål i gram. Protein og fibre skal NÅS (bliver "grøn" når man er der), fedt og kulhydrat er en øvre grænse (markeres når man er over). En note fortæller, hvis nogle af dagens måltider ikke har tal for et næringsstof, så tallet er i underkanten.
 - En lille markering: "I underskud denne uge" eller "Over målet denne uge".
 - To målere: "X kcal tilbage af Y i dag" (eller "X kcal over dagens Y") og "X kcal under/over målet i denne uge". Ugen regnes kun på de dage, der faktisk er logget.
@@ -62,10 +62,8 @@ Forsiden handler KUN om i dag. Planen, vægten, målene og protein/fibre-oversig
 ### Start-hjælp
 - Er madlisten tom, tilbydes en startliste med almindelige madvarer, der kan hentes med ét tryk.
 
-### Til dig (på Plan-fanen, under plan-kortet — vises kun når der er noget at sige)
-- Ét lille kort med én sand, opmuntrende besked ud fra ens egne tal, mest relevante først. Eksempler: "Vægten har stået stille i to uger (94,2 → 94,3 kg). Det ser jeg godt. Men tallene siger, at du taber dig: de sidste to uger har du i snit spist 1.480 kcal om dagen, og dit forbrug er målt til ca. 1.700. Underskuddet er der. Hold fast." Andre: en høj dag i går flytter ikke ugen, −0,4 kg siden sidste uge, 5 dage i træk under målet, bevægelse 4 af ugens dage, protein foran i ugen, X kg tabt i alt, logget hver dag i 12 dage.
-- Et "tak"-tryk gemmer den besked væk i tre dage, så den næste kommer frem.
-- Den korte udgave af beskeden står også i den faste notifikation, hvis den er slået til.
+### ~~Til dig~~ (fjernet)
+- Kortet med én opmuntrende besked er fjernet, fordi beskederne ikke blev læst. Reglerne i `src/lib/encourage.js` bruges stadig til den korte besked i den faste notifikation, hvis den er slået til.
 
 ### Log et måltid ("Hvad har du spist?")
 - Et søgefelt. Uden søgning vises de 6 senest brugte varer som knapper. Med søgning vises varer, hvor et ord begynder med det skrevne, først; højst 8 ad gangen med et link "vis alle N varer".
@@ -94,8 +92,8 @@ Forsiden handler KUN om i dag. Planen, vægten, målene og protein/fibre-oversig
 
 ### Min plan (vises kun når der er sat en målvægt)
 - Ét kort med hele planen mod målvægten: "Du er 0,4 kg foran planen", hvad planen siger man bør veje i dag, og hvornår målvægten nås, skrevet som måned og år ("juni 2028").
-- Under det fire ting, der kan krydses af: ugens hårde timer (6 om ugen, så der er én fast fridag), dagens time, dagens kalorier, og om der er vejet inden for et døgn.
-- **En time tæller efter, hvad den er værd, ikke efter hvor længe den varede.** Planen er regnet på en time, hvor man er forpustet (Beat Saber på expert eller gang i 5,5 km/t = ca. 317 kcal ved 94 kg). En dag tæller, når bevægelsen er mindst 80 % af det. En almindelig gåtur på en time er cirka 218 og tæller altså ikke; 75 minutter gør. De 80 % er valgt, så en time delt op i en halv time VR og en halv times gåtur også tæller. Derfor står der kalorier i kortet og ikke bare minutter.
+- Under det fire ting, der kan krydses af: ugens minutter ("180 af 225 min denne uge", plus hvad der er ekstra), dagens træning ("30 af 45 min"), dagens kalorier, og om der er vejet inden for et døgn.
+- **Dagens træning får flueben fra et helt pas** (80 % af passets længde, fx 36 af 45 minutter). En kortere dag får ikke flueben, men minutterne tæller stadig med i ugen.
 - **Hvor hårdt.** Kortet siger det som en prøve, man kan lave uden udstyr: man skal kunne sige en kort sætning, men ikke synge. Er alderen skrevet ind under "Mine mål", står der også en puls: 70 til 85 procent af 220 minus alderen, afrundet til nærmeste 5 (fx 135 til 165 for en på 27). Se `pulseZone()` i `src/lib/activityKcal.js`.
 - **Hygge-kontoen er sit eget kort på FORSIDEN** (`TreatBank.vue`), ikke inde i plan-kortet. Det er den, man kigger på hver dag. Sammenfoldet viser overskriften saldoen ("hygge-konto  +495 kcal").
 - **Hygge-kontoen vises fra dag ét**, også når den står på nul — ellers ved man ikke, at den findes. Første dag står der "Kontoen begynder i morgen".
@@ -118,15 +116,15 @@ Kortet starter lukket, og overskriften bærer selv pointen: "forslag — 21 g fi
   - Et link "Ikke i dag", der skjuler kortet resten af dagen.
 
 ### Bevægelse
-- **Målet kommer fra planen, hvis der er lagt en.** Så er det 6 dage om ugen, og en dag tæller, når bevægelsen er mindst 80 % af en hård time (ca. 253 kcal ved 94 kg) — ikke bare 30 minutter. Uden en plan gælder det gamle, lempeligere kryds: 30 minutter, 5 dage om ugen. Ét sted i koden afgør det, `movementGoal` i `src/stores/data.js`, så bevægelses-kortet og plan-kortet aldrig siger to forskellige ting.
+- **Målet kommer fra planen, hvis der er lagt en.** Så er ugens mål passets længde gange antal dage, fx 5 × 45 = 225 minutter. Uden en plan er det 5 × 30 = 150. Ét sted i koden afgør det, `movementGoal` i `src/stores/data.js`, så bevægelses-kortet, plan-kortet og statistik-kortet aldrig siger forskellige ting.
 - **Ét træning er ét træning.** Appen kan ikke vide, hvor mange kalorier netop dét træning kostede, så der bruges ÉN sats for al bevægelse, og slagsen er kun en etiket. Før havde hver slags sin egen sats, så en gåtur på 50 minutter blev til "0,76 træning" og en time badminton til "0,71" — en præcision, der ikke findes. Intensitet står nu som en instruktion (gå 5,5 km/t, hold pulsen i zonen), ikke som en måling. Det ægte kalorietal kommer fra `estimateBurn`, som regner baglæns fra vægt og logning.
-- **En dag tæller som en træning på TID**: fra 80 % af de valgte minutter, dog aldrig mere end 30. Med et pas på 45 minutter tæller en halv time altså også (80 % ville ellers være 36). De ekstra minutter tæller stadig i kalorierne. Ikke på energi, for så bad appen om "3 minutter mere i samme tempo" efter en gåtur på 50 minutter.
-- **Ugen tælles i HELE PAS** ("3 af 5 træning denne uge").
-- ~~Ugen tælles i TIMER, ikke i dage der tæller~~ ("1,8 af 6 timer denne uge"). Planen regner i kalorier pr. uge, så det er også sådan det skal vises. Med dage-tælling faldt 45 minutters VR (238 kcal) under dagsgrænsen (253) og blev til nul, selvom den er 3/4 af en time — både forkert og nedslående. Se `planWeek` i `src/stores/data.js`. Uden en plan tælles der stadig dage.
+- **Ugen tælles i MINUTTER** mod ét mål ("180 af 225 min — 45 min tilbage"). Hvert minut tæller, så en halv time på en travl dag tæller som en halv time: ikke som et helt pas, og ikke som ingenting. Alt over målet står som ekstra ("målet er nået, og 40 min er ekstra 🎉") og giver ekstra i hygge-kontoen. Planen regner på samme måde, minutter om ugen gange én sats. Se `moveWeek` i `src/stores/data.js`.
+- **Et helt pas** (80 % af passets længde) bruges kun til prikken på dagen og fluebenet på plan-kortet.
+- Tidligere forsøg: ~~ugen i "timer" regnet ud fra kalorier pr. slags~~ (en gåtur blev til "0,76 træning") og ~~ugen i hele pas~~ ("3 af 5 træninger"), hvor 30 minutter enten talte som nul eller, med en lavere grænse, som et helt pas. Begge var forkerte.
 - **Prikkerne er knapper.** Tryk på en dag for at se og rette, hvad der blev lavet dén dag, uden at gå i kalenderen. Der står så "Du ser på mandag" med et link tilbage til i dag. Fremtidige dage kan ikke vælges.
-- Ugen som syv prikker (Ma–Sø): fyldt = mindst 30 min den dag, halv = noget men under 30, tom = intet, markering af i dag, fremtidige dage svage.
-- Er dagen ikke sat: knapper for slags (Gåtur, VR-spil, Cykel, Badminton, Andet). Vælges "Andet", kommer et tekstfelt "hvad lavede du? fx svømning". Knapper for minutter (15, 30, 45, 60) og et felt "eller skriv antal minutter" med Gem. Under: "Mindst 30 minutter tæller som en dag. Målet er 5 dage om ugen, X minutter i alt indtil nu."
-- Er dagen sat: "45 min badminton i dag ✓" (eller "30 min VR-spil i dag — 18 min mere i samme tempo, så tæller dagen") med links "en tur mere", "ret" og "fjern". Minutterne, der mangler, regnes i dagens eget tempo, så en gåtur kræver flere end en omgang Beat Saber.
+- Ugen som syv prikker (Ma–Sø): fyldt = et helt pas den dag, halv = noget, men mindre, tom = intet, markering af i dag, fremtidige dage svage.
+- Er dagen ikke sat: knapper for slags (Gåtur, VR-spil, Cykel, Badminton, Andet). Vælges "Andet", kommer et tekstfelt "hvad lavede du? fx svømning". Knapper for minutter (15, 30, 45, 60) og et felt "eller skriv antal minutter" med Gem. Under: "Målet er 5 × 45 = 225 minutter om ugen. Alle minutter tæller med, også en kort tur, og alt over målet giver ekstra i hygge-kontoen."
+- Er dagen sat: "45 min badminton i dag ✓" (eller "30 min VR-spil i dag — tæller med i ugens minutter") med links "en tur mere", "ret" og "fjern".
 - **"en tur mere" lægger minutter TIL dagen i stedet for at erstatte dem**, så en time delt op i to gange 30 minutter bliver til 60 og ikke 30. Er slagsen en anden, gemmes begge ("vr og gang"), og satsen bliver gennemsnittet af dem. Samme slags to gange giver ikke "gang og gang".
 - **En træning uden slags regnes som planens egen slags**, ikke som den langsomste. Ellers mistede man en tredjedel af træningen, fordi man glemte at trykke på en knap.
 - Slagsen er kun en tekst. Bevægelsen lægger IKKE kalorier oveni dagens mål (med vilje).
@@ -136,7 +134,7 @@ Kortet starter lukket, og overskriften bærer selv pointen: "forslag — 21 g fi
 - Tom tilstand: "Du har ikke logget noget i dag endnu."
 
 ### Statistik (forsiden)
-- Fire tal, to og to: ugens gennemsnit i kcal/dag (farves når ugen samlet ligger over budgettet), procent af vejen mod målvægten med en lille bjælke (eller bare den nuværende vægt, hvis der ikke er en målvægt), kg tabt i alt og ugens træninger ("5 / 6").
+- Fire tal, to og to: ugens gennemsnit i kcal/dag (farves når ugen samlet ligger over budgettet), procent af vejen mod målvægten med en lille bjælke (eller bare den nuværende vægt, hvis der ikke er en målvægt), kg tabt i alt og ugens bevægelse i minutter ("180 / 225 min").
 - Der var før en "Hvor aktiv var du i dag?" pr. dag, som gav ekstra plads i dagens mål. Den er fjernet: bevægelse tælles i minutter på bevægelses-kortet og lægges ikke oveni målet. Gamle valg ligger stadig i `dayActivity`, men bruges ikke.
 - Knap: "Marker i dag som hyggedag" / "🎉 I dag er en hyggedag". En hyggedag får en beroligende tekst i kalenderen og et flag på dagen.
 
@@ -166,7 +164,7 @@ Kortet starter lukket, og overskriften bærer selv pointen: "forslag — 21 g fi
 ---
 
 ## Fane 2: Plan
-Alt om hvor det bærer hen, samlet ét sted. Øverst det store tal: hvor mange kg der er tabt indtil nu. Derunder plan-kortet, vægt-kortet (vej dig), vægtudviklingen med graf og tabel, statistik, forventet tid til målet, protein og fibre over tid, og mine mål.
+Alt om hvor det bærer hen, samlet ét sted. Øverst det store tal: hvor mange kg der er tabt indtil nu. Derunder plan-kortet, vægtudviklingen med graf og tabel, hvad koster hvad, hvis jeg spiser, forventet tid til målet (eller "dine krops-tal"), mine mål, og nederst protein og fibre over tid. Man vejer sig på forsiden, så vægt-kortet står ikke her.
 
 ## Fane 3: Kalender
 
@@ -174,7 +172,7 @@ Alt om hvor det bærer hen, samlet ét sted. Øverst det store tal: hvor mange k
 - Pile til forrige/næste måned (ikke frem i fremtiden), månedens navn.
 - Uger fra mandag til søndag, plus en kolonne "uge".
 - Hver dag viser dagens kalorier og farves i fire trin målt mod DAGENS eget budget: til og med budgettet (grøn), op til 100 over (lysegrøn), op til 200 over (gul), derover (rød). Dage uden mad er neutrale, fremtidige dage kan ikke trykkes. I dag er markeret.
-- Et flag 🎉 på hyggedage og en prik på dage med mindst 30 minutters bevægelse.
+- Et flag 🎉 på hyggedage og en prik på dage med bevægelse (alle minutter tæller).
 - I uge-kolonnen: ugens samlede over/under mod budgettet for de dage, der er logget ("−1.200" / "+340").
 - En forklaring af farver, bevægelsesprik og uge-tal.
 
@@ -183,7 +181,6 @@ Alt om hvor det bærer hen, samlet ét sted. Øverst det store tal: hvor mange k
 - De fire målere for protein/kulhydrat/fedt/fibre for den dag.
 - Dagens måltider med næringsstof-linje, kalorier og slet-knap. Tom tilstand: "Intet mad logget denne dag."
 - En støttende besked, hvis dagen var over målet ("Du spiste X kcal mere end dit mål. Det svarer ikke til at have ødelagt dit vægttab, din uge ser stadig fin ud.") eller var en hyggedag.
-- "Hvor aktiv var du den dag?" (samme fire knapper som på forsiden, med ekstra plads).
 - Bevægelse for den dag (samme kort som på forsiden, med ugens prikker omkring den dag).
 - Knap: "Marker som hyggedag" / "Fjern hyggedag".
 - Et fuldt "Hvad har du spist?"-felt, der logger på DEN dag (med teksten "Tilføjer til mandag d. 14. september").
@@ -192,14 +189,8 @@ Alt om hvor det bærer hen, samlet ét sted. Øverst det store tal: hvor mange k
 - Graf over alle vejninger over tid (linje med punkter) og en vandret linje for målvægten. "94,3 kg nu" i hjørnet.
 - Milepæle: en række med hele kg-trin ned mod målet, hvor de nåede er markeret.
 - Tom tilstand: "Vej dig et par gange, så tegner grafen din udvikling her."
-- Linket "vis alle tal i en tabel" bytter grafen ud med en tabel: én række pr. vejning med dato, vægt og ændringen siden den forrige vejning, nyeste øverst. Er der lagt en plan, kommer der en kolonne mere med, hvad planen sagde man skulle veje den dag. Vejninger fra før planen blev sat viser en streg.
+- Linket "vis alle tal i en tabel" bytter grafen ud med en tabel, og valget huskes i browseren, så tabellen står der igen næste gang: én række pr. vejning med dato, vægt og ændringen siden den forrige vejning, nyeste øverst. Er der lagt en plan, kommer der en kolonne mere med, hvad planen sagde man skulle veje den dag. Vejninger fra før planen blev sat viser en streg.
 - I tabel-visningen står også "kopiér til regneark". Den lægger tabellen på udklipsholderen med tabulator mellem felterne og komma som decimaltegn, så den kan sættes direkte ind i Excel eller Google Sheets.
-
-### Statistik
-- "Tabt i alt" i kg og "dit tempo" i kg/uge (regnet over hele perioden).
-- Fremskridtsbjælke start → mål.
-- "Med dit tempo når du 65 kg om ca. 40 uger, omkring juni 2027."
-- "Dit forbrug er ca. 1.700 kcal/dag, målt over de sidste 4 uger. I den periode har du tabt ca. 0,3 kg/uge."
 
 ### Forventet tid til målet
 - En tekst, der regner ud, hvornår målvægten nås med det nuværende dagsmål: ud fra det målte forbrug, hvis det findes, ellers ud fra kroppen (højde, alder, køn, aktivitetsniveau) og indtaget. Kan også sige, hvor vægten vil gå i stå ("du når ned omkring 78 kg om ca. 9 måneder, derefter står vægten stille, fordi man forbrænder mindre, når man bliver lettere").

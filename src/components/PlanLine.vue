@@ -10,7 +10,7 @@ const today = localToday()
 
 const status = computed(() => data.planToday)
 
-const week = computed(() => data.planWeek)
+const week = computed(() => data.moveWeek)
 
 const fmtKg = (n) => Math.abs(n).toLocaleString('da-DK', { maximumFractionDigits: 1 })
 </script>
@@ -25,7 +25,7 @@ const fmtKg = (n) => Math.abs(n).toLocaleString('da-DK', { maximumFractionDigits
       </span>
       <template v-if="week">
         <span class="planline-sep">·</span>
-        <span>{{ week.sessions }} af {{ week.target }} træninger denne uge</span>
+        <span>{{ week.minutes }} af {{ week.target }} min bevægelse denne uge</span>
       </template>
     </p>
   </section>

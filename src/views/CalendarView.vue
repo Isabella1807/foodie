@@ -10,13 +10,6 @@ import { describeMacros } from '../lib/nutrition'
 
 const data = useDataStore()
 
-// Teksten i signaturen skal sige den regel, der faktisk bruges
-const moveLegend = computed(() =>
-  data.movementGoal.fromPlan
-    ? `mindst ${data.movementGoal.enoughMinutes} min bevægelse`
-    : `mindst ${data.movementGoal.minMinutes} min bevægelse`,
-)
-
 const nowDate = new Date()
 const curYear = nowDate.getFullYear()
 const curMonth = nowDate.getMonth()
@@ -65,8 +58,8 @@ const weeks = computed(() =>
         total,
         status: statusOf(c.date, total),
         hygge: data.isCelebration(c.date),
-        // Samme regel som resten af appen: planens, hvis der er lagt en
-        moved: data.movementGoal.done(data.movement[c.date]),
+        // Al bevægelse vises — hvert minut tæller med i ugen
+        moved: Number(data.movement[c.date]?.minutes) > 0,
         isToday: c.date === today,
       }
     })
@@ -177,7 +170,7 @@ function remove(entry) {
       <span><i class="dot d-near"></i>op til {{ fmt(goal + NEAR) }}</span>
       <span><i class="dot d-some"></i>op til {{ fmt(goal + SOME) }}</span>
       <span><i class="dot d-over"></i>over {{ fmt(goal + SOME) }}</span>
-      <span><i class="cal-move legend"></i>{{ moveLegend }}</span>
+      <span><i class="cal-move legend"></i>bevægelse</span>
       <span class="cal-legend-week">
         uge-tal: <b class="good-text">−</b> under · <b class="over-text">+</b> over ugens mål
       </span>

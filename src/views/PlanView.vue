@@ -2,18 +2,16 @@
 import { computed } from 'vue'
 import { useDataStore } from '../stores/data'
 import PlanCard from '../components/PlanCard.vue'
-import NoteCard from '../components/NoteCard.vue'
 import PlanPrices from '../components/PlanPrices.vue'
 import IntakeTable from '../components/IntakeTable.vue'
-import WeightCard from '../components/WeightCard.vue'
 import WeightChart from '../components/WeightChart.vue'
-import WeightStats from '../components/WeightStats.vue'
 import GoalForecast from '../components/GoalForecast.vue'
 import NutrientBalance from '../components/NutrientBalance.vue'
 import GoalsCard from '../components/GoalsCard.vue'
 
 // Alt om hvor det bærer hen: planen, vægten og målene. Forsiden handler kun om
 // i dag, så den ikke bliver en mur af tal, man skal scrolle forbi hver morgen.
+// Man vejer sig på forsiden; her står kun udviklingen.
 const data = useDataStore()
 
 const fmtKg = (n) => n.toLocaleString('da-DK', { maximumFractionDigits: 1 })
@@ -32,12 +30,9 @@ const lost = computed(() => data.weightLost)
   </header>
 
   <PlanCard />
-  <NoteCard />
+  <WeightChart />
   <PlanPrices />
   <IntakeTable />
-  <WeightCard />
-  <WeightChart />
-  <WeightStats />
   <GoalForecast />
   <GoalsCard />
   <!-- Bagud-kortet står nederst: det er noget, man kigger på en gang imellem -->

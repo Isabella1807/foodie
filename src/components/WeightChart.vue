@@ -9,8 +9,10 @@ const box = useCollapse('weightchart')
 const fmtKg = (n) => n.toLocaleString('da-DK', { maximumFractionDigits: 1 })
 
 // Graf eller tabel. Grafen viser formen, tabellen viser de præcise tal på hver
-// dato — nogle gange vil man bare se listen.
-const asTable = ref(false)
+// dato — nogle gange vil man bare se listen. Valget huskes i browseren på samme
+// måde som et foldet kort, så tabellen står der igen næste gang.
+const tableView = useCollapse('weightchart.table', false)
+const asTable = computed(() => tableView.open)
 const copied = ref(false)
 
 function toDate(s) {
@@ -127,7 +129,7 @@ async function copyTable() {
     </div>
 
     <div v-if="rows.length" class="weight-views">
-      <button type="button" class="link" @click="asTable = !asTable">
+      <button type="button" class="link" @click="tableView.toggle()">
         {{ asTable ? 'vis som graf' : 'vis alle tal i en tabel' }}
       </button>
       <button v-if="asTable" type="button" class="link" @click="copyTable">

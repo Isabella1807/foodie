@@ -4,7 +4,7 @@ import { useDataStore } from '../stores/data'
 import { useCollapse } from '../lib/useCollapse'
 import { localToday } from '../lib/dates'
 import { TREAT_KCAL, TREAT_EVERY_DAYS } from '../lib/plan'
-import { kcalForMovement, pulseZone } from '../lib/activityKcal'
+import { pulseZone } from '../lib/activityKcal'
 
 // Planen mod målvægten, samlet ét sted: hvad du skal gøre i dag, og om du
 // ligger foran eller bagud. Kurven bag tallene ligger i lib/plan.js.
@@ -38,21 +38,17 @@ const kg = computed(() => data.currentWeight)
 // Passets længde og antal dage kommer fra hendes egne indstillinger
 const minutes = computed(() => data.planMinutes)
 const days = computed(() => data.planDays)
-const sessionKcal = computed(() => Math.round(data.sessionKcal))
-const kcalOn = (date) => Math.round(kcalForMovement(data.movement[date], kg.value))
-const todayKcal = computed(() => kcalOn(today))
 
 // Pulsen, timen skal ligge i — kræver en alder under "Mine mål"
 const pulse = computed(() => pulseZone(data.profile.age))
 
-// Ugens bevægelse i timer — se planWeek i stores/data.js for hvorfor timer og
-// ikke "dage der tæller"
-const week = computed(() => data.planWeek)
+// Ugens bevægelse i minutter mod planens mål — se moveWeek i stores/data.js
+const week = computed(() => data.moveWeek)
 
 // Hygge-kontoen
 
 // Dagens ting, der kan krydses af
-// Samme regel som bevægelses-kortet og ugens tælling (movementGoal)
+// Et helt pas i dag? Samme regel som prikkerne på bevægelses-kortet
 const movedToday = computed(() => data.movementGoal.done(data.movement[today]))
 const minutesToday = computed(() => Number(data.movement[today]?.minutes) || 0)
 const ateToday = computed(() => data.todayTotal)
@@ -91,13 +87,15 @@ function startPlan() {
         <li v-if="week" :class="{ done: week.done }">
           <span class="plan-mark">{{ week.done ? '✓' : '○' }}</span>
           {{ days }} × {{ minutes }} min om ugen, hvor du er forpustet
-          <span class="plan-note">{{ week.sessions }} af {{ week.target }} træninger denne uge</span>
+          <span class="plan-note">
+            {{ week.minutes }} af {{ week.target }} min denne uge<template v-if="week.extra">, {{ week.extra }} min ekstra</template>
+          </span>
         </li>
         <li :class="{ done: movedToday }">
           <span class="plan-mark">{{ movedToday ? '✓' : '○' }}</span>
           Dagens træning
           <span class="plan-note">
-            <template v-if="minutesToday">{{ minutesToday }} min, {{ todayKcal }} af {{ sessionKcal }} kcal</template>
+            <template v-if="minutesToday">{{ minutesToday }} af {{ minutes }} min</template>
             <template v-else>ikke endnu</template>
           </span>
         </li>

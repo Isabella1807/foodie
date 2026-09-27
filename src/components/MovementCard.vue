@@ -5,10 +5,11 @@ import { useCollapse } from '../lib/useCollapse'
 import { localToday } from '../lib/dates'
 import { MOVE_MINUTES, MOVE_KINDS, kindText, isKnownKind, weekDates } from '../lib/movement'
 
-// Et kryds for dagens bevægelse: tryk på minutterne — eller skriv dem selv —
-// og evt. hvad det var, så er dagen sat. Ugen vises som syv prikker, så man
-// kan se, om det bliver til de fleste dage. Bevægelsen ændrer ikke dagens
-// kalorie-mål — se lib/movement.js.
+// Dagens bevægelse: tryk på minutterne — eller skriv dem selv — og evt. hvad
+// det var, så er dagen sat. Ugen tælles i minutter mod ét mål (fx 5 × 45 =
+// 225), så hver tur tæller med, også en kort. Prikkerne viser, hvilke dage der
+// blev til et helt pas. Bevægelsen ændrer ikke dagens kalorie-mål — se
+// lib/movement.js.
 // date: hvilken dag der sættes kryds for (i dag, eller en åben dag i kalenderen)
 const props = defineProps({
   date: { type: String, default: null },
@@ -43,12 +44,12 @@ function pick(d) {
 }
 const entry = computed(() => data.movement[date.value] || null)
 
-// Målet kommer fra planen, hvis der er lagt en — ellers det gamle 30-minutters
-// kryds. Så står kortet aldrig og siger noget andet end plan-kortet.
+// Målet kommer fra planen, hvis der er lagt en — ellers 5 × 30 minutter.
+// Så står kortet aldrig og siger noget andet end plan-kortet.
 const goal = computed(() => data.movementGoal)
-const week2 = computed(() => data.planWeek)
+const moveWeek = computed(() => data.moveWeekOf(date.value))
+// Et helt pas? Ellers tæller minutterne stadig med i ugen
 const done = computed(() => goal.value.done(entry.value))
-const toGo = computed(() => goal.value.toGo(entry.value))
 
 const kind = ref(null) // valgt slags (knap), inden minutterne sættes
 const other = ref('') // fri tekst, når slags er "Andet" (fx svømning)
@@ -76,23 +77,13 @@ const week = computed(() =>
     return { date: d, label: weekdays[i], minutes: e ? Number(e.minutes) : 0, done: goal.value.done(e), isDay: d === date.value, future: d > today }
   }),
 )
-const doneDays = computed(() => week.value.filter((d) => d.done).length)
-const weekMinutes = computed(() => week.value.reduce((sum, d) => sum + d.minutes, 0))
-
-// Tekst om ugen: hvor mange dage er nået, og hvor mange der er tilbage at nå målet med
+// Tekst om ugen: minutter mod ugens mål, og hvad der er ekstra
 const weekNote = computed(() => {
-  const target = goal.value.daysPerWeek
-  const left = week.value.filter((d) => !d.done && d.date >= today).length
-  // Med en plan tælles ugen i timer, ikke i dage der lige akkurat tæller
-  if (goal.value.fromPlan && week2.value) {
-    const w = week2.value
-    if (w.done) return `${w.sessions} af ${w.target} træninger — ugens mål er nået.`
-    return `${w.sessions} af ${w.target} træninger denne uge.`
-  }
-  if (doneDays.value >= target) return `${doneDays.value} af ${target} dage — ugens mål er nået.`
-  const missing = target - doneDays.value
-  if (left === 0) return `${doneDays.value} af ${target} dage denne uge.`
-  return `${doneDays.value} af ${target} dage — ${missing} mere denne uge.`
+  const w = moveWeek.value
+  if (w.extra) return `${w.minutes} af ${w.target} min — målet er nået, og ${w.extra} min er ekstra 🎉`
+  if (w.done) return `${w.minutes} af ${w.target} min — ugens mål er nået.`
+  if (!w.minutes) return `0 af ${w.target} min denne uge.`
+  return `${w.minutes} af ${w.target} min — ${w.left} min tilbage.`
 })
 
 function set(m) {
@@ -148,7 +139,7 @@ function startEdit() {
       <span class="movement-week-note">{{ weekNote }}</span>
     </div>
 
-    <div class="movement-week" role="img" :aria-label="`${doneDays} af ${goal.daysPerWeek} nået denne uge`">
+    <div class="movement-week" role="img" :aria-label="`${moveWeek.minutes} af ${moveWeek.target} minutter denne uge`">
       <button
         v-for="d in week"
         :key="d.date"
@@ -175,10 +166,10 @@ function startEdit() {
     </p>
 
     <template v-if="entry && !editing">
-      <p class="movement-status" :class="{ 'good-text': done }">
+      <p class="movement-status good-text">
         {{ entry.minutes }} min{{ entry.kind ? ` ${kindText(entry.kind)}` : '' }} {{ whenText }}
         <template v-if="done">✓</template>
-        <template v-else-if="toGo"> — {{ toGo }} min mere, så tæller den</template>
+        <template v-else> — tæller med i ugens minutter</template>
       </p>
       <div class="movement-actions">
         <button type="button" class="link" @click="startAdd">en tur mere</button>
@@ -231,15 +222,10 @@ function startEdit() {
       </p>
       <button v-if="editing" type="button" class="link" @click="editing = false; adding = false">annullér</button>
       <p v-else class="weight-note">
-        <template v-if="goal.fromPlan">
-          En dag tæller som en træning fra {{ goal.enoughMinutes }} minutter. Målet er {{ goal.daysPerWeek }} træninger om ugen.
+        Målet er {{ goal.daysPerWeek }} × {{ goal.minutes }} = {{ goal.weekMinutes }} minutter om ugen. Alle minutter
+        tæller med, også en kort tur<template v-if="goal.fromPlan">, og alt over målet giver ekstra i hygge-kontoen.
           Slagsen er kun til dig selv — appen kan ikke vide, hvor mange kalorier netop din træning kostede, så alle
-          træninger tæller ens.
-        </template>
-        <template v-else>
-          Mindst {{ goal.minMinutes }} minutter tæller som en dag. Målet er {{ goal.daysPerWeek }} dage om ugen.
-        </template>
-        <template v-if="weekMinutes"> {{ weekMinutes }} minutter i alt indtil nu.</template>
+          minutter tæller ens.</template><template v-else>.</template>
       </p>
     </template>
   </section>

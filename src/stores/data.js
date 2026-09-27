@@ -5,7 +5,7 @@ import { localToday, weekStart, addDays } from '../lib/dates'
 import { bodyBurn } from '../lib/activity'
 import { estimateBurn, goalForRate, MIN_GOAL } from '../lib/burn'
 import { planCurve, planStatus, treatPerDay } from '../lib/plan'
-import { movementPerDay, planMovementPerDay, kcalForMovement, oneSessionKcal, enoughKcal, enoughMinutes, isHardEnough, minutesToGo, planPerKg, PLAN_MINUTES, PLAN_DAYS_PER_WEEK } from '../lib/activityKcal'
+import { movementPerDay, planMovementPerDay, kcalForMovement, oneSessionKcal, isHardEnough, planPerKg, PLAN_MINUTES, PLAN_DAYS_PER_WEEK } from '../lib/activityKcal'
 import { MOVE_GOAL_MIN, MOVE_DAYS_PER_WEEK, isDone } from '../lib/movement'
 import { sumMacros, defaultMacroGoals, MACROS, REACH_GOALS } from '../lib/nutrition'
 import { balance } from '../lib/balance'
@@ -539,45 +539,42 @@ export const useDataStore = defineStore('data', {
       }
     },
 
-    // Ugens bevægelse målt i TIMER, ikke i dage der tæller.
-    //
-    // Planen regner i kalorier pr. uge, ikke i hele dage, så det er også sådan
-    // det skal vises. Tælles der dage, falder 45 minutters VR (238 kcal) under
-    // dagsgrænsen (253) og bliver til nul — selvom den er 3/4 af en time. Det
-    // er både forkert og nedslående. Ugen vises derfor som "2,8 af 6 timer".
-    planWeek(state) {
-      const kg = this.currentWeight
-      const one = this.sessionKcal
-      if (!kg || !(one > 0)) return null
-      const start = weekStart(localToday())
-      const today = localToday()
-      let kcal = 0
-      let days = 0
-      let sessions = 0
-      for (const [date, entry] of Object.entries(state.movement)) {
-        if (date < start || date > today) continue
-        const v = kcalForMovement(entry, kg)
-        if (v > 0) {
-          kcal += v
-          days++
+    // Ugens bevægelse i MINUTTER mod ét samlet mål: passets længde gange antal
+    // dage, fx 5 × 45 = 225. Hvert minut tæller, også en kort tur på en travl
+    // dag: en halv time er en halv time — ikke et helt pas, og ikke ingenting.
+    // Det er også sådan, planen regner (minutter om ugen gange én sats), og alt
+    // over målet giver ekstra i hygge-kontoen.
+    // moveWeekOf(dato): ugen omkring en dato (bevægelses-kortet kan vise en
+    // anden uge, når en dag er åbnet i kalenderen). moveWeek: denne uge.
+    moveWeekOf(state) {
+      return (dateStr) => {
+        const start = weekStart(dateStr)
+        const end = addDays(start, 6)
+        let minutes = 0
+        for (const [date, entry] of Object.entries(state.movement)) {
+          if (date < start || date > end) continue
+          minutes += Math.round(Number(entry?.minutes)) || 0
         }
-        // En træning tælles på tid, så man får æren for at have lavet den —
-        // kalorierne tæller stadig fuldt ud i kontoen og i måldatoen
-        if (isHardEnough(entry, kg, this.planMinutes)) sessions++
+        const target = this.movementGoal.weekMinutes
+        return {
+          minutes,
+          target,
+          left: Math.max(0, target - minutes),
+          extra: Math.max(0, minutes - target),
+          done: minutes >= target,
+        }
       }
-      return {
-        sessions,
-        target: this.planDays,
-        kcal: Math.round(kcal),
-        targetKcal: Math.round(one * this.planDays),
-        days,
-        done: sessions >= this.planDays,
-      }
+    },
+
+    moveWeek() {
+      return this.moveWeekOf(localToday())
     },
 
     // Ugens bevægelses-mål. Er der lagt en plan, er det PLANENS mål, der gælder,
     // så appen ikke står og siger to forskellige ting. Uden en plan gælder det
-    // gamle, lempeligere kryds på 30 minutter.
+    // gamle, lempeligere mål: 5 × 30 minutter.
+    // done: er dagen et helt pas? Bruges kun til prikken på dagen — ugen tælles
+    // i minutter (moveWeek).
     movementGoal(state) {
       const kg = this.currentWeight
       if (this.plan && kg) {
@@ -585,19 +582,16 @@ export const useDataStore = defineStore('data', {
           fromPlan: true,
           daysPerWeek: this.planDays,
           minutes: this.planMinutes,
-          sessionKcal: Math.round(this.sessionKcal),
-          enoughKcal: Math.round(enoughKcal(kg, this.planMinutes)),
-          enoughMinutes: enoughMinutes(this.planMinutes),
+          weekMinutes: this.planMinutes * this.planDays,
           done: (entry) => isHardEnough(entry, kg, this.planMinutes),
-          toGo: (entry) => minutesToGo(entry, kg, this.planMinutes),
         }
       }
       return {
         fromPlan: false,
         daysPerWeek: MOVE_DAYS_PER_WEEK,
-        minMinutes: MOVE_GOAL_MIN,
+        minutes: MOVE_GOAL_MIN,
+        weekMinutes: MOVE_GOAL_MIN * MOVE_DAYS_PER_WEEK,
         done: (entry) => isDone(entry),
-        toGo: (entry) => Math.max(0, MOVE_GOAL_MIN - (Number(entry?.minutes) || 0)),
       }
     },
 

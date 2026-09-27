@@ -20,8 +20,6 @@
 // regnes ud af vægtens udvikling sammenholdt med det, der er logget. Det fanger
 // over et par uger, hvad bevægelsen reelt har givet, uanset hvad vi antog her.
 // Satsen nedenfor er derfor kun et udgangspunkt for at kunne tegne en plan.
-import { MOVE_GOAL_MIN } from './movement'
-
 const PER_MIN_PER_KG = 0.056
 
 export const PLAN_RATE = PER_MIN_PER_KG
@@ -80,33 +78,20 @@ export function oneSessionKcal(kg, minutes = PLAN_MINUTES) {
 // i kalorierne, altså i hygge-kontoen og i måldatoen. Der SKAL den tælle, for en
 // gåtur brænder mindre end Beat Saber. Men den skal ikke fratage én æren for at
 // have lavet sin træning.
+//
+// Et helt pas er dog kun prikken på dagen. UGEN tælles i minutter (se moveWeek
+// i stores/data.js), så en halv time tæller som en halv time — ikke som et
+// helt pas, og ikke som ingenting.
 export const ENOUGH_SHARE = 0.8
 
-// Men en halv time er en halv time. Er passet sat til 45 minutter, ville 80 %
-// kræve 36, og så talte en halv times træning ikke — heller ikke i en uge med
-// bevægelse seks af syv dage. 30 minutter tæller derfor altid som en træning.
-// De ekstra minutter tæller stadig i kalorierne, bare ikke i krydset.
-export const ENOUGH_CAP = MOVE_GOAL_MIN
-
-// Så mange minutter skal der til, før dagen tæller som en træning
+// Så mange minutter skal der til, før dagen tæller som et helt pas
 export function enoughMinutes(minutes = PLAN_MINUTES) {
-  const share = Math.round((Math.round(Number(minutes)) || PLAN_MINUTES) * ENOUGH_SHARE)
-  return Math.min(share, ENOUGH_CAP)
-}
-
-export function enoughKcal(kg, minutes = PLAN_MINUTES) {
-  return oneSessionKcal(kg, minutes) * ENOUGH_SHARE
+  return Math.round((Math.round(Number(minutes)) || PLAN_MINUTES) * ENOUGH_SHARE)
 }
 
 // Tæller dagen som en træning? Måles på minutter.
 export function isHardEnough(entry, kg, minutes = PLAN_MINUTES) {
   return (Math.round(Number(entry?.minutes)) || 0) >= enoughMinutes(minutes)
-}
-
-// Hvor mange minutter mere der mangler, før dagen er en træning
-export function minutesToGo(entry, kg, minutes = PLAN_MINUTES) {
-  const had = Math.round(Number(entry?.minutes)) || 0
-  return Math.max(0, enoughMinutes(minutes) - had)
 }
 
 // Hvad planen forventer pr. dag i snit — ugens træninger fordelt på syv dage

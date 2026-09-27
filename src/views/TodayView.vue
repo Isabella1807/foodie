@@ -61,13 +61,13 @@ function remove(entry) {
         </div>
       </section>
       <p v-else class="empty">Du har ikke logget noget i dag endnu.</p>
-      <NutrientNudge />
+      <MovementCard />
+      <WeightCard />
     </div>
 
     <div class="today-side">
       <DailyStatus />
-      <MovementCard />
-      <WeightCard />
+      <NutrientNudge />
     </div>
   </div>
 </template>
