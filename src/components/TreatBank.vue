@@ -10,6 +10,8 @@ const data = useDataStore()
 const box = useCollapse('bank')
 
 const balance = computed(() => data.planBalance)
+// Fridagene følger det, der er sat under "Mine mål", ikke et fast tal
+const restDays = computed(() => 7 - data.planDays)
 const fmtKcal = (n) => Math.abs(n).toLocaleString('da-DK')
 // "1 dage" er forkert dansk — ental når tallet er præcis 1
 function sayDays(n) {
@@ -57,8 +59,9 @@ function sayDays(n) {
     </p>
 
     <p class="plan-sub">
-      Du har en hyggedag på op til {{ TREAT_KCAL }} kcal hver {{ TREAT_EVERY_DAYS }}. dag og én fridag
-      om ugen. Bruger du dem ikke, står de her og kan bruges en anden dag.
+      Du har en hyggedag på op til {{ TREAT_KCAL }} kcal hver {{ TREAT_EVERY_DAYS }}. dag<template v-if="restDays">
+        og {{ restDays === 1 ? 'én fridag' : `${restDays} fridage` }} fra træningen om ugen</template>. Bruger du
+      dem ikke, står de her og kan bruges en anden dag.
     </p>
   </section>
 </template>
