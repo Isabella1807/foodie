@@ -41,6 +41,7 @@ function pick(d) {
   kind.value = null
   other.value = ''
   minutes.value = ''
+  km.value = ''
 }
 const entry = computed(() => data.movement[date.value] || null)
 
@@ -54,6 +55,7 @@ const done = computed(() => goal.value.done(entry.value))
 const kind = ref(null) // valgt slags (knap), inden minutterne sættes
 const other = ref('') // fri tekst, når slags er "Andet" (fx svømning)
 const minutes = ref('') // selvskrevne minutter
+const km = ref('') // km på en gåtur (valgfrit)
 const editing = ref(false)
 const adding = ref(false) // en tur mere samme dag: minutterne lægges til
 
@@ -62,6 +64,13 @@ const adding = ref(false) // en tur mere samme dag: minutterne lægges til
 const chosenKind = computed(() => {
   if (kind.value === 'andet' && other.value.trim()) return other.value.trim().toLowerCase()
   return kind.value
+})
+
+// Km gemmes kun på en gåtur — andre slags regnes altid på minutter
+const chosenKm = computed(() => {
+  if (chosenKind.value !== 'gang') return null
+  const n = Number(String(km.value).replace(',', '.'))
+  return n > 0 ? n : null
 })
 
 const customMinutes = computed(() => {
@@ -89,11 +98,12 @@ const weekNote = computed(() => {
 function set(m) {
   const n = Math.round(Number(m))
   if (!n || n <= 0) return
-  if (adding.value) data.addMovement(date.value, n, chosenKind.value)
-  else data.setMovement(date.value, n, chosenKind.value ?? entry.value?.kind ?? null)
+  if (adding.value) data.addMovement(date.value, n, chosenKind.value, chosenKm.value)
+  else data.setMovement(date.value, n, chosenKind.value ?? entry.value?.kind ?? null, chosenKm.value)
   kind.value = null
   other.value = ''
   minutes.value = ''
+  km.value = ''
   editing.value = false
   adding.value = false
 }
@@ -103,6 +113,7 @@ function startAdd() {
   kind.value = null
   other.value = ''
   minutes.value = ''
+  km.value = ''
   adding.value = true
   editing.value = true
 }
@@ -127,6 +138,7 @@ function startEdit() {
     other.value = ''
   }
   minutes.value = entry.value?.minutes ?? ''
+  km.value = entry.value?.km ? Number(entry.value.km).toLocaleString('da-DK') : ''
   adding.value = false
   editing.value = true
 }
@@ -169,7 +181,7 @@ function startEdit() {
 
     <template v-if="entry && !editing">
       <p class="movement-status good-text">
-        {{ entry.minutes }} min{{ entry.kind ? ` ${kindText(entry.kind)}` : '' }} {{ whenText }}
+        {{ entry.minutes }} min{{ entry.kind ? ` ${kindText(entry.kind)}` : '' }}{{ entry.km ? `, ${Number(entry.km).toLocaleString('da-DK')} km` : '' }} {{ whenText }}
         <template v-if="done">✓</template>
         <template v-else> — tæller med i ugens minutter</template>
       </p>
@@ -201,6 +213,15 @@ function startEdit() {
         placeholder="hvad lavede du? fx svømning"
         aria-label="Hvad lavede du"
       />
+      <input
+        v-if="kind === 'gang'"
+        v-model="km"
+        type="text"
+        inputmode="decimal"
+        class="movement-other"
+        placeholder="km (valgfrit), fx 5,5"
+        aria-label="Antal km"
+      />
       <div class="movement-minutes">
         <span class="count-hint">{{ adding ? 'Hvor længe varede turen mere?' : `Hvor længe ${whenText}?` }}</span>
         <div class="unit-choice-options">
@@ -227,7 +248,7 @@ function startEdit() {
         Alle minutter tæller med i ugens {{ goal.weekMinutes }}, også en kort tur<template v-if="goal.fromPlan">, og alt
           over målet giver ekstra i hygge-kontoen.
           Slagsen er kun til dig selv — appen kan ikke vide, hvor mange kalorier netop din træning kostede, så alle
-          minutter tæller ens.</template><template v-else>.</template>
+          minutter tæller ens. Undtagen en gåtur med km: den regnes ud fra distancen.</template><template v-else>.</template>
       </p>
     </template>
   </section>

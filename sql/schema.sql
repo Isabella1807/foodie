@@ -219,3 +219,13 @@ alter table public.goals add column if not exists min_kcal integer check (min_kc
 
 alter table public.goals add column if not exists plan_minutes integer check (plan_minutes between 10 and 240);
 alter table public.goals add column if not exists plan_days    integer check (plan_days between 1 and 7);
+
+-- ---------------------------------------------------------------------------
+-- Km på gåture (kør kun dette, hvis du har kørt alt ovenfor)
+--
+-- En gåtur koster næsten det samme pr. km, uanset tempoet. Minutter gange én
+-- sats giver for meget for en rolig tur og for lidt for en rask. Med km regnes
+-- en ren gå-dag ud fra distancen i stedet. Kør dette FØR appen med km-feltet
+-- kommer ud — ellers afviser databasen hver gemt dag, og den går tabt.
+
+alter table public.movement add column if not exists km numeric check (km > 0);

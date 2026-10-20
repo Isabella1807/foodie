@@ -4,7 +4,6 @@ import { useDataStore } from '../stores/data'
 import { useCollapse } from '../lib/useCollapse'
 import { localToday } from '../lib/dates'
 import { TREAT_KCAL, TREAT_EVERY_DAYS } from '../lib/plan'
-import { pulseZone } from '../lib/activityKcal'
 
 // Planen mod målvægten, samlet ét sted: hvad du skal gøre i dag, og om du
 // ligger foran eller bagud. Kurven bag tallene ligger i lib/plan.js.
@@ -38,9 +37,6 @@ const kg = computed(() => data.currentWeight)
 // Passets længde og antal dage kommer fra hendes egne indstillinger
 const minutes = computed(() => data.planMinutes)
 const days = computed(() => data.planDays)
-
-// Pulsen, timen skal ligge i — kræver en alder under "Mine mål"
-const pulse = computed(() => pulseZone(data.profile.age))
 
 // Ugens bevægelse i minutter mod planens mål — se moveWeek i stores/data.js
 const week = computed(() => data.moveWeek)
@@ -120,14 +116,13 @@ function startPlan() {
         <p>
           <strong>Så hårdt skal passet være.</strong> Du skal kunne sige en kort sætning, men ikke synge, og
           du skal kunne høre din egen vejrtrækning.
-          <template v-if="pulse"> Sigt efter en puls omkring {{ pulse.low }} til {{ pulse.high }}.</template>
-          <template v-else> Skriv din alder ind under "Mine mål", så regner jeg pulsen ud for dig.</template>
           Beat Saber på expert rammer det. Til fods skal det være omkring 5,5 km i timen, altså din
           {{ minutes }}-minutters tur på cirka 4 km.
         </p>
         <p>
           <strong>Hvad appen ikke ved.</strong> Den kan ikke måle, hvor mange kalorier én træning kostede.
-          Derfor tæller alle træninger ens her, og slagsen er kun en etiket. Det rigtige tal kommer fra din vægt:
+          Derfor tæller alle træninger ens her, og slagsen er kun en etiket — undtagen gåture med km, som regnes
+          ud fra distancen. Det rigtige tal kommer fra din vægt:
           appen ser, hvad du har spist, og hvad vægten gjorde, og regner baglæns. Det tager et par uger,
           men det er den eneste måling, der er ægte.
         </p>

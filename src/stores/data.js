@@ -100,9 +100,16 @@ export const useDataStore = defineStore('data', {
     },
 
     // Ugens gennemsnit pr. logget dag — det tal, der viser om ugen samlet
-    // holder, selv om en enkelt dag har været høj
-    weekAverage() {
-      return this.weekLoggedDays ? Math.round(this.weekTotal / this.weekLoggedDays) : 0
+    // holder, selv om en enkelt dag har været høj. Kun færdige dage tæller:
+    // i dag er ikke slut, og en halv dag trækker snittet ned
+    weekAverage(state) {
+      const today = localToday()
+      const doneDates = this.weekLoggedDates.filter((d) => d < today)
+      if (!doneDates.length) return 0
+      const doneTotal = state.entries
+        .filter((e) => doneDates.includes(e.eaten_on))
+        .reduce((sum, e) => sum + e.kcal, 0)
+      return Math.round(doneTotal / doneDates.length)
     },
 
     // Opslag: er en bestemt dato markeret som hyggedag?
@@ -876,12 +883,13 @@ export const useDataStore = defineStore('data', {
     // Læg minutter TIL dagens bevægelse i stedet for at erstatte dem. To gange
     // 30 minutter er også en time, og man logger den anden tur senere på dagen.
     // Er slagsen en anden end den, der står, gemmes begge, fx "vr og gåtur".
-    addMovement(date, minutes, kind = null) {
+    addMovement(date, minutes, kind = null, km = null) {
       const n = Math.round(Number(minutes))
       if (!(n > 0)) return
       const had = this.movement[date]
-      if (!had) return this.setMovement(date, n, kind)
+      if (!had) return this.setMovement(date, n, kind, km)
       const total = (Math.round(Number(had.minutes)) || 0) + n
+      const kmTotal = (Number(had.km) || 0) + (Number(km) || 0)
       // Slagsene samles uden gentagelser: to gåture samme dag er stadig "gang"
       const parts = String(had.kind || '')
         .split(' og ')
@@ -889,11 +897,11 @@ export const useDataStore = defineStore('data', {
         .filter(Boolean)
       const next = String(kind || '').trim()
       if (next && !parts.includes(next)) parts.push(next)
-      this.setMovement(date, total, parts.join(' og ') || null)
+      this.setMovement(date, total, parts.join(' og ') || null, kmTotal)
     },
 
-    // Sæt (eller ryd, med minutes = null) dagens bevægelse: minutter og evt. slags
-    setMovement(date, minutes, kind = null) {
+    // Sæt (eller ryd, med minutes = null) dagens bevægelse: minutter, evt. slags og evt. km
+    setMovement(date, minutes, kind = null, km = null) {
       const next = { ...this.movement }
       const had = date in next
       const n = Math.round(Number(minutes))
@@ -903,10 +911,11 @@ export const useDataStore = defineStore('data', {
         this.persist()
         if (had) this.queue('delete_movement', { date })
       } else {
-        next[date] = { minutes: n, kind: kind || null }
+        const k = Number(km) > 0 ? Number(km) : null
+        next[date] = { minutes: n, kind: kind || null, km: k }
         this.movement = next
         this.persist()
-        this.queue('upsert_movement', { date, minutes: n, kind: kind || null })
+        this.queue('upsert_movement', { date, minutes: n, kind: kind || null, km: k })
       }
     },
 
@@ -1081,7 +1090,7 @@ export const useDataStore = defineStore('data', {
         }
         // Bevægelse: samme princip — serverens dage lægges oveni de lokale
         if (!movement.error) {
-          const serverDays = Object.fromEntries(movement.data.map((m) => [m.date, { minutes: m.minutes, kind: m.kind ?? null }]))
+          const serverDays = Object.fromEntries(movement.data.map((m) => [m.date, { minutes: m.minutes, kind: m.kind ?? null, km: m.km ?? null }]))
           this.movement = { ...this.movement, ...serverDays }
         }
         this.persist()

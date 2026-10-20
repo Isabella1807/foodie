@@ -22,6 +22,13 @@
 // Satsen nedenfor er derfor kun et udgangspunkt for at kunne tegne en plan.
 const PER_MIN_PER_KG = 0.056
 
+// Undtagelsen er gåture med km. Gang koster næsten det samme pr. km, uanset
+// tempoet, og km kan uret måle — det kan intensiteten ikke. Er hele dagen gang,
+// og står der km, regnes den ud fra distancen. Står der også andet på dagen
+// (fx "gang og vr"), vides det ikke, hvor mange af minutterne der var gang,
+// og så bruges minutterne som før.
+const PER_KM_PER_KG = 0.55
+
 export const PLAN_RATE = PER_MIN_PER_KG
 
 // Standard, hvis man ikke selv har sat noget: en time, seks dage om ugen.
@@ -39,6 +46,8 @@ export function ratePerMinute() {
 export function kcalForMovement(entry, kg) {
   const minutes = Number(entry?.minutes)
   if (!(minutes > 0) || !(kg > 0)) return 0
+  const km = Number(entry?.km)
+  if (km > 0 && entry?.kind === 'gang') return km * PER_KM_PER_KG * kg
   return minutes * PER_MIN_PER_KG * kg
 }
 
@@ -98,17 +107,4 @@ export function isHardEnough(entry, kg, minutes = PLAN_MINUTES) {
 export function planMovementPerDay(kg, minutes = PLAN_MINUTES, days = PLAN_DAYS_PER_WEEK) {
   const d = Math.round(Number(days)) || PLAN_DAYS_PER_WEEK
   return kg > 0 ? (planPerKg(minutes) * kg * d) / 7 : 0
-}
-
-// Hvor hårdt planens time skal være, sagt som puls.
-//
-// Den højeste puls, en krop kan nå, falder med alderen, så et pulstal kun giver
-// mening sammen med en alder. Tommelfingerreglen er 220 minus alderen, og
-// planens time ligger i 70 til 85 procent af det. Det er skøn: medicin, form og
-// dagsform flytter det, og tallet er til at pejle efter, ikke at ramme præcist.
-export function pulseZone(age) {
-  const a = Math.round(Number(age))
-  if (!(a > 0) || a > 120) return null
-  const max = 220 - a
-  return { low: Math.round((max * 0.7) / 5) * 5, high: Math.round((max * 0.85) / 5) * 5, max }
 }
