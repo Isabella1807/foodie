@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { useDataStore } from '../stores/data'
 import { useCollapse } from '../lib/useCollapse'
-import { localToday } from '../lib/dates'
+import { localToday, formatDayLabel, formatFullDate } from '../lib/dates'
 import { TREAT_KCAL, TREAT_EVERY_DAYS } from '../lib/plan'
 
 // Planen mod målvægten, samlet ét sted: hvad du skal gøre i dag, og om du
@@ -24,14 +24,26 @@ function asMonth(d) {
   const [y, m] = d.split('-')
   return `${MONTHS[Number(m) - 1]} ${y}`
 }
-const arrival = computed(() => asMonth(plan.value?.arriveOn))
+// Det næste skridt på 5 kg — se planNextStep i stores/data.js
+const step = computed(() => data.planNextStep)
 
-// Datoen bygger på de sidste ugers MÅLTE forbrug. Har man lige lagt rutinen om,
-// kender målingen den ikke endnu, og datoen er derfor for pessimistisk. Så
-// vises også den dato, rutinen fører til, når den er kommet med i målingen.
-const boost = computed(() => data.planBoost)
-const arrivalMeasured = computed(() => asMonth(data.planMeasured?.arriveOn))
-const showBoost = computed(() => boost.value && arrivalMeasured.value && arrivalMeasured.value !== arrival.value)
+// Hvornår målvægten nås i dit tempo siden planens start, som et spænd af år —
+// se goalRange i stores/data.js. Spændet snævrer ind, jo længere tid der går.
+const range = computed(() => data.goalRange)
+const rangeText = computed(() => {
+  const r = range.value
+  if (!r) return null
+  const a = r.early.slice(0, 4)
+  const b = r.late?.slice(0, 4)
+  if (!b) return `tidligst i ${a}`
+  return a === b ? `i ${a}` : `et sted mellem ${a} og ${b}`
+})
+const fmt2 = (n) => n.toLocaleString('da-DK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+// Det låste grundlag: forbruget den dag planen startede, plus planens træning
+const basis = computed(() => data.planBasis)
+const fmt = (n) => Math.round(n).toLocaleString('da-DK')
+const startLabel = computed(() => (data.goals.plan_start_on ? formatFullDate(data.goals.plan_start_on).replace(/^\S+ d\. /, '') : ''))
 
 const kg = computed(() => data.currentWeight)
 // Passets længde og antal dage kommer fra hendes egne indstillinger
@@ -57,6 +69,16 @@ function startPlan() {
   if (!kg) return
   data.setGoals({ plan_start_on: today, plan_start_kg: kg })
 }
+
+// Planen står fast. Vil man have den lagt om på de nyeste tal, er det et valg,
+// man selv træffer — det sker aldrig af sig selv.
+function restartPlan() {
+  const ok = confirm(
+    'Lav en ny plan fra i dag?\n\nDen starter fra din seneste vejning og bygger på dit forbrug, som det er målt nu. ' +
+      'Hygge-kontoen starter forfra på 0.',
+  )
+  if (ok) startPlan()
+}
 </script>
 
 <template>
@@ -69,14 +91,17 @@ function startPlan() {
         <template v-else-if="status.ahead">Du er {{ fmtKg(Math.abs(status.diff)) }} kg foran planen 🎉</template>
         <template v-else>Du er {{ fmtKg(status.diff) }} kg bagud</template>
       </p>
-      <p class="plan-sub">
+      <p v-if="status.on === today" class="plan-sub">
         Planen siger {{ fmtKg(status.expected) }} kg i dag. Du vejer {{ fmtKg(status.actual) }} kg.
       </p>
-      <p v-if="arrival" class="plan-sub">
-        Holder du planen, rammer du {{ fmtKg(Number(data.goals.goal_kg)) }} kg i <strong>{{ arrival }}</strong>.
+      <p v-else class="plan-sub">
+        Du vejede {{ fmtKg(status.actual) }} kg {{ formatDayLabel(status.on) }}. Planen sagde {{ fmtKg(status.expected) }} kg den dag.
       </p>
-      <p v-if="plan.stuckKg" class="plan-sub">
-        Med det, du spiser nu, flader planen ud omkring {{ fmtKg(plan.stuckKg) }} kg.
+      <p v-if="step?.on" class="plan-sub">
+        Dit næste skridt er {{ fmtKg(step.kg) }} kg. Holder du planen, når du det omkring <strong>{{ asMonth(step.on) }}</strong>.
+      </p>
+      <p v-if="rangeText" class="plan-sub">
+        Fortsætter du som nu, når du {{ fmtKg(Number(data.goals.goal_kg)) }} kg <strong>{{ rangeText }}</strong>.
       </p>
 
       <ul class="plan-steps">
@@ -134,11 +159,30 @@ function startPlan() {
           trænes. Det er betalt på forhånd. Bruger du den ikke, lægger den sig på hygge-kontoen, og du kan
           bruge den en anden dag uden at måldatoen skrider.
         </p>
-        <p v-if="showBoost">
-          <strong>Hvorfor datoen flytter sig.</strong> Målt på de sidste ugers tal alene ville målet være
-          {{ arrivalMeasured }}, for din bevægelse gav kun {{ boost.had }} kcal om dagen i den periode mod
-          planens {{ boost.planned }}. Målingen kender endnu ikke din nye rutine, og den indhenter sig selv
-          i løbet af et par uger.
+        <p v-if="basis">
+          <strong>Planen står fast.</strong> Den blev lagt den {{ startLabel }} ud fra dit forbrug, som det var
+          målt dengang: ca. {{ fmt(basis.measured) }} kcal om dagen<template v-if="basis.extra">, plus
+          {{ fmt(basis.extra) }} kcal om dagen for den træning, planen regner med</template>.
+          Den bliver ikke tegnet om, når du vejer dig, eller når dit målte forbrug ændrer sig. Så det eneste,
+          der flytter "foran" og "bagud", er din egen vægt. Ændrer du dit dagsmål eller din træning under
+          "Mine mål", regnes den om fra samme startdag.
+        </p>
+        <p v-if="basis">
+          <strong>Hygge-kontoen og "foran/bagud" måler to forskellige ting.</strong> Kontoen tæller, hvad du
+          har spist og trænet i forhold til planen. "Foran/bagud" er, hvad vægten har gjort. Vægten svinger
+          et halvt kilo eller mere fra dag til dag af vand, så de to følges kun ad over flere uger.
+        </p>
+        <p v-if="range">
+          <strong>Hvornår du når {{ fmtKg(Number(data.goals.goal_kg)) }} kg</strong> er regnet ud fra, hvad
+          vægten har gjort siden du startede planen: ca. {{ fmt2(range.kgPerWeek) }} kg om ugen. Det rummer alt,
+          hvad du faktisk har spist, hyggedage med, og al den træning, du faktisk har lavet, med det den reelt
+          har forbrændt. Det eneste, der er lagt til, er at det går lidt langsommere, jo lettere du bliver.
+          Der står et spænd og ikke en måned, fordi tempoet endnu kun kan måles på ±{{ fmt2(2 * range.se) }} kg
+          om ugen, og de sidste kilo er så langsomme, at det flytter datoen et år eller mere. Spændet bliver
+          mindre af sig selv, jo længere tid du følger planen.
+        </p>
+        <p v-if="basis">
+          <button type="button" class="link" @click="restartPlan">Lav en ny plan fra i dag</button>
         </p>
       </div>
     </template>

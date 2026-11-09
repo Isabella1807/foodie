@@ -215,7 +215,9 @@ function save() {
       <span v-else class="goal-val goal-val-muted">—</span>
     </div>
     <p v-show="help.open" v-if="burn.ready" class="goal-note">
-      Målt over de sidste {{ burn.weeks }} uger ud fra din logning og vægt.
+      Målt over de sidste {{ burn.weeks }} uger ud fra din logning og vægt. Tal ældre end 3 måneder tæller
+      mindre og mindre. Det følger med hver dag, men én vejning flytter det kun lidt. Planen bruger ikke dette tal, men det,
+      der blev målt, da du startede den.
       <template v-if="deficit > 0">
         Med {{ fmt(goal) }} kcal/dag spiser du ca. {{ fmt(deficit) }} mindre, end du forbrænder — det svarer til ca. {{ fmtRate(expectedRate) }} kg om ugen.
       </template>

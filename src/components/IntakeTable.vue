@@ -102,7 +102,7 @@ const mine = computed(() => {
       Tallene gælder, hvis du spiser det SAMME tal hver dag helt frem til målet. En enkelt dag på 1.700
       flytter næsten ingenting — se "hvad koster hvad" for prisen på en enkelt dag.
     </p>
-    <p class="plan-sub">
+    <p v-if="data.goals.loss_per_week" class="plan-sub">
       Derfor står der en anden dato ud for {{ goal.toLocaleString('da-DK') }} end på plan-kortet. Planen
       holder ikke tallet fast: den sætter dit dagsmål ned, efterhånden som du bliver lettere, så tempoet
       holdes. Rækkerne her fastfryser tallet, og så bliver underskuddet mindre og mindre af sig selv.

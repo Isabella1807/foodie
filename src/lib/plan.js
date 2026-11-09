@@ -31,6 +31,19 @@ export function treatPerDay(goal, missedMovement = 0) {
 
 const MAX_DAYS = 2200 // godt 6 år — derefter giver det ikke mening at tegne videre
 
+// Én dag i planen ved en bestemt vægt: forbruget ved den vægt, dagsmålet,
+// hyggedagens andel og det underskud, der er tilbage. Både kurven og "hvad er en
+// dag værd lige nu" bruger denne, så de aldrig regner forskelligt.
+export function planDay({ burn, kg, rate = 0, fixedGoal = 0, floor = MIN_GOAL, movementPerKg = 0 }) {
+  const burnNow = burn.kcal - BURN_PER_KG * (burn.kg - kg)
+  const fixed = Math.round(Number(fixedGoal)) || 0
+  const goal = fixed > 0 ? Math.max(floor, fixed) : goalForRate(burnNow, rate, floor).goal
+  // Hyggedagen fordelt ud over de dage, der er mellem to af dem — både maden
+  // og den træning, der ikke bliver lavet den dag
+  const treat = treatPerDay(goal, movementPerKg * kg)
+  return { burnNow, goal, treat, deficit: burnNow - (goal + treat) }
+}
+
 // Simulér vejen fra startvægt til målvægt.
 // start: { on, kg }. burn: { kcal, kg } — målt forbrug og vægten, det gjaldt ved.
 // Giver { ready, days: [{ date, kg }], arriveOn, stuckKg }
@@ -55,12 +68,7 @@ export function planCurve({ start, targetKg, rate, burn, movementPerKg = 0, floo
   let date = start.on
 
   for (let i = 0; i < MAX_DAYS; i++) {
-    const burnNow = burn.kcal - BURN_PER_KG * (burn.kg - kg)
-    const goal = fixed > 0 ? Math.max(floor, fixed) : goalForRate(burnNow, rate, floor).goal
-    // Hyggedagen fordelt ud over de dage, der er mellem to af dem — både maden
-    // og den time, der ikke bliver lavet den dag
-    const treat = treatPerDay(goal, movementPerKg * kg)
-    const deficit = burnNow - (goal + treat)
+    const { deficit } = planDay({ burn, kg, rate, fixedGoal: fixed, floor, movementPerKg })
     if (deficit <= 0) return { ready: true, days, stuckKg: round1(kg) }
 
     kg -= deficit / KCAL_PER_KG
@@ -69,6 +77,26 @@ export function planCurve({ start, targetKg, rate, burn, movementPerKg = 0, floo
     if (kg <= targetKg) return { ready: true, days, arriveOn: date }
   }
   return { ready: true, days, stuckKg: round1(kg) }
+}
+
+// Hvornår du når målvægten, hvis du fortsætter præcis som de sidste måneder.
+//
+// Bygger KUN på dit målte tempo (kg om ugen, se lib/burn.js), som allerede
+// rummer det, du faktisk spiser — hyggedage med — og den bevægelse, du faktisk
+// laver. Det eneste, der lægges til, er at det går lidt langsommere, jo lettere
+// du bliver: underskuddet falder med BURN_PER_KG for hvert kilo.
+// Giver { on } med datoen, eller { stuckKg }, hvis tempoet ikke rækker helt ned.
+export function paceArrival({ on, kg, targetKg, kgPerWeek }) {
+  if (!on || !(kg > targetKg) || !(kgPerWeek > 0)) return null
+  const start = (kgPerWeek * KCAL_PER_KG) / 7 // dagens underskud i kcal
+  let w = kg
+  for (let i = 1; i <= MAX_DAYS; i++) {
+    const deficit = start - BURN_PER_KG * (kg - w)
+    if (deficit <= 0) return { stuckKg: round1(w) }
+    w -= deficit / KCAL_PER_KG
+    if (w <= targetKg) return { on: addDays(on, i) }
+  }
+  return { stuckKg: round1(w) }
 }
 
 // Hvad planen siger, du bør veje på en bestemt dag. Dage FØR planen blev sat

@@ -3,8 +3,8 @@ import { supabase } from '../lib/supabase'
 import { load, save, remove } from '../lib/storage'
 import { localToday, weekStart, addDays } from '../lib/dates'
 import { bodyBurn } from '../lib/activity'
-import { estimateBurn, goalForRate, MIN_GOAL } from '../lib/burn'
-import { planCurve, planStatus, treatPerDay } from '../lib/plan'
+import { estimateBurn, goalForRate, trend, MIN_GOAL } from '../lib/burn'
+import { planCurve, planDay, planStatus, treatPerDay, paceArrival } from '../lib/plan'
 import { movementPerDay, planMovementPerDay, kcalForMovement, oneSessionKcal, isHardEnough, planPerKg, PLAN_MINUTES, PLAN_DAYS_PER_WEEK } from '../lib/activityKcal'
 import { MOVE_GOAL_MIN, MOVE_DAYS_PER_WEEK, isDone } from '../lib/movement'
 import { sumMacros, defaultMacroGoals, MACROS, REACH_GOALS } from '../lib/nutrition'
@@ -172,14 +172,21 @@ export const useDataStore = defineStore('data', {
     },
 
     // Dit forbrug, som det så ud på en bestemt dato: kun vejninger til og med
-    // den dag tæller med. Bruges til ugens automatiske mål
+    // den dag tæller med
     burnAsOf(state) {
       return (date) => estimateBurn(state.weights.filter((w) => w.measured_on <= date), state.entries)
     },
 
+    // Ugens forbrug: regnet på vejningerne til og med søndagen før ugen. Bruges
+    // KUN til det automatiske dagsmål, så det, man skal spise, står stille hele
+    // ugen — også når man vejer sig mandag morgen.
+    weekBurn() {
+      return (date) => this.burnAsOf(addDays(weekStart(date), -1))
+    },
+
     // Ugens automatiske mål for en dato. Har hun bedt appen regne målet ud
-    // (loss_per_week sat), regnes det ud fra forbruget, som det så ud mandag i
-    // den uge — så tallet står fast hele ugen og først flytter sig næste mandag.
+    // (loss_per_week sat), regnes det ud fra ugens forbrug (se weekBurn), så
+    // tallet står fast hele ugen og først flytter sig næste mandag.
     // Er forbruget ikke solidt nok endnu (for få vejninger), gælder det faste tal.
     // Giver { auto: false } eller { auto: true, ready, goal, burn, floored, weekStart }
     autoGoalFor(state) {
@@ -187,7 +194,7 @@ export const useDataStore = defineStore('data', {
         const rate = state.goals.loss_per_week
         if (!rate) return { auto: false }
         const monday = weekStart(date)
-        const burn = this.burnAsOf(monday)
+        const burn = this.weekBurn(date)
         if (!burn.ready || !burn.solid) return { auto: true, ready: false, goal: this.fixedGoal, burn, floored: false, weekStart: monday }
         const { goal, floored } = goalForRate(burn.kcal, rate, this.minGoal)
         return { auto: true, ready: true, goal, burn, floored, weekStart: monday }
@@ -290,72 +297,108 @@ export const useDataStore = defineStore('data', {
       return Math.max(0, Math.round((now - goal) * 10) / 10)
     },
 
-    // Dit faktiske daglige forbrug, regnet løbende ud fra de seneste ugers
-    // logning og vejninger — se lib/burn.js for hvordan
+    // Dit faktiske daglige forbrug, regnet ud fra de seneste 4 måneders logning
+    // og vejninger — se lib/burn.js. Følger med hver dag, men i små skridt.
     measuredBurn(state) {
       return estimateBurn(state.weights, state.entries)
     },
 
-    // Kurven, som de sidste ugers MÅLINGER alene peger på. Kender kun den
-    // bevægelse, der allerede er logget, så den er for pessimistisk lige efter
-    // en omlagt rutine. Vises som kontrast til planen, ikke som planen selv.
-    planMeasured(state) {
+    // DET FORBRUG, PLANEN ER LAGT PÅ. Målt den dag planen startede, og derefter
+    // låst.
+    //
+    // Før blev hele planen tegnet forfra med det NYESTE forbrug, hver gang det
+    // ændrede sig. Steg forbruget, påstod planen pludselig, at man burde have
+    // tabt meget mere siden start, og så sprang man fra "foran" til "bagud",
+    // uden at vægten havde rørt sig. Nu står planen fast, så det eneste, der
+    // flytter "foran" og "bagud", er ens egen vægt.
+    //
+    // Var der ikke tal nok den dag planen startede, bruges den første uge
+    // derefter, hvor der var. Giver null, indtil der er.
+    planStartBurn(state) {
       const g = state.goals
-      const burn = this.measuredBurn
-      const atKg = this.currentWeight
-      if (!g.plan_start_on || !g.plan_start_kg || !g.goal_kg) return null
-      if (!g.loss_per_week && !this.fixedGoal) return null
-      if (!burn.ready || !atKg) return null
-      const curve = planCurve({
-        start: { on: g.plan_start_on, kg: Number(g.plan_start_kg) },
-        targetKg: Number(g.goal_kg),
-        rate: Number(g.loss_per_week),
-        fixedGoal: g.loss_per_week ? null : this.fixedGoal,
-        burn: { kcal: burn.kcal, kg: atKg },
-        movementPerKg: planPerKg(this.planMinutes),
-        floor: this.minGoal,
-      })
-      return curve.ready ? curve : null
+      if (!g.plan_start_on) return null
+      const today = localToday()
+      const lock = (on) => {
+        const b = this.burnAsOf(on)
+        if (!b.ready) return null
+        const at = state.weights.find((w) => w.measured_on === b.to)
+        return { ...b, on, kg: Number(at?.kg) || Number(g.plan_start_kg) }
+      }
+      if (g.plan_start_on <= today) {
+        const first = lock(g.plan_start_on)
+        if (first) return first
+      }
+      // Ellers søndagene efter start, samme dag som ugens forbrug skifter
+      let sunday = addDays(weekStart(addDays(g.plan_start_on, 1)), 6)
+      for (let i = 0; i < 200 && sunday < today; i++) {
+        const found = lock(sunday)
+        if (found) return found
+        sunday = addDays(sunday, 7)
+      }
+      return null
     },
 
-    // Det målte forbrug bagud i tid kender kun den bevægelse, der ALLEREDE er
-    // logget. Har man lige lagt rutinen om, undervurderer det derfor forbruget
-    // fremad. Her regnes forskellen ud: hvad planens time giver, minus hvad
-    // bevægelsen faktisk gav i den periode, forbruget blev målt over.
-    // Giver null, når forskellen er lille nok til ikke at betyde noget.
-    planBoost(state) {
-      const burn = this.measuredBurn
-      const kg = this.currentWeight
-      if (!burn.ready || !kg) return null
-      const had = movementPerDay(state.movement, burn.from, burn.to, kg)
-      const planned = planMovementPerDay(kg, this.planMinutes, this.planDays)
-      const extra = Math.round(planned - had)
-      if (extra < 50) return null
-      return { extra, had: Math.round(had), planned: Math.round(planned), from: burn.from, to: burn.to }
+    // Planens forbrug med træningen lagt til. Målingen kender kun den bevægelse,
+    // der var logget, FØR planen startede. Planen regner med en ny rutine, så
+    // forskellen lægges oveni: hvad planens træning giver, minus hvad bevægelsen
+    // gav i den periode, forbruget blev målt over. Også låst.
+    // minutes/days kan gives, når man vil se, hvad en anden træning ville give.
+    planBasisWith(state) {
+      return (minutes = this.planMinutes, days = this.planDays) => {
+        const b = this.planStartBurn
+        if (!b) return null
+        const had = movementPerDay(state.movement, b.from, b.to, b.kg)
+        const planned = planMovementPerDay(b.kg, minutes, days)
+        const extra = Math.max(0, Math.round(planned - had))
+        return { kcal: b.kcal + extra, measured: b.kcal, extra, kg: b.kg, on: b.on }
+      }
     },
 
-    // DIN PLAN: kurven, som den ser ud, når rutinen holdes. Det er den, alt
-    // andet måles mod — det er jo den, du har sagt ja til. Er der ingen forskel
-    // på rutinen og det målte, er de to ens.
-    plan(state) {
-      const g = state.goals
-      const burn = this.measuredBurn
-      const kg = this.currentWeight
-      const boost = this.planBoost
-      if (!g.plan_start_on || !g.plan_start_kg || !g.goal_kg) return null
-      if (!g.loss_per_week && !this.fixedGoal) return null
-      if (!burn.ready || !kg) return null
-      if (!boost) return this.planMeasured
-      const curve = planCurve({
-        start: { on: g.plan_start_on, kg: Number(g.plan_start_kg) },
-        targetKg: Number(g.goal_kg),
-        rate: Number(g.loss_per_week),
-        fixedGoal: g.loss_per_week ? null : this.fixedGoal,
-        burn: { kcal: burn.kcal + boost.extra, kg },
-        movementPerKg: planPerKg(this.planMinutes),
-        floor: this.minGoal,
-      })
-      return curve.ready ? curve : null
+    planBasis() {
+      return this.planBasisWith()
+    },
+
+    // Kurven fra planens start til målvægten, regnet på det låste forbrug.
+    // Uden argumenter er det planen, som den er sat. Med argumenter er det
+    // "hvad nu hvis": en anden træning, et andet dagsmål eller en anden bund.
+    // ALT, der sammenligner med planen, går gennem denne ene, så de aldrig
+    // regner på hver sit grundlag.
+    planCurveFor(state) {
+      return ({ minutes, days, floor, intake, rate, burnDelta = 0 } = {}) => {
+        const g = state.goals
+        if (!g.plan_start_on || !g.plan_start_kg || !g.goal_kg) return null
+
+        const mins = Math.round(Number(minutes)) || this.planMinutes
+        const n = Math.round(Number(days))
+        const dayCount = n >= 1 && n <= 7 ? n : this.planDays
+        const basis = this.planBasisWith(mins, dayCount)
+        if (!basis) return null
+
+        // Enten et fast dagsmål eller kg om ugen — det man er ved at taste
+        // vinder over det, der står gemt
+        const eat = Math.round(Number(intake)) || 0
+        const perWeek = Number(String(rate ?? '').replace(',', '.')) || 0
+        const saved = Number(g.loss_per_week) || 0
+        const useFixed = eat > 0 ? eat : perWeek > 0 || saved ? 0 : this.fixedGoal
+        const useRate = eat > 0 ? 0 : perWeek > 0 ? perWeek : saved
+        if (!useFixed && !useRate) return null
+
+        return planCurve({
+          start: { on: g.plan_start_on, kg: Number(g.plan_start_kg) },
+          targetKg: Number(g.goal_kg),
+          rate: useRate,
+          fixedGoal: useFixed || null,
+          burn: { kcal: basis.kcal + burnDelta, kg: basis.kg },
+          movementPerKg: planPerKg(mins),
+          floor: Math.max(MIN_GOAL, Math.round(Number(floor)) || this.minGoal),
+        })
+      }
+    },
+
+    // DIN PLAN: kurven, når rutinen holdes. Det er den, alt andet måles mod.
+    plan() {
+      const curve = this.planCurveFor()
+      return curve?.ready ? curve : null
     },
 
     // Alt spist pr. dag, regnet én gang — saldoen nedenfor skal ellers løbe
@@ -382,27 +425,32 @@ export const useDataStore = defineStore('data', {
       if (!this.plan || !g.plan_start_on || !kg) return null
       const today = localToday()
       const totals = this.totalsByDay
-      const plannedMove = planMovementPerDay(kg, this.planMinutes, this.planDays)
       const goalCache = {}
       let food = 0
       let move = 0
       let days = 0
       let loggedDays = 0
       let movedDays = 0
+      // Hver dag regnes med den vægt, man havde DEN dag, ikke den nyeste. Ellers
+      // ville hele kontoen bagud flytte sig en smule, hver gang man vejer sig.
+      const asc = [...this.weighIns].reverse()
+      let wi = 0
+      let dayKg = Number(g.plan_start_kg) || kg
       // Dagsmålet står fast hele ugen, så det slås kun op én gang pr. uge
       for (let d = g.plan_start_on; d < today; d = addDays(d, 1)) {
         if (++days > 1200) break
+        while (wi < asc.length && asc[wi].measured_on <= d) dayKg = Number(asc[wi++].kg) || dayKg
         const wk = weekStart(d)
         if (!(wk in goalCache)) goalCache[wk] = this.goalFor(d)
         const goal = goalCache[wk]
         const eaten = totals[d] || 0
         if (eaten > 0) {
           loggedDays++
-          food += goal + treatPerDay(goal, this.sessionKcal) - eaten
+          food += goal + treatPerDay(goal, oneSessionKcal(dayKg, this.planMinutes)) - eaten
         }
-        const moved = kcalForMovement(state.movement[d], kg)
+        const moved = kcalForMovement(state.movement[d], dayKg)
         if (moved > 0) movedDays++
-        move += moved - plannedMove
+        move += moved - planMovementPerDay(dayKg, this.planMinutes, this.planDays)
       }
       const total = Math.round(food + move)
       // Hvad saldoen er værd i TID: hver kalorie i overskud er en kalorie, der
@@ -419,68 +467,33 @@ export const useDataStore = defineStore('data', {
       }
     },
 
-    // Det underskud planen regner med pr. dag lige nu — altså hvor hurtigt
-    // saldoen omsættes til dage på måldatoen
+    // Det underskud planen regner med pr. dag ved den vægt, du har nu — altså
+    // hvor hurtigt saldoen omsættes til dage på måldatoen. Regnet præcis som
+    // kurven regner (lib/plan.js planDay), på det låste forbrug.
     planDeficitPerDay(state) {
       const kg = this.currentWeight
-      const burn = this.measuredBurn
-      const boost = this.planBoost
-      if (!kg || !burn.ready) return 0
-      const total = burn.kcal + (boost?.extra ?? 0)
-      const goal = this.dailyGoal
-      return Math.round(total - goal - treatPerDay(goal, this.sessionKcal))
-    },
-
-    // Det forbrug, planen regner med: det målte plus den del af rutinen, målingen
-    // endnu ikke kender. Ét sted, så prislisten og kurven bruger samme tal.
-    planBurn(state) {
-      const burn = this.measuredBurn
-      if (!burn.ready) return null
-      return burn.kcal + (this.planBoost?.extra ?? 0)
+      const basis = this.planBasis
+      if (!kg || !basis) return 0
+      const rate = Number(state.goals.loss_per_week) || 0
+      const day = planDay({
+        burn: basis,
+        kg,
+        rate,
+        fixedGoal: rate ? 0 : this.fixedGoal,
+        floor: this.minGoal,
+        movementPerKg: planPerKg(this.planMinutes),
+      })
+      return Math.round(day.deficit)
     },
 
     // Udfaldet, HVIS man vælger andre indstillinger end dem, der er gemt.
     // Bruges til at vise konsekvensen med det samme, mens man taster, i stedet
     // for at man skal gemme og bagefter scrolle op og lede efter datoen.
     // Giver { on, stuckKg }: enten en dato, eller den vægt hvor det går i stå.
-    planArrivalFor(state) {
-      return ({ minutes, days, floor, intake, rate } = {}) => {
-        const g = state.goals
-        const kg = this.currentWeight
-        const burn = this.measuredBurn
-        if (!g.plan_start_on || !g.plan_start_kg || !g.goal_kg) return null
-        if (!burn.ready || !kg) return null
-
-        // Enten et fast dagsmål eller kg om ugen — det man er ved at taste
-        // vinder over det, der står gemt
-        const eat = Math.round(Number(intake)) || 0
-        const perWeek = Number(String(rate ?? '').replace(',', '.')) || 0
-        const useFixed = eat > 0 ? eat : perWeek > 0 ? 0 : Number(g.loss_per_week) ? 0 : this.fixedGoal
-        const useRate = eat > 0 ? 0 : perWeek > 0 ? perWeek : Number(g.loss_per_week) || 0
-        if (!useFixed && !useRate) return null
-
-        const mins = Math.round(Number(minutes)) || this.planMinutes
-        const dayCount = (() => {
-          const n = Math.round(Number(days))
-          return n >= 1 && n <= 7 ? n : this.planDays
-        })()
-        const low = Math.max(MIN_GOAL, Math.round(Number(floor)) || this.minGoal)
-
-        // Samme korrektion som planBoost: målingen kender kun den bevægelse,
-        // der allerede er logget, så den nye rutine lægges oveni
-        const had = movementPerDay(state.movement, burn.from, burn.to, kg)
-        const planned = planMovementPerDay(kg, mins, dayCount)
-        const extra = Math.max(0, Math.round(planned - had))
-
-        const curve = planCurve({
-          start: { on: g.plan_start_on, kg: Number(g.plan_start_kg) },
-          targetKg: Number(g.goal_kg),
-          rate: useRate,
-          fixedGoal: useFixed || null,
-          burn: { kcal: burn.kcal + extra, kg },
-          movementPerKg: planPerKg(mins),
-          floor: low,
-        })
+    planArrivalFor() {
+      return (options = {}) => {
+        const curve = this.planCurveFor(options)
+        if (!curve?.ready) return null
         return { on: curve.arriveOn ?? null, stuckKg: curve.stuckKg ?? null }
       }
     },
@@ -490,29 +503,22 @@ export const useDataStore = defineStore('data', {
     // Skelnen, der betyder alt: noget sker ÉN gang (en sprunget træning), og
     // noget sker HVER dag (man spiser 100 mere fremover). Det sidste er mange
     // gange dyrere, og det er svært at mærke, før man ser det.
-    planPrices(state) {
-      const g = state.goals
+    planPrices() {
       const kg = this.currentWeight
-      const burn = this.planBurn
       const curve = this.plan
       const perDay = this.planDeficitPerDay
-      if (!curve?.arriveOn || !burn || !kg || !(perDay > 0)) return null
+      if (!curve?.arriveOn || !kg || !(perDay > 0)) return null
 
       const one = this.sessionKcal
       const treat = treatPerDay(this.dailyGoal, one)
       const base = Date.parse(curve.arriveOn)
 
-      // Varige ændringer: kør kurven igen med et andet dagligt regnskab
+      // Varige ændringer: kør den samme kurve igen med et andet dagligt
+      // regnskab. Før glemte den her et fast dagsmål, og så stod der "når
+      // aldrig målet" ud for det hele.
       const shifted = (delta) => {
-        const c = planCurve({
-          start: { on: g.plan_start_on, kg: Number(g.plan_start_kg) },
-          targetKg: Number(g.goal_kg),
-          rate: Number(g.loss_per_week),
-          burn: { kcal: burn + delta, kg },
-          movementPerKg: planPerKg(this.planMinutes),
-        floor: this.minGoal,
-        })
-        if (!c.arriveOn) return null
+        const c = this.planCurveFor({ burnDelta: delta })
+        if (!c?.arriveOn) return null
         return Math.round((Date.parse(c.arriveOn) - base) / 86400000)
       }
 
@@ -602,12 +608,78 @@ export const useDataStore = defineStore('data', {
       }
     },
 
-    // Foran eller bagud i forhold til planen i dag
-    planToday(state) {
+    // Det næste skridt på vejen: næste hele 5 kg under din vægt (eller målvægten,
+    // hvis den er nærmere), og hvornår planen når derned herfra.
+    //
+    // Hvorfor ikke datoen for selve målvægten: jo lettere man bliver, jo mindre
+    // forbrænder man, så de sidste kilo går langsommere og langsommere. Det gør
+    // den dato så følsom, at 50 kcal om dagen flytter den flere år — og så
+    // præcist kan intet forbrug måles. Det næste skridt flytter sig højst et par
+    // uger for de samme 50 kcal.
+    //
+    // Regnes fra der, hvor DU er, ikke hvor planen er: er du foran, kommer
+    // skridtet tidligere. Tiden fra én vægt til en anden afhænger kun af vægten,
+    // så det er planens egne dage fra din vægt ned til skridtet.
+    planNextStep(state) {
       const curve = this.plan
-      const kg = this.currentWeight
-      if (!curve || !kg) return null
-      return planStatus(curve, localToday(), kg)
+      const latest = this.latestWeight
+      const goal = Number(state.goals.goal_kg)
+      if (!curve || !latest || !(goal > 0)) return null
+      const kg = Number(latest.kg)
+      if (kg <= goal) return null
+      // Skridtet regnes fra din LAVESTE vejning siden planen startede. Har du
+      // først været under 90, står der 85 — også selvom vægten dagen efter
+      // viser 90,4 igen. Ellers ville skridtet skifte frem og tilbage med
+      // vægtens daglige udsving.
+      const since = curve.days[0].date
+      const lowest = Math.min(kg, ...this.weighIns.filter((w) => w.measured_on >= since).map((w) => Number(w.kg)))
+      const mark = Math.max(goal, Math.ceil(lowest / 5) * 5 - 5)
+      const from = curve.days.findIndex((d) => d.kg <= kg)
+      const to = curve.days.findIndex((d) => d.kg <= mark)
+      if (to < 0) return { kg: mark, on: null }
+      return { kg: mark, on: addDays(latest.measured_on, to - Math.max(0, from)) }
+    },
+
+    // Hvornår du når målvægten, hvis du fortsætter som siden planen startede —
+    // som et SPÆND af år, ikke en måned.
+    //
+    // Tempoet måles på alle vejninger siden planens start: det er dér, rutinen
+    // med træning begyndte, så tallene før beskriver noget andet. Det rummer det,
+    // du faktisk spiser (hyggedage med) og den træning, du faktisk laver.
+    //
+    // Hvorfor et spænd: de sidste kilo går så langsomt, at 0,05 kg om ugen i
+    // tempoet i dag flytter datoen for målvægten et år. Spændet er tempoet plus
+    // og minus to gange dets usikkerhed. Den usikkerhed bliver mindre, jo længere
+    // tid der går, så spændet snævrer ind af sig selv.
+    // Giver null de første 4 uger efter start — før er tempoet for tilfældigt.
+    goalRange(state) {
+      const g = state.goals
+      const goal = Number(g.goal_kg)
+      const latest = this.latestWeight
+      if (!g.plan_start_on || !latest || !(goal > 0) || Number(latest.kg) <= goal) return null
+      const since = [...this.weighIns].reverse().filter((w) => w.measured_on >= g.plan_start_on)
+      const t = since.length >= 6 ? trend(since) : null
+      if (!t || t.days < 28 || !(t.kgPerWeek > 0)) return null
+      const at = (kgPerWeek) =>
+        kgPerWeek > 0
+          ? paceArrival({ on: latest.measured_on, kg: Number(latest.kg), targetKg: goal, kgPerWeek })?.on ?? null
+          : null
+      const early = at(t.kgPerWeek + 2 * t.se)
+      if (!early) return null
+      return { early, late: at(t.kgPerWeek - 2 * t.se), kgPerWeek: t.kgPerWeek, se: t.se }
+    },
+
+    // Foran eller bagud i forhold til planen. Sammenlignes på den dag, du sidst
+    // vejede dig: ellers ville planen gå videre ned hver dag, mens din vægt står
+    // stille indtil næste vejning, og så ville du glide "bagud" uden grund.
+    planToday() {
+      const curve = this.plan
+      const latest = this.latestWeight
+      if (!curve || !latest) return null
+      const start = curve.days[0].date
+      const on = latest.measured_on < start ? start : latest.measured_on
+      const status = planStatus(curve, on, Number(latest.kg))
+      return status ? { ...status, on } : null
     },
 
     // Det grundlag fiber-målet regnes ud fra: køn, og forbruget anslået ud fra

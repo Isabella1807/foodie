@@ -81,10 +81,14 @@ function say(days) {
       </tbody>
     </table>
 
-    <p class="plan-sub">
+    <p v-if="data.goals.loss_per_week" class="plan-sub">
       Kalorierne er det egentlige. Tiden er kun den ene måde at betale dem på. Den anden er mindre mad:
       træner du mindre, måler appen et lavere forbrug og sætter dit dagsmål ned, så tempoet holdes. Derfor
       ser tiden lille ud, selvom prisen er reel — du betaler den på tallerkenen i stedet.
+    </p>
+    <p v-else class="plan-sub">
+      Kalorierne er det egentlige, tiden er det, de koster på måldatoen. Dit dagsmål er et fast tal, så
+      appen ændrer aldrig maden for at indhente noget.
     </p>
     <p class="plan-sub">
       Den nederste liste gælder KUN, hvis det bliver sådan hver eneste uge herfra og til {{ until }}.

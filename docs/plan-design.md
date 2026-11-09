@@ -120,3 +120,18 @@ databasen for at kunne lave analysen senere.
 opfyldt, og det skal stå som et interval og ikke som ét tal — fx "et pas er
 værd omkring 200 til 300 kcal for dig". Ét præcist tal ville være samme fejl som
 det, der lige er fjernet.
+
+**Afprøvet 2026-11-09 — virker ikke godt nok, og er derfor ikke bygget.** I stedet
+for to perioder blev der lavet én samlet tilpasning over alle vejninger: et
+grundforbrug (der falder 13 kcal pr. tabt kilo) plus en faktor på appens egen
+sats for bevægelse. På hendes tal gav det en faktor på ca. 1,0 — en times gåtur
+er ca. 300 kcal værd, altså det samme, som appen i forvejen regner med — men med
+et spænd fra 0 til over 2. I simuleringer af de næste fem måneder med hendes nye
+rutine (fire gåture og tre korte styrkepas om ugen) blev spændet aldrig smalt
+nok, og selv når intet andet end træningen ændrede sig, lå det midterste bud
+langt fra det sande. Lagde man 60 kcal om dagen til eller fra noget andet (flere
+skridt i hverdagen, lidt anderledes logning), flyttede faktoren sig med 0,5–1.
+Grunden er, at alt, der er forskelligt mellem perioderne, bliver regnet som
+træning, og de forskelle er lige så store som det, der skal måles. Appens sats
+står derfor, og det ærlige tal er det, vægten selv viser: tempoet og spændet på
+datoen for målvægten, som rummer træningen, uanset hvad den faktisk koster.
