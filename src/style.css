@@ -22,6 +22,17 @@
   --radius: 14px;
   --font-display: 'Fraunces', Georgia, serif;
   --font-body: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  /* Plads til telefonens egne knapper i bunden (se nedenfor) */
+  --bottom-safe: env(safe-area-inset-bottom, 0px);
+}
+
+/* Åbnet fra hjemmeskærmen på Android tegnes appen helt ned bag telefonens
+   knapper, men telefonen siger ikke altid, hvor meget de fylder (insets = 0).
+   Så holdes mindst 48 px fri — højden på Androids knap-bjælke. */
+@media (display-mode: standalone) {
+  :root {
+    --bottom-safe: max(env(safe-area-inset-bottom, 0px), 48px);
+  }
 }
 
 * {
@@ -69,7 +80,7 @@ button {
 .app-main {
   max-width: 480px;
   margin: 0 auto;
-  padding: 20px 16px calc(96px + env(safe-area-inset-bottom));
+  padding: 20px 16px calc(96px + var(--bottom-safe));
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -1511,7 +1522,7 @@ button {
 .scanner-panel {
   position: relative;
   background: rgba(0, 0, 0, 0.78);
-  padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+  padding: 16px 16px calc(16px + var(--bottom-safe));
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -1813,7 +1824,7 @@ label {
   justify-content: space-around;
   background: var(--card);
   border-top: 1px solid var(--line);
-  padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+  padding: 6px 8px calc(6px + var(--bottom-safe));
 }
 
 /* Fem faner skal kunne være på en smal telefon (360 px): de deler bredden
