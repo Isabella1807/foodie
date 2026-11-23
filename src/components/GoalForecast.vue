@@ -104,7 +104,7 @@ function save() {
     <template v-if="!showForm && hasPlan">
       <p class="weight-note">
         Måldatoen står på plan-kortet øverst. Her kan du rette de tal om din krop, appen bruger til
-        proteinmål, fibermål og pulsen i planen.
+        fibermål og pulsen i planen. Fedtprocenten til protein-målet står på Krop-fanen.
         <button class="link" @click="openEdit">{{ complete ? 'ret dine tal' : 'tilføj dine krops-tal' }}</button>
       </p>
     </template>

@@ -5,6 +5,7 @@ import { useCollapse } from '../lib/useCollapse'
 import { askNotifyPermission } from '../lib/liveStatus'
 import { kgPerWeekAt, MIN_GOAL } from '../lib/burn'
 import { KCAL_MACROS, MACRO_LABELS, FIBER_FLOOR, FIBER_PER_MJ, KCAL_PER_MJ } from '../lib/nutrition'
+import { PROTEIN_PER_LEAN_KG } from '../lib/body'
 
 const data = useDataStore()
 const box = useCollapse('goals')
@@ -63,6 +64,14 @@ const expectedRate = computed(() => (burn.value.ready ? kgPerWeekAt(burn.value.k
 // Dagens mål for protein, kulhydrat, fedt og fibre (gram) — egne tal eller udgangspunktet
 const macroGoals = computed(() => data.macroGoals)
 const anyCustom = computed(() => KCAL_MACROS.some((k) => data.goals[`${k}_goal`] != null))
+// Vægten uden fedt fra et kropstjek (Krop-fanen) — så regnes protein ud fra kroppen
+const lean = computed(() => data.leanMass)
+// Udgangspunktet i ord, så noten siger det samme, som appen regner
+const splitText = computed(() =>
+  lean.value
+    ? `protein ${PROTEIN_PER_LEAN_KG} g for hvert kg, du vejer uden fedt (ca. ${fmtKg(lean.value)} kg fra dit kropstjek), fedt 30 % af kalorierne og kulhydrat resten`
+    : '25 % af kalorierne fra protein, 45 % fra kulhydrat og 30 % fra fedt',
+)
 
 // Fiber-målet: eget tal, eller regnet ud fra køn og kroppens forbrug (køn,
 // vægt, højde og alder) — kendes de ikke, gælder bundgrænsen for kvinder
@@ -244,12 +253,17 @@ function save() {
       </template>
     </div>
     <p v-show="help.open" class="goal-note">
-      <template v-if="!anyCustom">
-        Et udgangspunkt regnet ud fra dit daglige mål: 25 % af kalorierne fra protein, 45 % fra kulhydrat og 30 % fra fedt.
+      <template v-if="!anyCustom && lean">
+        Et udgangspunkt: {{ splitText }}. Protein følger din krop og ikke kalorierne, så det falder ikke, når
+        dagsmålet falder. Ret tallene, hvis du har fået andre.
+      </template>
+      <template v-else-if="!anyCustom">
+        Et udgangspunkt regnet ud fra dit daglige mål: {{ splitText }}.
         Protein er sat lidt højere end de almindelige anbefalinger, fordi det mætter, når man taber sig. Ret tallene, hvis du har fået andre.
+        Skriv din fedtprocent på Krop-fanen, så regnes protein ud fra din krop i stedet.
       </template>
       <template v-else>
-        Dine egne tal. Sletter du et tal, går det tilbage til udgangspunktet: 25 % af kalorierne fra protein, 45 % fra kulhydrat og 30 % fra fedt.
+        Dine egne tal. Sletter du et tal, går det tilbage til udgangspunktet: {{ splitText }}.
       </template>
     </p>
 

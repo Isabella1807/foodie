@@ -44,7 +44,7 @@ Tryk på overskriften på et kort for at folde det sammen; tryk igen for at åbn
 
 ## Navigation
 
-Tre faner i bunden: **I dag**, **Kalender**, **Mad**.
+Fem faner i bunden: **I dag**, **Plan**, **Krop**, **Kalender**, **Mad**. Fanerne deler bredden ligeligt, så alle fem kan være på en smal telefon.
 
 ---
 
@@ -161,7 +161,7 @@ Kortet starter lukket, og overskriften bærer selv pointen: "forslag — 21 g fi
 - Dagligt mål i kcal med "ret". Ved rettelse vælger man "Fast tal" eller "Regn det ud for mig" (hvor mange kg om ugen man vil tabe). Med det automatiske valg regner appen dagsmålet ud fra det målte forbrug hver mandag, gældende ugen ud, aldrig under 1200 kcal. Er forbruget ikke sikkert nok endnu (for få vejninger), gælder det faste tal, og en note forklarer det. Noter forklarer regnestykket ("dit forbrug mandag 1.700 minus 300").
 - Ugentligt budget (dagsmål × 7).
 - Dit forbrug: "ca. 1.700 kcal/dag, målt over de sidste 14 uger ud fra din logning og vægt. Tal ældre end 3 måneder tæller mindre og mindre". Følger med hver dag, men én vejning flytter det højst 50 kcal. Planen bruger ikke dette tal, men det, der blev målt, da planen startede. Plus hvad dagsmålet så betyder: "du spiser ca. 300 mindre, end du forbrænder, det svarer til ca. 0,27 kg om ugen". Advarer hvis målet ligger over forbruget. Nævner hvis dage i perioden ikke er logget.
-- Protein, kulhydrat og fedt pr. dag i gram, hver med "ret". Standard er 25/45/30 % af kalorierne, og en note forklarer det (og at man kan slette sit eget tal for at gå tilbage).
+- Protein, kulhydrat og fedt pr. dag i gram, hver med "ret". Standard er 25/45/30 % af kalorierne. Er der skrevet en fedtprocent på Krop-fanen, regnes protein i stedet ud fra kroppen (2 g pr. kg fedtfri vægt), fedt er stadig 30 %, og kulhydrat får resten. En note forklarer, hvad der gælder (og at man kan slette sit eget tal for at gå tilbage).
 - Fibre pr. dag med "ret". Standard regnes ud fra køn, vægt, højde og alder (3 g pr. 239 kcal man forbrænder, mindst 25 g for kvinder / 35 g for mænd). Noten viser regnestykket eller beder om krops-tal.
 - Målvægt i kg med "ret"/"sæt".
 - Vejning: "et par gange om ugen" (kun tekst).
@@ -172,7 +172,34 @@ Kortet starter lukket, og overskriften bærer selv pointen: "forslag — 21 g fi
 ## Fane 2: Plan
 Alt om hvor det bærer hen, samlet ét sted. Øverst det store tal: hvor mange kg der er tabt indtil nu. Derunder plan-kortet, vægtudviklingen med graf og tabel, hvad koster hvad, hvis jeg spiser, forventet tid til målet (eller "dine krops-tal"), mine mål, og nederst protein og fibre over tid. Man vejer sig på forsiden, så vægt-kortet står ikke her.
 
-## Fane 3: Kalender
+## Fane 3: Krop
+Kroppen ud over vægten. Når man styrketræner, kan vægten stå stille, mens fedtet går ned og musklerne holder på mere vand. Et målebånd viser det, vægten skjuler. Øverst det store tal: hvor mange cm taljen er blevet mindre siden første måling ("−2,5 cm om taljen siden 1. november"). Er taljen ikke blevet mindre, står bare det seneste taljemål, så et lille hop op ikke står med kæmpe skrift.
+
+### Målebånd
+- Fire steder: talje, hofte, lår og overarm. Man behøver ikke måle dem alle; tomme felter gemmes bare ikke. Én måling pr. dag, ligesom vejningerne.
+- Det seneste mål pr. sted og ændringen siden første måling. Talje og hofte bliver grønne, når de falder. Lår og overarm farves ikke, for de kan blive større af muskler.
+- Vægten i samme periode står under ("Vægten i samme periode: −0,4 kg") — det er pointen: står vægten stille, mens taljen falder, sker der noget alligevel. Vægten er vejningen tættest på dagen for første og seneste måling, højst tre dage væk.
+- Påmindelse: under to uger siden sidst står "Næste gang: omkring <dato tre uger efter>". Efter to uger: "Det er 15 dage siden, du sidst målte dig. Tid til at måle igen 📏". Hver 2.-4. uge, fordi ændringen på en uge er mindre end det, man kan måle med et bånd.
+- "Sådan måler du" (står åben første gang, indtil man selv lukker den): om morgenen før morgenmad, stå afslappet og ånd normalt ud, båndet vandret og tæt uden at trykke, samme side hver gang, og taljen et FAST sted — ikke "der hvor det er bredest", for det sted flytter sig, når man taber sig.
+- Formularen: dato (i dag som standard), de fire felter med en lille tekst om hvor, og under taljen et felt "Hvor måler du taljen?" (fx "to fingre under navlen"). Det gemmes og står ved talje-feltet næste gang. Vælges en dag, der allerede har en måling, hentes den ind og kan rettes eller slettes. Formularen husker det tastede som kladde, hvis den lukkes før "Gem" (man står jo med et målebånd og skifter måske app).
+
+### Alle målinger
+En tabel med alle målinger, nyeste øverst: dato, talje, hofte, lår, arm og vægten fra samme tid. Korte kolonne-navne og korte datoer ("23. nov"), så den kan være på en telefon.
+
+### Fedtprocent og protein
+- Fedtprocent fra et kropstjek, med vægten ved tjekket og datoen. Vægten er udfyldt med vejningen tættest på dagen, men kan rettes til tallet fra udskriften.
+- Vægten uden fedt = vægten ved tjekket × (1 − fedtprocent). Den regnes ud fra vægten DEN dag, for det er den, fedtprocenten hører til: taber man fedt bagefter, falder fedtprocenten, men vægten uden fedt står nogenlunde stille.
+- Protein-målet bliver 2 g pr. kg fedtfri vægt i stedet for 25 % af kalorierne. Så falder det ikke, når kalorie-målet falder — det er musklerne, der skal passes på. Med hendes tal: 46 % fedt ved 89,2 kg giver 48,2 kg uden fedt og 96 g protein.
+- Har man selv sat et protein-mål under "Mine mål", vinder det, og kortet tilbyder "Brug 96 g i stedet".
+- En note om, at tallet fra et kropstjek svinger flere procent med kroppens vand, og at man kan tage et nyt hver 2.-3. måned.
+- Muskelmasse, væskebalance, knoglemasse, abdominalt fedt, metabolisk alder og hvilestofskifte fra kropstjekket bruges bevidst IKKE: de er enten skøn regnet ud af de samme målinger, ændrer ikke på hvad man skal spise, eller er dårligere end det målte forbrug, appen allerede har.
+
+### Beskeder "til dig"
+Står vægten stille i to uger, men er taljen mindst 1 cm mindre end ved en måling mindst to uger før, siger beskeden det i stedet for bare "vægten står stille" — og nævner, at muskler holder på vand, når man træner. Er taljen faldet, uden at vægten står stille, kommer en kort besked om det. Kræver en taljemåling højst tre uger gammel. Se `recentWaistDrop` i `src/lib/body.js`.
+
+Kræver tabellen `body_measurements` og fire nye kolonner på `profiles` — se bunden af `sql/schema.sql`.
+
+## Fane 4: Kalender
 
 ### Månedskalender
 - Pile til forrige/næste måned (ikke frem i fremtiden), månedens navn.
@@ -204,7 +231,7 @@ Alt om hvor det bærer hen, samlet ét sted. Øverst det store tal: hvor mange k
 
 ---
 
-## Fane 4: Mad (madlisten)
+## Fane 5: Mad (madlisten)
 
 - Knapper øverst: "Tilføj" (ny vare) og "Byg en ret".
 - Søgefelt og filtre: Alle, Retter, Portioner, Stk, Gram, Milliliter.

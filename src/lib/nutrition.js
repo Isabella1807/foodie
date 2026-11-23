@@ -1,5 +1,7 @@
 // Protein, kulhydrat, fedt og fibre følger kalorierne: samme grundlag på varen
 // (pr. 100 g/ml eller pr. portion) og samme brøkdel, når en mængde logges.
+import { proteinFromLean } from './body'
+
 export const MACROS = ['protein', 'carbs', 'fat', 'fiber']
 export const MACRO_LABELS = { protein: 'protein', carbs: 'kulhydrat', fat: 'fedt', fiber: 'fibre' }
 
@@ -96,12 +98,22 @@ export function defaultFiberGoal({ sex = null, kcalNeed = null } = {}) {
   return Math.max(floor, Math.round((FIBER_PER_MJ * kcalNeed) / KCAL_PER_MJ))
 }
 
-// body: { sex, kcalNeed } — bruges kun til fiber-målet
+// body: { sex, kcalNeed, leanKg }
+//  - sex og kcalNeed bruges til fiber-målet
+//  - leanKg (vægten uden fedt, fra et kropstjek) sætter protein ud fra kroppen
+//    i stedet for som 25 % af kalorierne — se lib/body.js
+// Fedt er 30 % af kalorierne, og kulhydrat får resten. Uden kropstjek giver
+// det præcis 25/45/30 som før.
 export function defaultMacroGoals(kcalGoal, body = {}) {
-  const out = {}
-  for (const k of KCAL_MACROS) out[k] = Math.round((kcalGoal * DEFAULT_SPLIT[k]) / KCAL_PER_GRAM[k])
-  out.fiber = defaultFiberGoal(body)
-  return out
+  const fromBody = proteinFromLean(body.leanKg)
+  const proteinKcal = fromBody ? fromBody * KCAL_PER_GRAM.protein : kcalGoal * DEFAULT_SPLIT.protein
+  const fatKcal = kcalGoal * DEFAULT_SPLIT.fat
+  return {
+    protein: Math.round(proteinKcal / KCAL_PER_GRAM.protein),
+    carbs: Math.max(0, Math.round((kcalGoal - proteinKcal - fatKcal) / KCAL_PER_GRAM.carbs)),
+    fat: Math.round(fatKcal / KCAL_PER_GRAM.fat),
+    fiber: defaultFiberGoal(body),
+  }
 }
 
 // Kort tekst til en liste: "12 g protein · 30 g kulhydrat · 5 g fedt · 3 g fibre"

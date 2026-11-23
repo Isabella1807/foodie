@@ -10,6 +10,7 @@ import { MOVE_GOAL_MIN, MOVE_DAYS_PER_WEEK, isDone } from '../lib/movement'
 import { sumMacros, defaultMacroGoals, MACROS, REACH_GOALS } from '../lib/nutrition'
 import { balance } from '../lib/balance'
 import { encouragements } from '../lib/encourage'
+import { leanMass, measurementList, SITE_KEYS } from '../lib/body'
 
 const now = () => new Date().toISOString()
 
@@ -19,6 +20,20 @@ const parseDay = (s) => {
   return new Date(y, m - 1, d)
 }
 const daysBetween = (a, b) => Math.round((b - a) / 86400000)
+
+// Krops-tal: højde, alder, køn og aktivitet (formlen for forbruget), plus
+// fedtprocent fra et kropstjek med vægten og datoen for tjekket (protein-målet),
+// og hvor taljen måles, så det samme sted rammes hver gang
+const EMPTY_PROFILE = {
+  height_cm: null,
+  age: null,
+  sex: null,
+  activity: null,
+  body_fat_pct: null,
+  body_check_kg: null,
+  body_check_on: null,
+  waist_spot: null,
+}
 
 // Kopi uden de valgfrie felter, der er tomme
 function withoutEmpty(obj, optional) {
@@ -47,13 +62,16 @@ export const useDataStore = defineStore('data', {
       celebrations: cache.celebrations || [], // dage markeret som hygge-/festdag: { id, date }
       // Krops-tal til at anslå tid til målet og ekstra plads på aktive dage.
       // Synces nu, så de samme tal gælder på alle enheder
-      profile: cache.profile || { height_cm: null, age: null, sex: null, activity: null },
+      profile: { ...EMPTY_PROFILE, ...(cache.profile || {}) },
       // Valgt aktivitet pr. dag, fx { '2026-07-20': 'moderat' } — en mere aktiv
       // dag giver ekstra plads i dagens mål. Synces også
       dayActivity: cache.dayActivity || {},
       // Bevægelse pr. dag, fx { '2026-09-10': { minutes: 30, kind: 'vr' } } — et kryds
       // for dagen, som IKKE ændrer dagens mål. Synces
       movement: cache.movement || {},
+      // Mål med målebånd pr. dag, fx { '2026-11-23': { waist_cm: 98, hip_cm: 120,
+      // thigh_cm: 70, arm_cm: 35 } } — hvert felt kan være tomt. Synces
+      measurements: cache.measurements || {},
       notify: cache.notify || false, // fast notifikation med dagens kalorier (pr. enhed)
       nudgeHiddenOn: cache.nudgeHiddenOn || null, // dagen hun trykkede "ikke i dag" på forslagene (pr. enhed)
       noteHidden: cache.noteHidden || {}, // "tak" på en besked "til dig": nøgle → dagen, så den holder pause et par dage (pr. enhed)
@@ -689,11 +707,21 @@ export const useDataStore = defineStore('data', {
       return { ...state.profile, kg, kcalNeed: bodyBurn({ ...state.profile, kg }) }
     },
 
+    // Vægten uden fedt, ud fra fedtprocenten og vægten ved kropstjekket.
+    // Mangler vægten fra tjekket, bruges vejningen tættest på — og ellers den
+    // nuværende vægt. null uden en fedtprocent.
+    leanMass(state) {
+      const p = state.profile
+      if (!p.body_fat_pct) return null
+      return leanMass(p.body_fat_pct, p.body_check_kg || this.bodyWeight)
+    },
+
     // Dagens mål for protein, kulhydrat, fedt og fibre i gram: hendes egne tal,
-    // ellers et udgangspunkt — protein/kulhydrat/fedt ud fra kalorie-målet
-    // (25/45/30 % af kalorierne), fibre ud fra køn og kroppens forbrug
+    // ellers et udgangspunkt. Protein ud fra vægten uden fedt, når der er et
+    // kropstjek (ellers 25 % af kalorierne), fedt 30 %, kulhydrat resten, og
+    // fibre ud fra køn og kroppens forbrug
     macroGoals(state) {
-      const defaults = defaultMacroGoals(this.dailyGoal, this.fiberBasis)
+      const defaults = defaultMacroGoals(this.dailyGoal, { ...this.fiberBasis, leanKg: this.leanMass })
       const out = {}
       for (const k of MACROS) out[k] = state.goals[`${k}_goal`] ?? defaults[k]
       return out
@@ -739,8 +767,14 @@ export const useDataStore = defineStore('data', {
         movement: state.movement,
         weekBalance: this.balanceBetween(weekStart(today), today),
         lost: this.weightLost,
+        measurements: this.measureList,
         hidden: state.noteHidden,
       })
+    },
+
+    // Målingerne med målebånd, ældste først
+    measureList(state) {
+      return measurementList(state.measurements)
     },
 
     // Den ene besked, der vises lige nu (null = ingen)
@@ -775,6 +809,7 @@ export const useDataStore = defineStore('data', {
         profile: this.profile,
         dayActivity: this.dayActivity,
         movement: this.movement,
+        measurements: this.measurements,
         notify: this.notify,
         nudgeHiddenOn: this.nudgeHiddenOn,
         noteHidden: this.noteHidden,
@@ -991,6 +1026,27 @@ export const useDataStore = defineStore('data', {
       }
     },
 
+    // Gem (eller ret) dagens mål med målebånd. values: { waist_cm, hip_cm,
+    // thigh_cm, arm_cm } — et tomt felt er bare ikke målt. Er ALLE tomme,
+    // fjernes målingen. Én måling pr. dag, ligesom vejningerne.
+    saveMeasurement(date, values) {
+      const row = {}
+      for (const k of SITE_KEYS) row[k] = values[k] ?? null
+      if (SITE_KEYS.every((k) => row[k] == null)) return this.removeMeasurement(date)
+      this.measurements = { ...this.measurements, [date]: row }
+      this.persist()
+      this.queue('upsert_measurement', { measured_on: date, ...row })
+    },
+
+    removeMeasurement(date) {
+      if (!(date in this.measurements)) return
+      const next = { ...this.measurements }
+      delete next[date]
+      this.measurements = next
+      this.persist()
+      this.queue('delete_measurement', { date })
+    },
+
     // Fast notifikation med dagens kalorier — til/fra pr. enhed (kun lokalt)
     setNotify(on) {
       this.notify = on
@@ -1019,9 +1075,10 @@ export const useDataStore = defineStore('data', {
       this.weights = []
       this.goals = { kcal_goal: 1500, goal_kg: null, protein_goal: null, carbs_goal: null, fat_goal: null, fiber_goal: null, loss_per_week: null, plan_start_on: null, plan_start_kg: null, min_kcal: null, plan_minutes: null, plan_days: null }
       this.celebrations = []
-      this.profile = { height_cm: null, age: null, sex: null, activity: null }
+      this.profile = { ...EMPTY_PROFILE }
       this.dayActivity = {}
       this.movement = {}
+      this.measurements = {}
       this.notify = false
       this.nudgeHiddenOn = null
       this.noteHidden = {}
@@ -1101,6 +1158,11 @@ export const useDataStore = defineStore('data', {
           return supabase.from('movement').upsert(op.payload, { onConflict: 'user_id,date' })
         case 'delete_movement':
           return supabase.from('movement').delete().eq('date', op.payload.date)
+        case 'upsert_measurement':
+          // Én række pr. dag — databasen sætter selv user_id ud fra login
+          return supabase.from('body_measurements').upsert(op.payload, { onConflict: 'user_id,measured_on' })
+        case 'delete_measurement':
+          return supabase.from('body_measurements').delete().eq('measured_on', op.payload.date)
         default:
           return { error: { code: 'unknown_op' } }
       }
@@ -1111,7 +1173,7 @@ export const useDataStore = defineStore('data', {
     async refresh() {
       if (this.outbox.length) return
       try {
-        const [foods, entries, weights, goals, celebrations, profiles, dayActivity, movement] = await Promise.all([
+        const [foods, entries, weights, goals, celebrations, profiles, dayActivity, movement, measurements] = await Promise.all([
           supabase.from('foods').select('*'),
           supabase.from('entries').select('*'),
           supabase.from('weights').select('*'),
@@ -1120,6 +1182,7 @@ export const useDataStore = defineStore('data', {
           supabase.from('profiles').select('*'),
           supabase.from('day_activity').select('*'),
           supabase.from('movement').select('*'),
+          supabase.from('body_measurements').select('*'),
         ])
         if (foods.error || entries.error) return
         this.foods = foods.data
@@ -1148,12 +1211,9 @@ export const useDataStore = defineStore('data', {
         // tal tastet her ikke forsvinder, før det er nået at blive sendt op
         if (!profiles.error && profiles.data.length) {
           const p = profiles.data[0]
-          this.profile = {
-            height_cm: p.height_cm ?? this.profile.height_cm,
-            age: p.age ?? this.profile.age,
-            sex: p.sex ?? this.profile.sex,
-            activity: p.activity ?? this.profile.activity,
-          }
+          const next = { ...EMPTY_PROFILE }
+          for (const k of Object.keys(EMPTY_PROFILE)) next[k] = p[k] ?? this.profile[k] ?? null
+          this.profile = next
         }
         // Dag-aktivitet: læg serverens dage oveni de lokale (serveren vinder pr. dag)
         if (!dayActivity.error) {
@@ -1164,6 +1224,15 @@ export const useDataStore = defineStore('data', {
         if (!movement.error) {
           const serverDays = Object.fromEntries(movement.data.map((m) => [m.date, { minutes: m.minutes, kind: m.kind ?? null, km: m.km ?? null }]))
           this.movement = { ...this.movement, ...serverDays }
+        }
+        // Målebånd: serverens tal erstatter de lokale. Det er sikkert, for
+        // refresh kører kun, når køen er tom — og så kan en måling, der er
+        // slettet på en anden telefon, også forsvinde her
+        if (!measurements.error) {
+          const num = (v) => (v == null ? null : Number(v))
+          this.measurements = Object.fromEntries(
+            measurements.data.map((m) => [m.measured_on, Object.fromEntries(SITE_KEYS.map((k) => [k, num(m[k])]))]),
+          )
         }
         this.persist()
       } catch {

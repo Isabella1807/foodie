@@ -1816,6 +1816,8 @@ label {
   padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
 }
 
+/* Fem faner skal kunne være på en smal telefon (360 px): de deler bredden
+   ligeligt i stedet for at have en fast mindste-bredde */
 .tabbar-item {
   display: flex;
   flex-direction: column;
@@ -1823,9 +1825,11 @@ label {
   gap: 2px;
   font-size: 0.75rem;
   color: var(--muted);
-  padding: 6px 18px;
+  padding: 6px 4px;
   border-radius: 12px;
-  min-width: 84px;
+  flex: 1;
+  min-width: 0;
+  max-width: 96px;
 }
 
 .tabbar-icon {
@@ -2308,4 +2312,125 @@ label {
   font-size: 0.85rem;
   color: var(--amber-dark);
   font-weight: 600;
+}
+
+/* ---- krop: målebånd og fedtprocent ---- */
+
+/* Datoen i et kort-hoved står ude til højre, lige før folde-pilen — ellers
+   lægger den sig midt imellem overskriften og pilen */
+.card-head .head-when {
+  margin-left: auto;
+  padding-right: 8px;
+  white-space: nowrap;
+}
+
+.measure {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Sted · seneste mål · ændring siden første måling */
+.measure-grid {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: baseline;
+  column-gap: 14px;
+  row-gap: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.measure-site {
+  font-size: 0.95rem;
+}
+
+.measure-val {
+  font-weight: 700;
+  color: var(--green-dark);
+  text-align: right;
+}
+
+.measure-change {
+  min-width: 64px;
+  text-align: right;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.measure-change.good-text {
+  color: var(--green-dark);
+}
+
+.measure-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Navn og hjælpetekst til venstre, feltet til højre. label har en global regel
+   med flex-direction: column, så den skal slås fra her */
+.measure-field {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-weight: 400;
+}
+
+.measure-name {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.measure-name small {
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.measure-input input {
+  width: 96px;
+  text-align: right;
+}
+
+.measure-field input[type='date'] {
+  font: inherit;
+  font-size: 1rem;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  min-height: 48px;
+}
+
+.measure-bad .measure-input input {
+  border-color: var(--danger);
+}
+
+/* Hvor taljen måles: lige under talje-feltet, lidt trukket ind */
+.measure-spot {
+  margin: -4px 0 4px;
+  padding-left: 12px;
+  border-left: 2px solid var(--green-soft);
+  font-size: 0.82rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.measure-table-wrap {
+  overflow-x: auto;
+}
+
+.measure-table th,
+.measure-table td {
+  padding-left: 6px;
+  padding-right: 6px;
+  white-space: nowrap;
+}
+
+.measure-table th.num {
+  text-align: right;
 }

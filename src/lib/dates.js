@@ -57,6 +57,13 @@ export function formatFullDate(dateStr) {
   return `${WEEKDAYS[date.getDay()]} d. ${date.getDate()}. ${MONTHS[date.getMonth()]}`
 }
 
+// Kort dato uden ugedag, fx "1. november" (med årstal, hvis det ikke er i år)
+export function formatDate(dateStr) {
+  const date = toDate(dateStr)
+  const suffix = date.getFullYear() !== new Date().getFullYear() ? ` ${date.getFullYear()}` : ''
+  return `${date.getDate()}. ${MONTHS[date.getMonth()]}${suffix}`
+}
+
 export function formatDayLabel(dateStr) {
   if (dateStr === localToday()) return 'i dag'
   const yesterday = new Date()

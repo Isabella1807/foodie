@@ -8,6 +8,7 @@
 // første. "Tak" på en besked gemmer den væk i NOTE_HIDE_DAYS dage, så den
 // næste kommer frem.
 import { addDays } from './dates'
+import { recentWaistDrop } from './body'
 
 export const NOTE_HIDE_DAYS = 3
 
@@ -27,11 +28,19 @@ function toDate(s) {
 }
 const daysBetween = (a, b) => Math.round((toDate(b) - toDate(a)) / 86400000)
 
+const MONTH_NAMES = ['januar', 'februar', 'marts', 'april', 'maj', 'juni', 'juli', 'august', 'september', 'oktober', 'november', 'december']
+// "d. 3. november"
+const dayName = (s) => {
+  const d = toDate(s)
+  return `d. ${d.getDate()}. ${MONTH_NAMES[d.getMonth()]}`
+}
+
 // weighIns: vejninger ældste først [{ measured_on, kg }]. entries: alle måltider.
 // dayBudget(date): dagens budget. goal: dagens mål. burn: det målte forbrug
 // ({ ready, kcal }). movement: { date: { minutes } }. weekBalance: protein/fibre
-// for ugen (lib/balance.js). lost: kg tabt i alt. hidden: { key: dato } fra "tak".
-export function encouragements({ today, weighIns = [], entries = [], dayBudget, goal, burn, movement = {}, weekBalance = {}, lost = null, hidden = {} }) {
+// for ugen (lib/balance.js). lost: kg tabt i alt. measurements: mål med
+// målebånd, ældste først (lib/body.js). hidden: { key: dato } fra "tak".
+export function encouragements({ today, weighIns = [], entries = [], dayBudget, goal, burn, movement = {}, weekBalance = {}, lost = null, measurements = [], hidden = {} }) {
   const out = []
   const add = (key, text, short) => out.push({ key, text, short })
 
@@ -68,6 +77,10 @@ export function encouragements({ today, weighIns = [], entries = [], dayBudget, 
   const change14 = twoWeeksAgo ? round1(Number(latest.kg) - Number(twoWeeksAgo.kg)) : null
   const change28 = fourWeeksAgo ? round1(Number(latest.kg) - Number(fourWeeksAgo.kg)) : null
 
+  // Taljen fra målebåndet: er den gået mindst 1 cm ned de sidste uger?
+  const waist = recentWaistDrop(measurements, today)
+  let waistSaid = false
+
   // 1. Vægten står stille
   if (change14 !== null && Math.abs(change14) <= FLAT_KG) {
     const flat4 = change28 !== null && Math.abs(change28) <= FLAT_KG
@@ -75,7 +88,16 @@ export function encouragements({ today, weighIns = [], entries = [], dayBudget, 
     const weeks = flat4 ? 'fire uger' : 'to uger'
     const span = `${fmtKg(Number(since.kg))} → ${fmtKg(Number(latest.kg))} kg`
     const deficit = burn?.ready && avg14 !== null ? burn.kcal - avg14 : null
-    if (deficit !== null && deficit >= DEFICIT_MIN) {
+    // Står vægten stille, men er taljen gået ned, er det den vigtigste besked:
+    // så sker der noget, vægten bare ikke viser endnu
+    if (waist) {
+      waistSaid = true
+      add(
+        'stuck-waist',
+        `Vægten har stået stille i ${weeks} (${span}), men taljen er ${fmtKg(waist.cm)} cm mindre end ${dayName(waist.since)}. Der sker altså noget. Når man træner, holder musklerne på mere vand, og det kan skjule et fedttab på vægten i en periode. Hold fast.`,
+        `vægten står stille, men taljen er ${fmtKg(waist.cm)} cm mindre`,
+      )
+    } else if (deficit !== null && deficit >= DEFICIT_MIN) {
       add(
         'stuck-deficit',
         `Vægten har stået stille i ${weeks} (${span}). Det ser jeg godt. Men tallene siger, at du taber dig: de sidste to uger har du i snit spist ${fmt(avg14)} kcal om dagen, og dit forbrug er målt til ca. ${fmt(burn.kcal)}. Underskuddet er der, og kroppen følger med — den gør det bare i ryk. Hold fast.`,
@@ -126,6 +148,15 @@ export function encouragements({ today, weighIns = [], entries = [], dayBudget, 
       'up-week',
       `Vægten er ${fmtKg(change7)} kg højere end for en uge siden. Så små hop er mest vand og mavens indhold, ikke fedt${onplan}. Kig på fire uger, ikke én.`,
       'et lille hop op er mest vand',
+    )
+  }
+
+  // 3b. Taljen er gået ned (når vægten ikke står stille — så er det sagt ovenfor)
+  if (waist && !waistSaid) {
+    add(
+      'waist-down',
+      `Taljen er ${fmtKg(waist.cm)} cm mindre end ${dayName(waist.since)}. Et mindre taljemål er et af de bedste tegn på, at det er fedt, der forsvinder.`,
+      `taljen er ${fmtKg(waist.cm)} cm mindre`,
     )
   }
 

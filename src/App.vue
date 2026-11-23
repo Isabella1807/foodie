@@ -7,13 +7,14 @@ import TabBar from './components/TabBar.vue'
 import LoginView from './views/LoginView.vue'
 import TodayView from './views/TodayView.vue'
 import PlanView from './views/PlanView.vue'
+import BodyView from './views/BodyView.vue'
 import CalendarView from './views/CalendarView.vue'
 import FoodsView from './views/FoodsView.vue'
 
 const auth = useAuthStore()
 const data = useDataStore()
 
-const tabs = { today: TodayView, plan: PlanView, calendar: CalendarView, foods: FoodsView }
+const tabs = { today: TodayView, plan: PlanView, body: BodyView, calendar: CalendarView, foods: FoodsView }
 const currentTab = ref('today')
 
 // Hold ikon-tallet og den faste notifikation i sync med dagens kalorier

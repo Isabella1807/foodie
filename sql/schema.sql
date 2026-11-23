@@ -229,3 +229,36 @@ alter table public.goals add column if not exists plan_days    integer check (pl
 -- kommer ud — ellers afviser databasen hver gemt dag, og den går tabt.
 
 alter table public.movement add column if not exists km numeric check (km > 0);
+
+-- ---------------------------------------------------------------------------
+-- Krop: målebånd og fedtprocent (kør kun dette, hvis du har kørt alt ovenfor)
+--
+-- Når man styrketræner, kan vægten stå stille, mens taljen bliver mindre. Mål
+-- med målebånd viser det. Én række pr. dag, og hvert sted kan være tomt.
+--
+-- Fedtprocenten fra et kropstjek gemmes sammen med vægten og datoen for
+-- tjekket: sammen giver de vægten uden fedt, som protein-målet regnes ud fra.
+-- waist_spot er hvor taljen måles (fx "to fingre under navlen"), så det samme
+-- sted rammes hver gang.
+
+create table if not exists public.body_measurements (
+  user_id     uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  measured_on date not null,          -- LOKAL kalenderdag, beregnet på telefonen
+  waist_cm    numeric check (waist_cm > 0),
+  hip_cm      numeric check (hip_cm > 0),
+  thigh_cm    numeric check (thigh_cm > 0),
+  arm_cm      numeric check (arm_cm > 0),
+  primary key (user_id, measured_on)
+);
+
+alter table public.body_measurements enable row level security;
+
+create policy "own body_measurements" on public.body_measurements
+  for all to authenticated
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid());
+
+alter table public.profiles add column if not exists body_fat_pct  numeric check (body_fat_pct > 0 and body_fat_pct < 100);
+alter table public.profiles add column if not exists body_check_kg numeric check (body_check_kg > 0);
+alter table public.profiles add column if not exists body_check_on date;
+alter table public.profiles add column if not exists waist_spot    text;
