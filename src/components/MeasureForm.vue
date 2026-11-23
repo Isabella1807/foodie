@@ -13,8 +13,6 @@ const today = localToday()
 
 const date = ref(today)
 const fields = reactive(Object.fromEntries(SITES.map((s) => [s.key, ''])))
-// Hvor taljen måles — står ved feltet næste gang, så det samme sted rammes
-const spot = ref(data.profile.waist_spot || '')
 
 const asText = (v) => (v == null ? '' : String(v).replace('.', ','))
 
@@ -40,10 +38,9 @@ fillFrom(today)
 // målebånd og skifter måske app midt i det. Se lib/drafts.js.
 const memory = useDraft(
   'measure',
-  () => ({ date: date.value, spot: spot.value, ...fields }),
+  () => ({ date: date.value, ...fields }),
   (v) => {
     date.value = v.date || today
-    spot.value = v.spot || ''
     for (const s of SITES) fields[s.key] = v[s.key] ?? ''
     filledFrom = data.measurements[date.value] ? date.value : null
   },
@@ -57,8 +54,6 @@ const canSave = computed(() => !!date.value && !invalid.value.length && SITES.so
 function save() {
   if (!canSave.value) return
   data.saveMeasurement(date.value, parsed.value)
-  const sp = spot.value.trim() || null
-  if (sp !== (data.profile.waist_spot || null)) data.setProfile({ waist_spot: sp })
   memory.done()
   emit('done')
 }
@@ -85,16 +80,11 @@ function remove() {
       <label class="measure-field" :class="{ 'measure-bad': invalid.includes(s) }">
         <span class="measure-name">
           {{ s.label }}
-          <small v-if="s.key === 'waist_cm' && spot.trim()">{{ spot.trim() }}</small>
-          <small v-else>{{ s.hint }}</small>
+          <small>{{ s.hint }}</small>
         </span>
         <span class="measure-input">
           <input v-model="fields[s.key]" type="text" inputmode="decimal" placeholder="cm" />
         </span>
-      </label>
-      <label v-if="s.key === 'waist_cm'" class="measure-spot">
-        <span>Hvor måler du taljen?</span>
-        <input v-model="spot" type="text" placeholder="fx to fingre under navlen" />
       </label>
     </template>
 

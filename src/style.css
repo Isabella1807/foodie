@@ -2421,16 +2421,6 @@ label {
   border-color: var(--danger);
 }
 
-/* Hvor taljen måles: lige under talje-feltet, lidt trukket ind */
-.measure-spot {
-  margin: -4px 0 4px;
-  padding-left: 12px;
-  border-left: 2px solid var(--green-soft);
-  font-size: 0.82rem;
-  font-weight: 400;
-  color: var(--muted);
-}
-
 .measure-table-wrap {
   overflow-x: auto;
 }

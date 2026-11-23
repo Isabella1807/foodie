@@ -96,8 +96,8 @@ const reminder = computed(() => {
       <p><b>Båndet vandret</b> og tæt ind til huden, uden at det trykker.</p>
       <p><b>Samme side</b> af kroppen hver gang, til lår og overarm.</p>
       <p>
-        <b>Taljen</b> måles et fast sted, du kan finde igen, fx to fingre under navlen. Ikke bare "der hvor det er
-        bredest": det sted flytter sig, når du taber dig. Skriv stedet i feltet, så står det der næste gang.
+        <b>Taljen</b> måles to fingre under navlen. Det er et fast sted, du kan finde igen. Ikke bare "der hvor det
+        er bredest": det sted flytter sig, når du taber dig.
       </p>
     </div>
 

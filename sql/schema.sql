@@ -238,8 +238,8 @@ alter table public.movement add column if not exists km numeric check (km > 0);
 --
 -- Fedtprocenten fra et kropstjek gemmes sammen med vægten og datoen for
 -- tjekket: sammen giver de vægten uden fedt, som protein-målet regnes ud fra.
--- waist_spot er hvor taljen måles (fx "to fingre under navlen"), så det samme
--- sted rammes hver gang.
+-- waist_spot bruges ikke længere (appen siger selv "to fingre under navlen"),
+-- men kolonnen bliver stående: en ældre profil på telefonen kan stadig sende den.
 
 create table if not exists public.body_measurements (
   user_id     uuid not null default auth.uid() references auth.users (id) on delete cascade,

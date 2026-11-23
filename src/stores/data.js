@@ -22,8 +22,7 @@ const parseDay = (s) => {
 const daysBetween = (a, b) => Math.round((b - a) / 86400000)
 
 // Krops-tal: højde, alder, køn og aktivitet (formlen for forbruget), plus
-// fedtprocent fra et kropstjek med vægten og datoen for tjekket (protein-målet),
-// og hvor taljen måles, så det samme sted rammes hver gang
+// og fedtprocent fra et kropstjek med vægten og datoen for tjekket (protein-målet)
 const EMPTY_PROFILE = {
   height_cm: null,
   age: null,
@@ -32,7 +31,6 @@ const EMPTY_PROFILE = {
   body_fat_pct: null,
   body_check_kg: null,
   body_check_on: null,
-  waist_spot: null,
 }
 
 // Kopi uden de valgfrie felter, der er tomme

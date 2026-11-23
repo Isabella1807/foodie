@@ -11,10 +11,10 @@
 // De fire steder, der måles. goodDown: et mindre mål er altid godt (talje og
 // hofte). Lår og overarm kan blive større af muskler, så dér farves intet.
 export const SITES = [
-  { key: 'waist_cm', label: 'Talje', hint: 'samme sted hver gang', goodDown: true },
+  { key: 'waist_cm', label: 'Talje', hint: 'to fingre under navlen', goodDown: true },
   { key: 'hip_cm', label: 'Hofte', hint: 'det bredeste sted rundt om numsen', goodDown: true },
   { key: 'thigh_cm', label: 'Lår', hint: 'det bredeste sted, samme ben hver gang', goodDown: false },
-  { key: 'arm_cm', label: 'Overarm', hint: 'midt mellem skulder og albue, armen hængende', goodDown: false },
+  { key: 'arm_cm', label: 'Overarm', hint: 'midt mellem skulder og albue, armen afslappet ned langs siden', goodDown: false },
 ]
 
 export const SITE_KEYS = SITES.map((s) => s.key)
